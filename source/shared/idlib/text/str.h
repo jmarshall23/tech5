@@ -1,0 +1,211 @@
+#pragma once
+
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
+#include <cstring>
+
+// Exact tungsten idStr storage layout (tungsten.exe.h type 12142). This is a
+// deliberately small ABI facade; more recovered text methods will be added as
+// text/str.cpp replaces the BFG baseline.
+class idStr {
+public:
+    idStr()
+        : len(0)
+        , data(baseBuffer)
+        , allocedAndFlag(20) {
+        baseBuffer[0] = '\0';
+    }
+
+    idStr(const char* text)
+        : idStr() {
+        Assign(text);
+    }
+
+    idStr(const idStr& other)
+        : idStr() {
+        Assign(other.c_str());
+    }
+
+    ~idStr() {
+        if (data != baseBuffer && !IsStaticBuffer()) {
+            std::free(data);
+        }
+    }
+
+    idStr& operator=(const idStr& other) {
+        if (this != &other) {
+            Assign(other.c_str());
+        }
+        return *this;
+    }
+
+    idStr& operator=(const char* text) {
+        Assign(text);
+        return *this;
+    }
+
+    const char* c_str() const {
+        return data;
+    }
+
+    operator const char*() const {
+        return data;
+    }
+
+    int Length() const {
+        return len;
+    }
+
+    void Clear() {
+        len = 0;
+        data[0] = '\0';
+    }
+
+    void TrimWhitespaceRecovered() {
+        while (len > 0
+            && std::isspace(static_cast<unsigned char>(data[len - 1])) != 0) {
+            data[--len] = '\0';
+        }
+        int amount = 0;
+        while (amount < len
+            && std::isspace(static_cast<unsigned char>(data[amount])) != 0) {
+            ++amount;
+        }
+        if (amount > 0) {
+            std::memmove(data, data + amount,
+                static_cast<std::size_t>(len - amount + 1));
+            len -= amount;
+        }
+    }
+
+    void Append(const char* text) {
+        if (text == nullptr || *text == '\0') {
+            return;
+        }
+        const int appendLength = static_cast<int>(std::strlen(text));
+        if (!EnsureAlloced(len + appendLength + 1)) {
+            return;
+        }
+        std::memcpy(data + len, text, static_cast<std::size_t>(appendLength + 1));
+        len += appendLength;
+    }
+
+    void Append(const char value) {
+        if (!EnsureAlloced(len + 2)) {
+            return;
+        }
+        data[len++] = value;
+        data[len] = '\0';
+    }
+
+    void Append(const idStr& text) {
+        Append(text.c_str());
+    }
+
+    void ReplaceRecovered(const char* oldText, const char* newText) {
+        if (oldText == nullptr || oldText[0] == '\0') {
+            return;
+        }
+        const char* const replacement = newText == nullptr ? "" : newText;
+        const int oldLength = static_cast<int>(std::strlen(oldText));
+        idStr result;
+        const char* cursor = data;
+        for (;;) {
+            const char* const match = std::strstr(cursor, oldText);
+            if (match == nullptr) {
+                result.Append(cursor);
+                break;
+            }
+            const int prefixLength = static_cast<int>(match - cursor);
+            for (int index = 0; index < prefixLength; ++index) {
+                result.Append(cursor[index]);
+            }
+            result.Append(replacement);
+            cursor = match + oldLength;
+        }
+        Assign(result.c_str());
+    }
+
+    static int Cmp(const char* left, const char* right) {
+        const char* const safeLeft = left == nullptr ? "" : left;
+        const char* const safeRight = right == nullptr ? "" : right;
+        return std::strcmp(safeLeft, safeRight);
+    }
+
+    bool operator==(const idStr& other) const {
+        return Cmp(c_str(), other.c_str()) == 0;
+    }
+
+    bool operator!=(const idStr& other) const {
+        return !(*this == other);
+    }
+
+    bool operator<(const idStr& other) const {
+        return Cmp(c_str(), other.c_str()) < 0;
+    }
+
+protected:
+    int len;
+    char* data;
+    int allocedAndFlag;
+    char baseBuffer[20];
+
+    void UseStaticBufferRecovered(char* buffer, const int capacity) {
+        if (data != baseBuffer && !IsStaticBuffer()) {
+            std::free(data);
+        }
+        data = buffer;
+        len = 0;
+        allocedAndFlag = capacity | static_cast<int>(0x80000000u);
+        if (data != nullptr && capacity > 0) {
+            data[0] = '\0';
+        }
+    }
+
+private:
+
+    int GetAlloced() const {
+        return allocedAndFlag & 0x7FFFFFFF;
+    }
+
+    bool IsStaticBuffer() const {
+        return (static_cast<unsigned int>(allocedAndFlag) & 0x80000000u) != 0;
+    }
+
+    bool EnsureAlloced(const int amount) {
+        if (amount <= GetAlloced()) {
+            return true;
+        }
+        if (IsStaticBuffer()) {
+            return false;
+        }
+
+        const int newAmount = std::max(amount, amount + amount / 2);
+        char* const replacement = static_cast<char*>(
+            std::malloc(static_cast<std::size_t>(newAmount))
+        );
+        if (replacement == nullptr) {
+            return false;
+        }
+        std::memcpy(replacement, data, static_cast<std::size_t>(len + 1));
+        if (data != baseBuffer) {
+            std::free(data);
+        }
+        data = replacement;
+        allocedAndFlag = newAmount;
+        return true;
+    }
+
+    void Assign(const char* text) {
+        const char* const source = text == nullptr ? "" : text;
+        const int sourceLength = static_cast<int>(std::strlen(source));
+        if (!EnsureAlloced(sourceLength + 1)) {
+            return;
+        }
+        std::memmove(data, source, static_cast<std::size_t>(sourceLength + 1));
+        len = sourceLength;
+    }
+};
+
+static_assert(sizeof(idStr) == 32, "Recovered idStr ABI changed");
