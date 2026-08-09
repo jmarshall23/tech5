@@ -193,6 +193,20 @@ public:
         return std::strcmp(safeLeft, safeRight);
     }
 
+    static int Icmp(const char* left, const char* right) {
+        const unsigned char* a = reinterpret_cast<const unsigned char*>(
+            left == nullptr ? "" : left);
+        const unsigned char* b = reinterpret_cast<const unsigned char*>(
+            right == nullptr ? "" : right);
+        while (*a != 0 && *b != 0) {
+            const int difference = std::tolower(*a) - std::tolower(*b);
+            if (difference != 0) return difference;
+            ++a;
+            ++b;
+        }
+        return std::tolower(*a) - std::tolower(*b);
+    }
+
     bool operator==(const idStr& other) const {
         return Cmp(c_str(), other.c_str()) == 0;
     }

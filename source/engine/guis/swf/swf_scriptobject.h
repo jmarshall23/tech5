@@ -1,176 +1,189 @@
-#pragma once
+/*
+===========================================================================
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\guis\swf\swf_scriptobject.h
-// Recovered logical types: 13
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+Doom 3 BFG Edition GPL Source Code
+Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company. 
 
+This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").  
 
-// IDA Local Type ordinal 1433; PDB kind: enum.
-enum idSWFScriptObject::swfObjectType_t : __int32
-{
-  SWF_OBJECT_OBJECT = 0x0,
-  SWF_OBJECT_ARRAY = 0x1,
-  SWF_OBJECT_SPRITE = 0x2,
-  SWF_OBJECT_TEXT = 0x3,
-  NUM_SWF_OBJECT_TYPES = 0x4,
-};
+Doom 3 BFG Edition Source Code is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-// IDA Local Type ordinal 2670; PDB kind: enum.
-enum idSWFScriptObject::swfNamedVarFlags_t : __int32
-{
-  SWF_VAR_FLAG_NONE = 0x0,
-  SWF_VAR_FLAG_READONLY = 0x2,
-  SWF_VAR_FLAG_DONTENUM = 0x4,
-};
+Doom 3 BFG Edition Source Code is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-// IDA Local Type ordinal 13284; PDB kind: class.
-class idSuperScriptObject : public idSSObject
-{
+You should have received a copy of the GNU General Public License
+along with Doom 3 BFG Edition Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, the Doom 3 BFG Edition Source Code is also subject to certain additional terms. You should have received a copy of these additional terms immediately following the terms and conditions of the GNU General Public License which accompanied the Doom 3 BFG Edition Source Code.  If not, please request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
+
+===========================================================================
+*/
+#ifndef __SWF_SCRIPTOBJECT_H__
+#define __SWF_SCRIPTOBJECT_H__
+
+class idSWFSpriteInstance;
+
+/*
+========================
+This is the base class for script variables which are implemented in code
+========================
+*/
+class idSWFScriptNativeVariable {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 13286.
-  virtual void Init();
-  virtual void Destroy();
-  virtual void _OnActivate(int);
-  virtual void _OnTrigger(int);
-  virtual void _OnActivateTargets(int);
-  virtual void _OnActionReached(int, int, bool);
-  virtual void _OnGoalReach(int);
-  virtual void _OnGoalAssigned(int);
-  virtual void _OnDamage(int, float);
-  virtual void _OnDeath(int);
-  virtual void _OnLeftGoal(int);
-  virtual void _OnReachGoal(int);
-  virtual void _OnLeaveAction(int);
-  virtual void _OnReachAction(int);
-  virtual void _OnAssignedGoal(int);
-  virtual void _OnAnimNotify(const char *);
-  virtual void _OnAnimEnd();
-  virtual void _OnAnimStart();
-  virtual void _OnMoverNotify(const char *);
-  virtual void _OnTargetSpawn(int);
-  virtual void _OnEnter(int);
-  virtual void _OnExit(int);
-  virtual void _OnUse(int);
-  virtual const char *_name();
-  virtual bool _isTypeOf(const char *);
-  virtual int _getEntity();
-  virtual void _setEntity(int);
-  virtual void (__fastcall *_getThreadFunction(const char *))(idSSObject *, void *);
-  virtual bool _isNotifyFunction(const char *);
-  virtual void *_getDeclPtr();
-  virtual ~idSuperScriptObject();
-  virtual void OnActivate(ssEntity);
-  virtual void OnTrigger(ssEntity);
-  virtual void OnActivateTargets(ssEntity);
-  virtual void OnActionReached(ssEntity, ssEntity, bool);
-  virtual void OnGoalReach(ssEntity);
-  virtual void OnGoalAssigned(ssEntity);
-  virtual void OnDamage(ssEntity, float);
-  virtual void OnDeath(ssEntity);
-  virtual void OnLeftGoal(ssEntity);
-  virtual void OnReachGoal(ssEntity);
-  virtual void OnLeaveAction(ssEntity);
-  virtual void OnReachAction(ssEntity);
-  virtual void OnAssignedGoal(ssEntity);
-  virtual void OnAnimNotify(ssString);
-  virtual void OnAnimEnd();
-  virtual void OnAnimStart();
-  virtual void OnMoverNotify(ssString);
-  virtual void OnTargetSpawn(ssEntity);
-  virtual void OnEnter(ssEntity);
-  virtual void OnExit(ssEntity);
-  virtual void OnUse(ssEntity);
-
-  ssEntity self;
+	virtual bool IsReadOnly() { return false; }
+	virtual void Set( class idSWFScriptObject * object, const idSWFScriptVar & value ) = 0;
+	virtual idSWFScriptVar Get( class idSWFScriptObject * object ) = 0;
 };
 
-// IDA Local Type ordinal 13488; PDB kind: class.
-class idScriptObject : public idClass
-{
+#define SWF_NATIVE_VAR_DECLARE( x ) \
+	class idSWFScriptNativeVar_##x : public idSWFScriptNativeVariable {			\
+	public:																		\
+		void Set( class idSWFScriptObject * object, const idSWFScriptVar & value );	\
+		idSWFScriptVar Get( class idSWFScriptObject * object );					\
+	} swfScriptVar_##x;
+
+#define SWF_NATIVE_VAR_DECLARE_READONLY( x )									\
+	class idSWFScriptNativeVar_##x : public idSWFScriptNativeVariable {			\
+	public:																		\
+		bool IsReadOnly() { return true; }										\
+		void Set( class idSWFScriptObject * object, const idSWFScriptVar & value ) { assert( false ); } \
+		idSWFScriptVar Get( class idSWFScriptObject * object );					\
+	} swfScriptVar_##x;
+
+/*
+========================
+This is a helper class for quickly setting up native variables which need access to a parent class
+========================
+*/
+template< typename T >
+class idSWFScriptNativeVariable_Nested : public idSWFScriptNativeVariable {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 13489.
-  virtual idTypeInfo *GetType();
-  virtual ~idScriptObject();
-
-  idTypeDef *type;
-  unsigned __int8 *data;
+	idSWFScriptNativeVariable_Nested() : pThis( NULL ) { }
+	idSWFScriptNativeVariable_Nested * Bind( T * p ) { pThis = p; return this; }
+	virtual void Set( class idSWFScriptObject * object, const idSWFScriptVar & value ) = 0;
+	virtual idSWFScriptVar Get( class idSWFScriptObject * object ) = 0;
+protected:
+	T * pThis;
 };
 
-// IDA Local Type ordinal 13874; PDB kind: struct.
-struct idSuperScriptObject::threadData1_t<ssEntity>
-{
-  void (__fastcall *realFunc)(idSSObject *, ssEntity);
-  const ssEntity *p1;
-};
+#define SWF_NATIVE_VAR_DECLARE_NESTED( x, y ) \
+	class idSWFScriptNativeVar_##x : public idSWFScriptNativeVariable_Nested<y> {	\
+	public:																			\
+		void Set( class idSWFScriptObject * object, const idSWFScriptVar & value );	\
+		idSWFScriptVar Get( class idSWFScriptObject * object );						\
+	} swfScriptVar_##x;
 
-// IDA Local Type ordinal 14000; PDB kind: struct.
-struct idSuperScriptObject::threadData2_t<enum musicTensionStates_t,tensionTransition_t>
-{
-  void (__fastcall *realFunc)(idSSObject *, musicTensionStates_t, tensionTransition_t);
-  const musicTensionStates_t *p1;
-  const tensionTransition_t *p2;
-};
+#define SWF_NATIVE_VAR_DECLARE_NESTED_READONLY( x, y, z )							\
+	class idSWFScriptNativeVar_##x : public idSWFScriptNativeVariable_Nested<y> {	\
+	public:																			\
+		bool IsReadOnly() { return true; }											\
+		void Set( class idSWFScriptObject * object, const idSWFScriptVar & value ) { assert( false ); } \
+		idSWFScriptVar Get( class idSWFScriptObject * object ) { return pThis->z; }	\
+	} swfScriptVar_##x;
 
-// IDA Local Type ordinal 14001; PDB kind: struct.
-struct idSuperScriptObject::threadData2_t<ssEntity,float>
-{
-  void (__fastcall *realFunc)(idSSObject *, ssEntity, float);
-  const ssEntity *p1;
-  const float *p2;
-};
-
-// IDA Local Type ordinal 14002; PDB kind: struct.
-struct idSuperScriptObject::threadData3_t<ssEntity,float,bool>
-{
-  void (__fastcall *realFunc)(idSSObject *, ssEntity, float, bool);
-  const ssEntity *p1;
-  const float *p2;
-  const bool *p3;
-};
-
-// IDA Local Type ordinal 14003; PDB kind: struct.
-struct idSuperScriptObject::threadData2_t<ssString,int>
-{
-  void (__fastcall *realFunc)(idSSObject *, ssString, int);
-  const ssString *p1;
-  const int *p2;
-};
-
-// IDA Local Type ordinal 14004; PDB kind: struct.
-struct idSuperScriptObject::threadData2_t<ssString,float>
-{
-  void (__fastcall *realFunc)(idSSObject *, ssString, float);
-  const ssString *p1;
-  const float *p2;
-};
-
-// IDA Local Type ordinal 14764; PDB kind: class.
-class idSWFScriptObject
-{
+/*
+========================
+An object in an action script is a collection of variables. functions are also variables.
+========================
+*/
+class idSWFScriptObject {
 public:
-  int refCount;
-  idList<idSWFScriptObject::swfNamedVar_t,72> variables;
-  int variablesHash[16];
-  idSWFScriptObject *prototype;
-  idSWFScriptObject::swfObjectType_t objectType;
-  idSWFScriptObject::swfObjectData_t data;
+							idSWFScriptObject();
+							~idSWFScriptObject();
+
+	static idSWFScriptObject *	Alloc();
+	void					AddRef() { ++refCount; }
+	void					Release();
+
+	void					Clear();
+
+	void					MakeArray();
+
+	void					SetSprite( idSWFSpriteInstance * s ) { objectType = SWF_OBJECT_SPRITE; data.sprite = s; }
+	idSWFSpriteInstance *	GetSprite() { return ( objectType == SWF_OBJECT_SPRITE ) ? data.sprite : NULL; }
+
+	void					SetText( idSWFTextInstance * t ) { objectType = SWF_OBJECT_TEXT; data.text = t; }
+	idSWFTextInstance *		GetText() { return ( objectType == SWF_OBJECT_TEXT ) ? data.text : NULL; }
+
+	// Also accessible via __proto__ property
+	idSWFScriptObject *		GetPrototype() { return prototype; }
+	void					SetPrototype( idSWFScriptObject *_prototype ) { assert( prototype == NULL ); prototype = _prototype; prototype->AddRef(); }
+	idSWFScriptVar			Get( int index );
+	idSWFScriptVar			Get( const char * name );
+	idSWFSpriteInstance *	GetSprite( int index );
+	idSWFSpriteInstance *	GetSprite( const char * name );
+	idSWFScriptObject *		GetScriptObject( const char * name );
+	idSWFScriptObject *		GetObject( int index );
+	idSWFScriptObject *		GetObject( const char * name );
+	idSWFTextInstance *		GetText( int index );
+	idSWFTextInstance *		GetText( const char * name );
+	void					Set( int index, const idSWFScriptVar & value );
+	void					Set( const char * name, const idSWFScriptVar & value );
+	void					SetNative( const char * name, idSWFScriptNativeVariable * native );
+	bool					HasProperty( const char * name );
+	bool					HasValidProperty( const char * name );
+	idSWFScriptVar			DefaultValue( bool stringHint );
+
+	// This is to implement for-in (fixme: respect DONTENUM flag)
+	int						NumVariables() { return variables.Num(); }
+	const char *			EnumVariable( int i ) { return variables[i].name.c_str(); }
+	
+	idSWFScriptVar			GetNestedVar( const char * arg1, const char * arg2 = NULL, const char * arg3 = NULL, const char * arg4 = NULL, const char * arg5 = NULL, const char * arg6 = NULL );
+	idSWFScriptObject *		GetNestedObj( const char * arg1, const char * arg2 = NULL, const char * arg3 = NULL, const char * arg4 = NULL, const char * arg5 = NULL, const char * arg6 = NULL );
+	idSWFSpriteInstance *	GetNestedSprite( const char * arg1, const char * arg2 = NULL, const char * arg3 = NULL, const char * arg4 = NULL, const char * arg5 = NULL, const char * arg6 = NULL );
+	idSWFTextInstance *		GetNestedText( const char * arg1, const char * arg2 = NULL, const char * arg3 = NULL, const char * arg4 = NULL, const char * arg5 = NULL, const char * arg6 = NULL );
+
+	void					PrintToConsole() const;
+
+private:
+	int refCount;
+
+	enum swfNamedVarFlags_t {
+		SWF_VAR_FLAG_NONE = 0,
+		SWF_VAR_FLAG_READONLY = BIT(1),
+		SWF_VAR_FLAG_DONTENUM = BIT(2)
+	};
+	struct swfNamedVar_t {
+									swfNamedVar_t() : native( NULL ) { }
+									~swfNamedVar_t();
+									swfNamedVar_t & operator=( const swfNamedVar_t & other );
+
+		int							index;
+		int							hashNext;
+		idAtomicString			name;
+		idSWFScriptVar				value;
+		idSWFScriptNativeVariable *	native;
+		int							flags;
+	};
+	idList< swfNamedVar_t, TAG_SWF >	variables;
+
+	static const int VARIABLE_HASH_BUCKETS = 16;
+	int	variablesHash[VARIABLE_HASH_BUCKETS];
+
+	idSWFScriptObject *		prototype;
+
+	enum swfObjectType_t {
+		SWF_OBJECT_OBJECT,
+		SWF_OBJECT_ARRAY,
+		SWF_OBJECT_SPRITE,
+		SWF_OBJECT_TEXT,
+		NUM_SWF_OBJECT_TYPES
+	} objectType;
+
+	union swfObjectData_t {
+		idSWFSpriteInstance *	sprite;			// only valid if objectType == SWF_OBJECT_SPRITE
+		idSWFTextInstance *		text;			// only valid if objectType == SWF_OBJECT_TEXT
+	} data;
+
+	swfNamedVar_t *	GetVariable( int index, bool create );
+	swfNamedVar_t *	GetVariable( const char * name, bool create );
 };
 
-// IDA Local Type ordinal 14775; PDB kind: struct.
-struct idSWFScriptObject::swfNamedVar_t
-{
-  int index;
-  int hashNext;
-  idAtomicString name;
-  idSWFScriptVar value;
-  idSWFScriptNativeVariable *native;
-  int flags;
-};
-
-// IDA Local Type ordinal 14810; PDB kind: union.
-union idSWFScriptObject::swfObjectData_t
-{
-  idSWFSpriteInstance *sprite;
-  idSWFTextInstance *text;
-};
+#endif // !__SWF_SCRIPTOBJECT_H__

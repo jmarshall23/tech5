@@ -1,36 +1,49 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\decls\voiceovers\declvisemeset.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decl.h"
 
-
-// IDA Local Type ordinal 13924; PDB kind: class.
-class idDeclVisemeSet : public idDecl
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 13925.
-  virtual ~idDeclVisemeSet();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
-
-  idStr phonemeSet;
-  idList<idViseme,69> visemes;
-  idList<idPhoneme,70> phonemes;
-  int silenceViseme;
-  int silencePhoneme;
+struct idViseme {
+    idViseme();
+    idAtomicString name;
+    idAtomicString aliasName;
+    int viseme;
 };
+
+struct idPhoneme {
+    idPhoneme();
+    idAtomicString name;
+    int phoneme;
+    int viseme;
+    float weightScale;
+    float durationScale;
+    int timeOffsetMS;
+};
+
+class idDeclVisemeSet : public idDecl {
+public:
+    idDeclVisemeSet();
+    ~idDeclVisemeSet() override;
+    idDeclInfo* GetDeclInfo() const override;
+    const char* DefaultDefinition() const override;
+    void Parse(idParser* parser) override;
+    void FreeData() override;
+    unsigned int Size() const override;
+
+    int VisemeForName(const char* visemeName) const;
+    int PhonemeForName(const char* phonemeName) const;
+
+    idStr phonemeSet;
+    idList<idViseme, 69> visemes;
+    idList<idPhoneme, 70> phonemes;
+    int silenceViseme;
+    int silencePhoneme;
+
+    static idDeclInfoTemplate<idDeclVisemeSet> resourceList;
+};
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idViseme) == 12, "Recovered viseme ABI changed");
+static_assert(sizeof(idPhoneme) == 24, "Recovered phoneme ABI changed");
+static_assert(sizeof(idDeclVisemeSet) == 128,
+    "Recovered viseme-set declaration ABI changed");
+#endif

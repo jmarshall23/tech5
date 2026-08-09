@@ -362,7 +362,7 @@ idAnimator_AnimWeb::idAnimator_AnimWeb()
     , prevNodeStartTime(-1)
     , nodeStartFrame(0)
     , scalars(0)
-    , scalarMem{nullptr, 0}
+    , scalarMem()
     , firstRandomScalarIndex(0)
     , blendEventMask(0)
     , declChangeId(-1)

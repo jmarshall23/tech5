@@ -1,5 +1,6 @@
 #pragma once
 
+#include "decls/declfxtypes.h"
 #include "gamelib/effects/lensflaremanager.h"
 #include "gamelib/effects/ribbonmanager.h"
 #include "idlib/containers/hashindex.h"
@@ -27,34 +28,6 @@ class idSoundEmitter;
 class idSoundShader;
 class idTreeAnimator;
 class idViewCallbacks;
-
-enum fxCondition_t : int {
-    FX_NONE = 0
-};
-
-enum fxExtraCondition_t : int {
-    FX_EXTRA_COND_NONE = 0,
-    FX_EXTRA_COND_MAX = 0x10000
-};
-
-enum soundChannel_t : int {
-    SND_CHANNEL_ANY = 0
-};
-
-enum fxActionType_t : int {
-    FX_LIGHT = 0,
-    FX_PARTICLE,
-    FX_DECAL2,
-    FX_MODEL,
-    FX_SOUND,
-    FX_SCREEN_SHAKE,
-    FX_CONTROLLER_SHAKE,
-    FX_ENV_OVERRIDE,
-    FX_ENV_CHANGE,
-    FX_FLARE,
-    FX_RIBBON,
-    FX_OTHER
-};
 
 struct tagData_t {
     idVec3 trans;

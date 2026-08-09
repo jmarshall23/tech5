@@ -1,34 +1,24 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\decls\declenv.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decl.h"
+#include "renderer/parmblock.h"
 
-
-// IDA Local Type ordinal 13521; PDB kind: class.
-class idDeclEnv : public idDecl
-{
+class idDeclEnv : public idDecl {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 13522.
-  virtual ~idDeclEnv();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    idDeclEnv();
+    idDeclInfo* GetDeclInfo() const override;
+    const char* DefaultDefinition() const override;
+    void FreeData() override;
+    void Parse(idParser* parser) override;
 
-  idParmBlock parmBlock;
-  idAtomicString parentDeclName;
-  float blendDuration;
+    idParmBlock parmBlock;
+    idAtomicString parentDeclName;
+    float blendDuration;
+
+    static idDeclInfoTemplate<idDeclEnv> resourceList;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclEnv) == 104,
+    "Recovered environment declaration ABI changed");
+#endif

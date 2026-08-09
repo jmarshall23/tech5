@@ -105,6 +105,40 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "Source"
     FILES ${IDTECH5_FRAMEWORK_SOURCES}
 )
 
+# Recovered declaration/resource system. Only manually reconstructed sources
+# are compiler inputs; the Hex-Rays tree remains implementation evidence.
+file(GLOB_RECURSE IDTECH5_DECL_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/decls/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/decls/*.h"
+)
+
+add_library(decls STATIC ${IDTECH5_DECL_SOURCES})
+add_library(tech5::decls ALIAS decls)
+target_include_directories(decls PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine"
+    "${CMAKE_CURRENT_SOURCE_DIR}/shared"
+)
+target_compile_features(decls PUBLIC cxx_std_14)
+target_compile_definitions(decls PRIVATE
+    _CRT_SECURE_NO_DEPRECATE
+    _CRT_NONSTDC_NO_DEPRECATE
+    _USE_32BIT_TIME_T
+)
+target_link_libraries(decls PUBLIC tech5::framework tech5::idLib)
+set_property(TARGET decls PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+)
+set_target_properties(decls PROPERTIES OUTPUT_NAME "decls")
+if(MSVC)
+    target_compile_options(decls PRIVATE
+        /MP /W3 /arch:SSE2
+        /wd4244 /wd4267 /wd4305 /wd4467 /wd4595 /wd4996
+    )
+endif()
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "Source"
+    FILES ${IDTECH5_DECL_SOURCES}
+)
+
 # Collision model recovery is a separate engine library. As with idLib and
 # GameLib, only reconstructed files under source/ are compiler inputs.
 file(GLOB_RECURSE IDTECH5_CM_SOURCES CONFIGURE_DEPENDS
@@ -194,7 +228,9 @@ target_compile_definitions(gameLib PRIVATE
     _CRT_NONSTDC_NO_DEPRECATE
     _USE_32BIT_TIME_T
 )
-target_link_libraries(gameLib PUBLIC tech5::aas2file tech5::cm tech5::idLib)
+target_link_libraries(gameLib PUBLIC
+    tech5::decls tech5::aas2file tech5::cm tech5::idLib
+)
 set_property(TARGET gameLib PROPERTY
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
 )

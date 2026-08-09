@@ -270,6 +270,25 @@ void idLookupTable::Clear() {
     values.closeTime = 1.0f;
 }
 
+int idLookupTable::NumValues() const {
+    return values.numKnots;
+}
+
+void idLookupTable::NormalizeValues(const float minimumValue,
+        const float maximumValue) {
+    const float range = maximumValue - minimumValue;
+    if (range == 0.0f) return;
+    for (int index = 0; index < values.numKnots; ++index)
+        values.values[index] = (values.values[index] - minimumValue) / range;
+    values.changed = true;
+}
+
+void idLookupTable::SetOutputRange(const float minimumValue,
+        const float maximumValue) {
+    minimum = minimumValue;
+    maximum = maximumValue;
+}
+
 float idLookupTable::TableLookupNormalized(
     const float time,
     const bool fastSearch

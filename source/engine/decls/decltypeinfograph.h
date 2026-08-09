@@ -1,297 +1,192 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\decls\decltypeinfograph.h
-// Recovered logical types: 14
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decltypeinfo.h"
+#include "idlib/color.h"
+#include "idlib/containers/list.h"
+#include "idlib/math/vector.h"
+#include "idlib/text/atomicstring.h"
+#include "idlib/text/str.h"
 
+#include <cstring>
 
-// IDA Local Type ordinal 18745; PDB kind: class.
-class idTypeInfoGraphItem
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 18746.
-  virtual ~idTypeInfoGraphItem();
-  virtual idColor *GetColor(idColor *result);
-  virtual void GetDisplayName(idStr *);
+class idDeclFX;
 
-  idAtomicString name;
-  idAtomicString className;
+struct idGraphItemType {
+    idAtomicString className;
+    idAtomicString displayedName;
 };
 
-// IDA Local Type ordinal 18747; PDB kind: class.
-class idTypeInfoSubGraph : public idTypeInfoGraphItem
-{
+template<class itemType>
+class idGraphItemFactory {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 18748.
-  virtual ~idTypeInfoSubGraph();
-  virtual idColor *GetColor(idColor *result);
-  virtual void GetDisplayName(idStr *);
+    struct idTypeCreationPair {
+        idGraphItemType type;
+        itemType* (*creationFunction)();
+    };
 
-  idList<int,5> subnodes;
-  idVec2 position;
+    idGraphItemFactory() : registry(16) {}
+    virtual ~idGraphItemFactory() = default;
+
+    itemType* Create(const char* itemClassName) const {
+        if (itemClassName == nullptr) return nullptr;
+        for (int index = 0; index < registry.Num(); ++index) {
+            const idTypeCreationPair& entry = registry[index];
+            if (std::strcmp(entry.type.className.c_str(), itemClassName) == 0) {
+                itemType* const item = entry.creationFunction != nullptr
+                    ? entry.creationFunction() : nullptr;
+                if (item != nullptr) item->className.Set(itemClassName);
+                return item;
+            }
+        }
+        return nullptr;
+    }
+
+    idList<idTypeCreationPair, 87> registry;
 };
 
-// IDA Local Type ordinal 18755; PDB kind: class.
-class idTypeInfoGraphNode : public idTypeInfoGraphItem
-{
+class idTypeInfoGraphItem {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 18756.
-  virtual ~idTypeInfoGraphNode();
-  virtual idColor *GetColor(idColor *result);
-  virtual void GetDisplayName(idStr *);
-  virtual void GetInfo(idStr *, bool *);
+    idTypeInfoGraphItem() : name(""), className("") {}
+    virtual ~idTypeInfoGraphItem();
+    virtual idColor GetColor() const = 0;
+    virtual void GetDisplayName(idStr& displayName) const;
 
-  idVec2 position;
+    idAtomicString name;
+    idAtomicString className;
 };
 
-// IDA Local Type ordinal 18761; PDB kind: class.
-class idTypeInfoGraphLink : public idTypeInfoGraphItem
-{
+class idTypeInfoSubGraph : public idTypeInfoGraphItem {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 18762.
-  virtual ~idTypeInfoGraphLink();
-  virtual idColor *GetColor(idColor *result);
-  virtual void GetDisplayName(idStr *);
+    idTypeInfoSubGraph();
+    ~idTypeInfoSubGraph() override;
+    idColor GetColor() const override;
 
-  int startNodeIndex;
-  int endNodeIndex;
+    idList<int, 5> subnodes;
+    idVec2 position;
 };
 
-// IDA Local Type ordinal 20163; PDB kind: class.
-class idDeclTypeInfoGraph : public idDeclTypeInfo
-{
+class idTypeInfoGraphNode : public idTypeInfoGraphItem {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20175.
-  virtual ~idDeclTypeInfoGraph();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
-  virtual idGraphItemFactory<idTypeInfoSubGraph> *GetMySubGraphFactory();
-  virtual idGraphItemFactory<idTypeInfoGraphNode> *GetMyGraphNodeFactory();
-  virtual idGraphItemFactory<idTypeInfoGraphLink> *GetMyGraphLinkFactory();
-  virtual bool CanCreateSubGraphs();
-  virtual bool CanCreateNodesOutsideOfSubGraphs();
-  virtual bool AllowMultipleLinksBetweenNodes();
-  virtual bool AllowLinkBetweenNodes(int, int);
-  virtual void OnDeclParsed();
-  virtual void OnCreateLink(idTypeInfoGraphLink *);
-  virtual void OnDeleteLink(idTypeInfoGraphLink *);
-  virtual idColor *GetSubGraphColor(idColor *result, const idTypeInfoSubGraph *);
-  virtual idColor *GetNodeColor(idColor *result, const idTypeInfoGraphNode *);
-  virtual idColor *GetLinkColor(idColor *result, const idTypeInfoGraphLink *);
-  virtual void GetNodeInfo(const idTypeInfoGraphNode *, idStr *, bool *);
-  virtual void GetMainContextMenuItems(idList<idDeclTypeInfoGraph::idContextMenuItemMain,5> *);
-  virtual void GetSubGraphContextMenuItems(const idList<idTypeInfoSubGraph *,5> *, struct idList<idDeclTypeInfoGraph::idContextMenuItemSubGraph,5> *);
-  virtual void GetNodeContextMenuItems(const idList<idTypeInfoGraphNode *,5> *, struct idList<idDeclTypeInfoGraph::idContextMenuItemNode,5> *);
-  virtual void GetLinkContextMenuItems(const idList<idTypeInfoGraphLink *,5> *, idList<idDeclTypeInfoGraph::idContextMenuItemLink,5> *);
+    idTypeInfoGraphNode() : position(0.0f, 0.0f) {}
+    idColor GetColor() const override;
+    virtual void GetInfo(idStr& info, bool& showSelected) const;
 
-  idList<idTypeInfoSubGraph *,5> subGraphs;
-  idList<idTypeInfoGraphNode *,5> nodes;
-  idList<idTypeInfoGraphLink *,5> links;
+    idVec2 position;
 };
 
-// IDA Local Type ordinal 20164; PDB kind: class.
-class __declspec(align(4)) idDeclTypeInfoGraph::idContextMenuItemBase
-{
+class idTypeInfoGraphLink : public idTypeInfoGraphItem {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20165.
-  virtual ~idContextMenuItemBase();
+    idTypeInfoGraphLink() : startNodeIndex(-1), endNodeIndex(-1) {}
+    idColor GetColor() const override;
+    void GetDisplayName(idStr& displayName) const override;
 
-  idStr description;
-  bool isEnabled;
-  bool isChecked;
+    int startNodeIndex;
+    int endNodeIndex;
 };
 
-// IDA Local Type ordinal 20166; PDB kind: class.
-class idDeclTypeInfoGraph::idContextMenuItemMain : public idDeclTypeInfoGraph::idContextMenuItemBase
-{
+class idDeclTypeInfoGraph : public idDeclTypeInfo {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20167.
-  virtual ~idContextMenuItemMain();
+    class idContextMenuItemBase {
+    public:
+        idContextMenuItemBase()
+            : isEnabled(true), isChecked(false) {}
+        virtual ~idContextMenuItemBase() = default;
+        idStr description;
+        bool isEnabled;
+        bool isChecked;
+    };
 
-  void (__fastcall *callback)(idDeclTypeInfoGraph *);
+    class idContextMenuItemMain : public idContextMenuItemBase {
+    public:
+        idContextMenuItemMain() : callback(nullptr) {}
+        void (*callback)(idDeclTypeInfoGraph*);
+    };
+    class idContextMenuItemSubGraph : public idContextMenuItemBase {
+    public:
+        idContextMenuItemSubGraph() : callback(nullptr) {}
+        void (*callback)(idDeclTypeInfoGraph*,
+            const idList<idTypeInfoSubGraph*, 5>*);
+    };
+    class idContextMenuItemNode : public idContextMenuItemBase {
+    public:
+        idContextMenuItemNode() : callback(nullptr) {}
+        void (*callback)(idDeclTypeInfoGraph*,
+            const idList<idTypeInfoGraphNode*, 5>*);
+    };
+    class idContextMenuItemLink : public idContextMenuItemBase {
+    public:
+        idContextMenuItemLink() : callback(nullptr) {}
+        void (*callback)(idDeclTypeInfoGraph*,
+            const idList<idTypeInfoGraphLink*, 5>*);
+    };
+
+    idDeclTypeInfoGraph();
+    ~idDeclTypeInfoGraph() override;
+    void Parse(idParser* parser) override;
+
+    virtual idGraphItemFactory<idTypeInfoSubGraph>* GetMySubGraphFactory();
+    virtual idGraphItemFactory<idTypeInfoGraphNode>* GetMyGraphNodeFactory();
+    virtual idGraphItemFactory<idTypeInfoGraphLink>* GetMyGraphLinkFactory();
+    virtual bool CanCreateSubGraphs() const;
+    virtual bool CanCreateNodesOutsideOfSubGraphs() const;
+    virtual bool AllowMultipleLinksBetweenNodes() const;
+    virtual bool AllowLinkBetweenNodes(int startNodeIndex,
+        int endNodeIndex) const;
+    virtual void OnDeclParsed();
+    virtual void OnCreateLink(idTypeInfoGraphLink* link);
+    virtual void OnDeleteLink(idTypeInfoGraphLink* link);
+    virtual idColor GetSubGraphColor(const idTypeInfoSubGraph* subGraph) const;
+    virtual idColor GetNodeColor(const idTypeInfoGraphNode* node) const;
+    virtual idColor GetLinkColor(const idTypeInfoGraphLink* link) const;
+    virtual void GetNodeInfo(const idTypeInfoGraphNode* node, idStr& info,
+        bool& showSelected) const;
+    virtual void GetMainContextMenuItems(
+        idList<idContextMenuItemMain, 5>& items) const;
+    virtual void GetSubGraphContextMenuItems(
+        const idList<idTypeInfoSubGraph*, 5>& selection,
+        idList<idContextMenuItemSubGraph, 5>& items) const;
+    virtual void GetNodeContextMenuItems(
+        const idList<idTypeInfoGraphNode*, 5>& selection,
+        idList<idContextMenuItemNode, 5>& items) const;
+    virtual void GetLinkContextMenuItems(
+        const idList<idTypeInfoGraphLink*, 5>& selection,
+        idList<idContextMenuItemLink, 5>& items) const;
+
+    void GetLinksFrom(const idTypeInfoGraphNode* node,
+        idList<const idTypeInfoGraphLink*, 5>& linksOut) const;
+
+    static idGraphItemFactory<idTypeInfoSubGraph>* GetSubGraphFactory();
+    static idGraphItemFactory<idTypeInfoGraphNode>* GetGraphNodeFactory();
+    static idGraphItemFactory<idTypeInfoGraphLink>* GetGraphLinkFactory();
+
+    idList<idTypeInfoSubGraph*, 5> subGraphs;
+    idList<idTypeInfoGraphNode*, 5> nodes;
+    idList<idTypeInfoGraphLink*, 5> links;
 };
 
-// IDA Local Type ordinal 20172; PDB kind: class.
-class idDeclTypeInfoGraph::idContextMenuItemLink : public idDeclTypeInfoGraph::idContextMenuItemBase
-{
+class idDeclTypeInfoGraphTest : public idDeclTypeInfoGraph {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20173.
-  virtual ~idContextMenuItemLink();
+    idDeclTypeInfoGraphTest()
+        : highlightDeadEndNodes(false), someOtherBool(false), fxDecl(nullptr) {}
+    virtual bool HighlightDeadEndNodes() const { return highlightDeadEndNodes; }
+    virtual void SetHighlightDeadEndNodes(bool enabled) {
+        highlightDeadEndNodes = enabled;
+    }
 
-  void (__fastcall *callback)(idDeclTypeInfoGraph *, const idList<idTypeInfoGraphLink *,5> *);
+    bool highlightDeadEndNodes;
+    bool someOtherBool;
+    idDeclFX* fxDecl;
 };
 
-// IDA Local Type ordinal 20176; PDB kind: class.
-class idDeclTypeInfoGraphTest : public idDeclTypeInfoGraph
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 20177.
-  virtual ~idDeclTypeInfoGraphTest();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
-  virtual idGraphItemFactory<idTypeInfoSubGraph> *GetMySubGraphFactory();
-  virtual idGraphItemFactory<idTypeInfoGraphNode> *GetMyGraphNodeFactory();
-  virtual idGraphItemFactory<idTypeInfoGraphLink> *GetMyGraphLinkFactory();
-  virtual bool CanCreateSubGraphs();
-  virtual bool CanCreateNodesOutsideOfSubGraphs();
-  virtual bool AllowMultipleLinksBetweenNodes();
-  virtual bool AllowLinkBetweenNodes(int, int);
-  virtual void OnDeclParsed();
-  virtual void OnCreateLink(idTypeInfoGraphLink *);
-  virtual void OnDeleteLink(idTypeInfoGraphLink *);
-  virtual idColor *GetSubGraphColor(idColor *result, const idTypeInfoSubGraph *);
-  virtual idColor *GetNodeColor(idColor *result, const idTypeInfoGraphNode *);
-  virtual idColor *GetLinkColor(idColor *result, const idTypeInfoGraphLink *);
-  virtual void GetNodeInfo(const idTypeInfoGraphNode *, idStr *, bool *);
-  virtual void GetMainContextMenuItems(idList<idDeclTypeInfoGraph::idContextMenuItemMain,5> *);
-  virtual void GetSubGraphContextMenuItems(const idList<idTypeInfoSubGraph *,5> *, struct idList<idDeclTypeInfoGraph::idContextMenuItemSubGraph,5> *);
-  virtual void GetNodeContextMenuItems(const idList<idTypeInfoGraphNode *,5> *, struct idList<idDeclTypeInfoGraph::idContextMenuItemNode,5> *);
-  virtual void GetLinkContextMenuItems(const idList<idTypeInfoGraphLink *,5> *, idList<idDeclTypeInfoGraph::idContextMenuItemLink,5> *);
-  virtual bool HighlightDeadEndNodes();
-  virtual void SetHighlightDeadEndNodes(bool);
-
-  bool highlightDeadEndNodes;
-  bool someOtherBool;
-  idDeclFX *fxDecl;
-};
-
-// IDA Local Type ordinal 20205; PDB kind: class.
-class idDeclTypeInfoGraphSingleType<idTypeInfoSubGraphTest,idTypeInfoGraphNodeTest,idTypeInfoGraphLinkTest> : public idDeclTypeInfoGraph
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 20206.
-  virtual ~idDeclTypeInfoGraphSingleType();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
-  virtual idGraphItemFactory<idTypeInfoSubGraph> *GetMySubGraphFactory();
-  virtual idGraphItemFactory<idTypeInfoGraphNode> *GetMyGraphNodeFactory();
-  virtual idGraphItemFactory<idTypeInfoGraphLink> *GetMyGraphLinkFactory();
-  virtual bool CanCreateSubGraphs();
-  virtual bool CanCreateNodesOutsideOfSubGraphs();
-  virtual bool AllowMultipleLinksBetweenNodes();
-  virtual bool AllowLinkBetweenNodes(int, int);
-  virtual void OnDeclParsed();
-  virtual void OnCreateLink(idTypeInfoGraphLink *);
-  virtual void OnDeleteLink(idTypeInfoGraphLink *);
-  virtual idColor *GetSubGraphColor(idColor *result, const idTypeInfoSubGraph *);
-  virtual idColor *GetNodeColor(idColor *result, const idTypeInfoGraphNode *);
-  virtual idColor *GetLinkColor(idColor *result, const idTypeInfoGraphLink *);
-  virtual void GetNodeInfo(const idTypeInfoGraphNode *, idStr *, bool *);
-  virtual void GetMainContextMenuItems(idList<idDeclTypeInfoGraph::idContextMenuItemMain,5> *);
-  virtual void GetSubGraphContextMenuItems(const idList<idTypeInfoSubGraph *,5> *, struct idList<idDeclTypeInfoGraph::idContextMenuItemSubGraph,5> *);
-  virtual void GetNodeContextMenuItems(const idList<idTypeInfoGraphNode *,5> *, struct idList<idDeclTypeInfoGraph::idContextMenuItemNode,5> *);
-  virtual void GetLinkContextMenuItems(const idList<idTypeInfoGraphLink *,5> *, idList<idDeclTypeInfoGraph::idContextMenuItemLink,5> *);
-
-};
-
-// IDA Local Type ordinal 20207; PDB kind: class.
-class idDeclTypeInfoGraphSingleTypeTest : public idDeclTypeInfoGraphSingleType<idTypeInfoSubGraphTest,idTypeInfoGraphNodeTest,idTypeInfoGraphLinkTest>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 20208.
-  virtual ~idDeclTypeInfoGraphSingleTypeTest();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
-  virtual idGraphItemFactory<idTypeInfoSubGraph> *GetMySubGraphFactory();
-  virtual idGraphItemFactory<idTypeInfoGraphNode> *GetMyGraphNodeFactory();
-  virtual idGraphItemFactory<idTypeInfoGraphLink> *GetMyGraphLinkFactory();
-  virtual bool CanCreateSubGraphs();
-  virtual bool CanCreateNodesOutsideOfSubGraphs();
-  virtual bool AllowMultipleLinksBetweenNodes();
-  virtual bool AllowLinkBetweenNodes(int, int);
-  virtual void OnDeclParsed();
-  virtual void OnCreateLink(idTypeInfoGraphLink *);
-  virtual void OnDeleteLink(idTypeInfoGraphLink *);
-  virtual idColor *GetSubGraphColor(idColor *result, const idTypeInfoSubGraph *);
-  virtual idColor *GetNodeColor(idColor *result, const idTypeInfoGraphNode *);
-  virtual idColor *GetLinkColor(idColor *result, const idTypeInfoGraphLink *);
-  virtual void GetNodeInfo(const idTypeInfoGraphNode *, idStr *, bool *);
-  virtual void GetMainContextMenuItems(idList<idDeclTypeInfoGraph::idContextMenuItemMain,5> *);
-  virtual void GetSubGraphContextMenuItems(const idList<idTypeInfoSubGraph *,5> *, struct idList<idDeclTypeInfoGraph::idContextMenuItemSubGraph,5> *);
-  virtual void GetNodeContextMenuItems(const idList<idTypeInfoGraphNode *,5> *, struct idList<idDeclTypeInfoGraph::idContextMenuItemNode,5> *);
-  virtual void GetLinkContextMenuItems(const idList<idTypeInfoGraphLink *,5> *, idList<idDeclTypeInfoGraph::idContextMenuItemLink,5> *);
-
-};
-
-// IDA Local Type ordinal 21769; PDB kind: class.
-class idDeclTypeInfoGraph::idContextMenuItemSubGraph : public idDeclTypeInfoGraph::idContextMenuItemBase
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 21770.
-  virtual ~idContextMenuItemSubGraph();
-
-  void (__fastcall *callback)(idDeclTypeInfoGraph *, const idList<idTypeInfoSubGraph *,5> *);
-};
-
-// IDA Local Type ordinal 21771; PDB kind: class.
-class idDeclTypeInfoGraph::idContextMenuItemNode : public idDeclTypeInfoGraph::idContextMenuItemBase
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 21772.
-  virtual ~idContextMenuItemNode();
-
-  void (__fastcall *callback)(idDeclTypeInfoGraph *, const idList<idTypeInfoGraphNode *,5> *);
-};
-
-// IDA Local Type ordinal 21775; PDB kind: class.
-class idDeclTypeInfoGraph::idSort_NodeIndex : public idSort_Quick<int,idDeclTypeInfoGraph::idSort_NodeIndex>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 21776.
-  virtual ~idSort_NodeIndex();
-  virtual void Sort(int *, unsigned int);
-
-};
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idTypeInfoGraphItem) == 12,
+    "Recovered graph-item ABI changed");
+static_assert(sizeof(idTypeInfoSubGraph) == 36,
+    "Recovered subgraph ABI changed");
+static_assert(sizeof(idTypeInfoGraphNode) == 20,
+    "Recovered graph-node ABI changed");
+static_assert(sizeof(idTypeInfoGraphLink) == 20,
+    "Recovered graph-link ABI changed");
+static_assert(sizeof(idDeclTypeInfoGraph) == 112,
+    "Recovered type-info graph ABI changed");
+#endif

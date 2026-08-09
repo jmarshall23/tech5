@@ -45,6 +45,9 @@ public:
     void SetClamp(bool enabled);
     void AddValue(float time, float value);
     void Clear();
+    int NumValues() const;
+    void NormalizeValues(float minimumValue, float maximumValue);
+    void SetOutputRange(float minimumValue, float maximumValue);
 
     float TableLookupNormalized(float time, bool fastSearch) const;
     float TableLookup(float time, bool fastSearch) const;

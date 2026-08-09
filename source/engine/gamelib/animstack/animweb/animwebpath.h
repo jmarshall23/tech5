@@ -11,6 +11,20 @@ class idAnimWebPath : public idStr {
 public:
     using idStr::idStr;
     using idStr::operator=;
+
+    void SetPath(const char* webName, const char* subWebName,
+            const char* stateName) {
+        *this = "";
+        if (webName != nullptr && webName[0] != '\0') {
+            Append(webName);
+            Append('/');
+        }
+        if (subWebName != nullptr && subWebName[0] != '\0') {
+            Append(subWebName);
+            Append('/');
+        }
+        Append(stateName != nullptr ? stateName : "");
+    }
 };
 
 #include "gamelib/animstack/animstacktypes.h"

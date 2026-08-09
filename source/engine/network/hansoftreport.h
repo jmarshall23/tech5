@@ -1,17 +1,19 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\network\hansoftreport.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "issuereport.h"
 
-
-// IDA Local Type ordinal 17685; PDB kind: class.
-class idHansoftReport : public idIssueReport
-{
+class idHansoftReport : public idIssueReport {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 17686.
-  virtual ~idHansoftReport();
-  virtual void WriteReport();
+	virtual ~idHansoftReport() {}
+	virtual void WriteReport() {}
 
+	void SendReport( char * report, unsigned int byteSize, const char * targetPlatform );
+	static idStr CombineLines( idStr & source );
+	void Write360Report( void * exceptionPointers );
 };
+
+extern idHansoftReport hansoftReport;
+
+#if INTPTR_MAX == INT32_MAX
+static_assert( sizeof( idHansoftReport ) == 36, "Recovered idHansoftReport ABI changed" );
+#endif

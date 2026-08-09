@@ -1,620 +1,456 @@
-#pragma once
+/*
+===========================================================================
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\guis\swf\swf.h
-// Recovered logical types: 42
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+Doom 3 BFG Edition GPL Source Code
+Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company. 
 
+This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").  
 
-// IDA Local Type ordinal 2774; PDB kind: unknown.
-enum idSWF::<unnamed_tag> : __int32
-{
-  FOLLOW_NONE = 0xFFFFFFFF,
-  FOLLOW_TOPLEFT = 0x0,
-  FOLLOW_TOPCENTER = 0x1,
-  FOLLOW_TOPRIGHT = 0x2,
-  FOLLOW_CENTERLEFT = 0x3,
-  FOLLOW_CENTERCENTER = 0x4,
-  FOLLOW_CENTERRIGHT = 0x5,
-  FOLLOW_BOTTOMLEFT = 0x6,
-  FOLLOW_BOTTOMCENTER = 0x7,
-  FOLLOW_BOTTOMRIGHT = 0x8,
-};
+Doom 3 BFG Edition Source Code is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-// IDA Local Type ordinal 14777; PDB kind: class.
-class idSWF
-{
+Doom 3 BFG Edition Source Code is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Doom 3 BFG Edition Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, the Doom 3 BFG Edition Source Code is also subject to certain additional terms. You should have received a copy of these additional terms immediately following the terms and conditions of the GNU General Public License which accompanied the Doom 3 BFG Edition Source Code.  If not, please request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
+
+===========================================================================
+*/
+#ifndef __SWF_H__
+#define __SWF_H__
+
+#include "swf_enums.h"
+#include "swf_types.h"
+#include "swf_bitstream.h"
+#include "swf_scriptvar.h"
+#include "swf_sprites.h"
+#include "swf_scriptobject.h"
+#include "swf_parmlist.h"
+#include "swf_scriptfunction.h"
+#include "swf_spriteinstance.h"
+#include "swf_shapeparser.h"
+#include "swf_textinstance.h"
+
+class idSWFDictionaryEntry {
 public:
-  idAtomicString filename;
-  unsigned int timestamp;
-  bool isActive;
-  bool inhibitControl;
-  bool useInhibtControl;
-  bool pausedRender;
-  float frameWidth;
-  float frameHeight;
-  unsigned __int16 frameRate;
-  float renderBorder;
-  float swfScale;
-  int userDeviceNumber;
-  int lastRenderTime;
-  bool mouseEnabled;
-  bool useMouse;
-  idSWFScriptObject *mouseObject;
-  idSWFScriptObject *hoverObject;
-  bool blackbars;
-  bool crop;
-  bool paused;
-  bool hasHitObject;
-  bool automaticRescale;
-  idSWFSprite *mainsprite;
-  idSWFSpriteInstance *mainspriteInstance;
-  idSWFScriptObject *globals;
-  idSWFScriptObject *shortcutKeys;
-  idSoundEmitter *soundEmitter;
-  idAtomicString atlasTextureName;
-  const idMaterial *atlasMaterial;
-  idImage *atlasImage;
-  bool atlasPurgable;
-  int atlasWidth;
-  int atlasHeight;
-  idFile *atlasFile;
-  idBlockAlloc<idSWFSpriteInstance,16,72> spriteInstanceAllocator;
-  idBlockAlloc<idSWFTextInstance,16,72> textInstanceAllocator;
-  idList<idSWF::orphanedSprite_t,72> orphanedSprites;
-  idList<idSWF::orphanedText_t,72> orphanedTexts;
-  int c_TextInstanceAdoptions;
-  int c_TextInstanceOrphans;
-  int c_SpriteInstanceAdoptions;
-  int c_SpriteInstanceOrphans;
-  idSWF::idSWFScriptFunction_shortcutKeys_clear scriptFunction_shortcutKeys_clear;
-  idSWF::idSWFScriptFunction_deactivate scriptFunction_deactivate;
-  idSWF::idSWFScriptFunction_inhibitControl scriptFunction_inhibitControl;
-  idSWF::idSWFScriptFunction_useInhibit scriptFunction_useInhibit;
-  idSWF::idSWFScriptFunction_precacheSound scriptFunction_precacheSound;
-  idSWF::idSWFScriptFunction_playSound scriptFunction_playSound;
-  idSWF::idSWFScriptFunction_stopSounds scriptFunction_stopSounds;
-  idSWF::idSWFScriptFunction_getPlatform scriptFunction_getPlatform;
-  idSWF::idSWFScriptFunction_getTruePlatform scriptFunction_getTruePlatform;
-  idSWF::idSWFScriptFunction_getLocalString scriptFunction_getLocalString;
-  idSWF::idSWFScriptFunction_isMultiplayer scriptFunction_isMultiplayer;
-  idSWF::idSWFScriptFunction_swapPS3Buttons scriptFunction_swapPS3Buttons;
-  idSWF::idSWFScriptFunction_getCVarInteger scriptFunction_getCVarInteger;
-  idSWF::idSWFScriptFunction_setCVarInteger scriptFunction_setCVarInteger;
-  idSWF::idSWFScriptFunction_strReplace scriptFunction_strReplace;
-  idSWF::idSWFScriptFunction_isJapanese scriptFunction_isJapanese;
-  idSWF::idSWFScriptFunction_acos scriptFunction_acos;
-  idSWF::idSWFScriptFunction_cos scriptFunction_cos;
-  idSWF::idSWFScriptFunction_sin scriptFunction_sin;
-  idSWF::idSWFScriptFunction_round scriptFunction_round;
-  idSWF::idSWFScriptFunction_pow scriptFunction_pow;
-  idSWF::idSWFScriptFunction_sqrt scriptFunction_sqrt;
-  idSWF::idSWFScriptFunction_abs scriptFunction_abs;
-  idSWF::idSWFScriptFunction_rand scriptFunction_rand;
-  idSWF::idSWFScriptFunction_floor scriptFunction_floor;
-  idSWF::idSWFScriptFunction_ceil scriptFunction_ceil;
-  idSWF::idSWFScriptFunction_toUpper scriptFunction_toUpper;
-  idSWF::idSWFScriptNativeVar_platform swfScriptVar_platform;
-  idSWF::idSWFScriptNativeVar_blackbars swfScriptVar_blackbars;
-  idSWF::idSWFScriptNativeVar_crop swfScriptVar_crop;
-  idSWF::idSWFScriptNativeVar_automaticRescale swfScriptVar_automaticRescale;
-  idSWF::idSWFScriptFunction_Object scriptFunction_Object;
-  idList<idSWFDictionaryEntry,72> dictionary;
-  idList<idSWF::keyButtonImages_t,72> tooltipButtonImage;
-  idList<idSWF::tooltipIcon_t,72> tooltipIconList;
-  const idMaterial *guiSolid;
-  const idMaterial *guiStencilIncr;
-  const idMaterial *guiStencilDecr;
-  const idMaterial *guiCursor_arrow;
-  const idMaterial *guiCursor_hand;
-  const idMaterial *white;
-  idSWF::idDecompressJPEG jpeg;
-  idList<idSWF::imageToPack_t,72> packImages;
+	idSWFDictionaryEntry();
+	~idSWFDictionaryEntry();
+	idSWFDictionaryEntry & operator=( idSWFDictionaryEntry & other );
+
+	swfDictType_t		type;
+	const idMaterial *	material;
+	idSWFShape *		shape;
+	idSWFSprite *		sprite;
+	idSWFFont *			font;
+	idSWFText *			text;
+	idSWFEditText *		edittext;
+
+	idVec2i				imageSize;
+	idVec2i				imageAtlasOffset;
+	// the compressed images are normalize to reduce compression artifacts,
+	// color must be scaled down by this
+	idVec4				channelScale;
 };
 
-// IDA Local Type ordinal 14817; PDB kind: struct.
-struct __declspec(align(4)) idSWF::orphanedSprite_t
-{
-  idSWFSpriteInstance *spriteInstance;
-  bool wasPlaying;
+struct purgableSwfImage_t {
+	purgableSwfImage_t() { image = NULL; swfFrameNum = 0; }
+	idImage * image;
+	unsigned swfFrameNum;
 };
 
-// IDA Local Type ordinal 14819; PDB kind: struct.
-struct idSWF::orphanedText_t
-{
-  idSWFTextInstance *textInstance;
-};
-
-// IDA Local Type ordinal 14823; PDB kind: class.
-class idSWF::idSWFScriptFunction_shortcutKeys_clear : public idSWFScriptFunction_Nested<idSWF>
-{
+/*
+================================================
+This class handles loading and rendering SWF files
+================================================
+*/
+class idSWF {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 14824.
-  virtual ~idSWFScriptFunction_shortcutKeys_clear();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
+	enum followBorder_t {
+		FOLLOW_NONE = -1,
+		FOLLOW_TOPLEFT = 0,
+		FOLLOW_TOPCENTER,
+		FOLLOW_TOPRIGHT,
+		FOLLOW_CENTERLEFT,
+		FOLLOW_CENTERCENTER,
+		FOLLOW_CENTERRIGHT,
+		FOLLOW_BOTTOMLEFT,
+		FOLLOW_BOTTOMCENTER,
+		FOLLOW_BOTTOMRIGHT
+	};
 
-};
+	idSWF( const char * filename, idSoundWorld * soundWorld = NULL, bool atlasPurgable = true );
+	~idSWF();
 
-// IDA Local Type ordinal 14825; PDB kind: class.
-class idSWF::idSWFScriptFunction_deactivate : public idSWFScriptFunction_Nested<idSWF>
-{
+	bool	IsLoaded() { return ( frameRate > 0 ); }
+	bool	IsActive() { return isActive; }
+	void	Activate( bool b );
+	
+	const char * GetName() { return filename.c_str(); }
+
+	void Pause() { mainspriteInstance->Stop(); paused = true; }
+	void Resume() { mainspriteInstance->Play(); paused = false; }
+	bool IsPaused() { return paused; }
+	void SetPausedRender( bool valid ) { pausedRender = valid; }
+	bool GetPausedRender() { return pausedRender; } 
+
+	void Render( idRenderModelGui * gui, int time = 0, bool isSplitscreen = false );
+	bool HandleEvent( const sysEvent_t * event );
+	bool IsPlayerControlInhibited();
+	bool InhibitControl() { return IsPlayerControlInhibited(); }
+	void ForceInhibitControl( bool val ) { inhibitControl = val; }
+
+	void SetGlobal( const char * name, const idSWFScriptVar & value ) { globals->Set( name, value ); }
+	void SetGlobalNative( const char * name, idSWFScriptNativeVariable * native ) { globals->SetNative( name, native ); }
+	idSWFScriptVar GetGlobal( const char * name ) { return globals->Get( name ); }
+	idSWFScriptObject & GetRootObject() { assert( mainspriteInstance->GetScriptObject() != NULL ); return *( mainspriteInstance->GetScriptObject() ); }
+
+	void Invoke( const char *  functionName, const idSWFParmList & parms );
+	void Invoke( const char *  functionName, const idSWFParmList & parms, bool & functionExists );
+
+	void AllocateEmitter( idSoundWorld * soundWorld );
+	void ClearEmitter( bool instant );
+	void SetListener( int listenerId );
+	int PlaySound( const idSoundShader * soundShader, soundChannel_t channel, bool blocking = false );
+	int PlaySound( const char * sound, soundChannel_t channel, bool blocking = false );
+	void StopSound( soundChannel_t channel );
+
+	float GetFrameWidth() const { return frameWidth; }
+	float GetFrameHeight() const { return frameHeight; }
+
+	int GetMouseX() { return mouseX; }
+	int GetMouseY() { return mouseY; }
+
+	bool UseCircleForAccept();
+
+	void SetSWFScale( float scale ) { swfScale = scale; }
+
+	idRandom2 & GetRandom();
+
+	int	GetPlatform();
+
+	//----------------------------------
+	// SWF_Dictionary.cpp
+	//----------------------------------
+	idSWFDictionaryEntry *	AddDictionaryEntry( int characterID, swfDictType_t type );
+	idSWFDictionaryEntry *	FindDictionaryEntry( int characterID, swfDictType_t type );
+	idSWFDictionaryEntry *	FindDictionaryEntry( int characterID );
+
+	idSWFDictionaryEntry *	GetDictionaryEntry( int index ) { return &dictionary[ index ];  }
+	int	GetNumDictionaryEntry() { return dictionary.Num(); }
+
+	idSWFScriptObject * HitTest( idSWFSpriteInstance * spriteInstance, const swfRenderState_t & renderState, int x, int y, idSWFScriptObject * parentObject );
+
+	static void MarkImageForPurging( idImage * image );
+	static void RemoveImgFromPurgableList( idImage * image );
+	static void PurgeUnusedImages();
+	static void ForcePurgeImages();
+	static void RegisterSWFResources( const char * filename );
+	bool LoadAtlasImage( bool force );
+	void CreateAltasImageAndMaterial();
+
+private:
+	idAtomicString	filename;
+	uint32			timestamp;
+	bool			isActive;
+	bool			inhibitControl;
+	bool			useInhibtControl;
+	bool			pausedRender;
+	float			frameWidth;
+	float			frameHeight;
+	uint16			frameRate;
+	float			renderBorder;
+	float			swfScale;
+
+	int				userDeviceNumber;
+	int				lastRenderTime;
+	bool			mouseEnabled;
+	bool			useMouse;
+	idSWFScriptObject * mouseObject;
+	idSWFScriptObject * hoverObject;
+
+	bool			blackbars;
+	bool			crop;
+	bool			paused;
+	bool			hasHitObject;
+	bool			automaticRescale;
+
+	idSWFSprite *			mainsprite;
+	idSWFSpriteInstance *	mainspriteInstance;
+
+	idSWFScriptObject *		globals;
+	idSWFScriptObject *		shortcutKeys;
+
+	idSoundEmitter *		soundEmitter;
+	idAtomicString		atlasTextureName;
+	const idMaterial *		atlasMaterial;
+	idImage *				atlasImage;
+	bool					atlasPurgable;
+	int					atlasWidth;
+	int					atlasHeight;
+	idFile *				atlasFile;
+
+	idBlockAlloc< idSWFSpriteInstance, 16, TAG_SWF >	spriteInstanceAllocator;
+	idBlockAlloc< idSWFTextInstance, 16, TAG_SWF >	textInstanceAllocator;
+
+	struct orphanedSprite_t {
+		idSWFSpriteInstance * spriteInstance;
+		bool wasPlaying;
+	};
+	struct orphanedText_t {
+		idSWFTextInstance * textInstance;
+	};
+	idList< orphanedSprite_t, TAG_SWF > orphanedSprites;
+	idList< orphanedText_t, TAG_SWF > orphanedTexts;
+	int c_TextInstanceAdoptions;
+	int c_TextInstanceOrphans;
+	int c_SpriteInstanceAdoptions;
+	int c_SpriteInstanceOrphans;
+
+#define SWF_NATIVE_FUNCTION_SWF_DECLARE( x ) \
+	class idSWFScriptFunction_##x : public idSWFScriptFunction_Nested< idSWF > { \
+	public: \
+		idSWFScriptVar Call( idSWFScriptObject * thisObject, const idSWFParmList & parms ); \
+	} scriptFunction_##x;
+
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( shortcutKeys_clear );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( deactivate );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( inhibitControl );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( useInhibit );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( precacheSound );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( playSound );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( stopSounds );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( getPlatform );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( getTruePlatform );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( getLocalString );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( isMultiplayer );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( swapPS3Buttons );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( getCVarInteger );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( setCVarInteger );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( strReplace );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( isJapanese );
+
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( acos );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( cos );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( sin );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( round );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( pow );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( sqrt );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( abs );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( rand );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( floor );
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( ceil );
+
+	SWF_NATIVE_FUNCTION_SWF_DECLARE( toUpper );
+
+	SWF_NATIVE_VAR_DECLARE_NESTED_READONLY( platform, idSWFScriptFunction_getPlatform, Call( object, idSWFParmList() ) );
+	SWF_NATIVE_VAR_DECLARE_NESTED( blackbars, idSWF );
+	SWF_NATIVE_VAR_DECLARE_NESTED( crop, idSWF );
+	SWF_NATIVE_VAR_DECLARE_NESTED( automaticRescale, idSWF );
+
+	class idSWFScriptFunction_Object : public idSWFScriptFunction {
+	public:
+		idSWFScriptVar	Call( idSWFScriptObject * thisObject, const idSWFParmList & parms ) { return idSWFScriptVar(); }
+		void			AddRef() { }
+		void			Release() { }
+		idSWFScriptObject * GetPrototype() { return &object; }
+		void			SetPrototype( idSWFScriptObject * _object ) { assert( false ); }
+		idSWFScriptObject object;
+	} scriptFunction_Object;
+
+	idList< idSWFDictionaryEntry, TAG_SWF >	dictionary;
+
+	struct keyButtonImages_t {
+
+		keyButtonImages_t() {
+			key = "";
+			xbImage = "";
+			psImage = "";
+			width = 0;
+			height = 0; 
+			baseline = 0;
+		}
+
+		keyButtonImages_t( const char* _key, const char* _xbImage, const char* _psImage, int w, int h, int _baseline ) {
+			key = _key;
+			xbImage = _xbImage;
+			psImage = _psImage;
+			width = w;
+			height = h; 
+			baseline = _baseline;
+		}
+
+		const char * key;
+		const char * xbImage;
+		const char * psImage;
+		int width;
+		int height;
+		int baseline;
+	};
+	idList< keyButtonImages_t, TAG_SWF > tooltipButtonImage;
+
+	struct tooltipIcon_t {
+		tooltipIcon_t() {
+			startIndex = -1;
+			endIndex = -1;
+			material = NULL;
+			imageWidth = 0;
+			imageHeight = 0;
+			baseline = 0;
+		};
+
+		int					startIndex;
+		int					endIndex;
+		const idMaterial *	material;
+		short				imageWidth;
+		short				imageHeight;
+		int					baseline;
+	};
+	idList< tooltipIcon_t, TAG_SWF > tooltipIconList;
+
+	const idMaterial * guiSolid;
+	const idMaterial * guiStencilIncr;
+	const idMaterial * guiStencilDecr;
+	const idMaterial * guiCursor_arrow;
+	const idMaterial * guiCursor_hand;
+	const idMaterial * white;
+
+private:
+	friend class idSWFSprite;
+	friend class idSWFSpriteInstance;
+	friend class idSWFTextInstance;
+	friend void listSWF_f( const idCmdArgs & args );
+	friend void printSWFVar_f( const idCmdArgs & args );
+	friend void reportSWFMemory_f( const idCmdArgs & args );
+	friend void reportMainMenuFonts_f( const idCmdArgs & args );
+
+	static idList< idSWF *, TAG_SWF > allSWFObjects;
+	static purgableSwfImage_t purgableSWFImages[ 8 ];
+	static uint32 swfFrameNum;
+	static int mouseX;
+	static int mouseY;
+	static bool isMouseInClientArea;
+
+	int FindSpriteOrphanIndex( const idSWFSpriteInstance * spriteInstance ) const;
+	int FindTextOrphanIndex( const idSWFTextInstance * textInstance ) const;
+	idSWFSpriteInstance * ExtractSpriteFromOrphanage( const idStr & name, const idSWFSprite * sprite, int depth, const idSWFSpriteInstance * parent );
+	idSWFTextInstance * ExtractTextFromOrphanage( const idStr & name, idSWFEditText * editText, int depth, const idSWFSpriteInstance * parent );
+	void AddSpriteOrphan( idSWFSpriteInstance * spriteInstance );
+	void AddTextOrphan( idSWFTextInstance * textInstance );
+	void PurgeOrphanage();
+
+	bool			LoadSWF( const char * fullpath );
+	bool			LoadBinary( const char * bfilename );
+	void			WriteBinary( const char * bfilename );
+
+	//----------------------------------
+	// SWF_Shapes.cpp
+	//----------------------------------
+	void			DefineShape( idSWFBitStream & bitstream );
+	void			DefineShape2( idSWFBitStream & bitstream );
+	void			DefineShape3( idSWFBitStream & bitstream );
+	void			DefineShape4( idSWFBitStream & bitstream );
+
+	//----------------------------------
+	// SWF_Sprites.cpp
+	//----------------------------------
+	void			DefineSprite( idSWFBitStream & bitstream );
+
+	//----------------------------------
+	// SWF_Sounds.cpp
+	//----------------------------------
+	void			DefineSound( idSWFBitStream & bitstream );
+
+	//----------------------------------
+	// SWF_Render.cpp
+	//----------------------------------
+	void			DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, const idMaterial *material );
+	void			DrawStretchPic( const idVec4 & topLeft, const idVec4 & topRight, const idVec4 & bottomRight, const idVec4 & bottomLeft, const idMaterial * material );
+	void			RenderSprite( idRenderModelGui * gui, idSWFSpriteInstance * sprite, const swfRenderState_t & renderState, int time, bool isSplitscreen = false );
+	void			RenderMask( idRenderModelGui * gui, const swfDisplayEntry_t * mask, const swfRenderState_t & renderState, const idMaterial * material );
+	void			RenderShape( idRenderModelGui * gui, const idSWFShape * shape, const swfRenderState_t & renderState );
+	void			RenderMorphShape( idRenderModelGui * gui, const idSWFShape* shape, const swfRenderState_t & renderState );
+	void			RenderRadial( idRenderModelGui * gui, idSWFSpriteInstance * sprite, const swfRenderState_t & renderState, int time, bool isSplitscreen );
+	void			DrawEditCursor( idRenderModelGui * gui, float x, float y, float w, float h, const swfMatrix_t & matrix );
+	void			RenderEditText( idRenderModelGui * gui, idSWFTextInstance * textInstance, const swfRenderState_t & renderState, int time, bool isSplitscreen = false );
+	uint64			GLStateForRenderState( const swfRenderState_t & renderState );
+	void			FindTooltipIcons( idStr * text, int bindset, int deviceNum );
+
+	//----------------------------------
+	// SWF_Image.cpp
+	//----------------------------------
+
+	class idDecompressJPEG {
+	public:
+		idDecompressJPEG();
+		~idDecompressJPEG();
+
+		byte * Load( const byte * input, int inputSize, int & width, int & height );
+
+	private:
+		void * vinfo;
+	};
+
+	idDecompressJPEG	jpeg;
+
+	void			LoadImageA( int characterID, const byte * imageData, int width, int height );
+
+	void			JPEGTables( idSWFBitStream & bitstream );
+	void			DefineBits( idSWFBitStream & bitstream );
+	void			DefineBitsJPEG2( idSWFBitStream & bitstream );
+	void			DefineBitsJPEG3( idSWFBitStream & bitstream );
+	void			DefineBitsLossless( idSWFBitStream & bitstream );
+	void			DefineBitsLossless2( idSWFBitStream & bitstream );
+
+
+	// per-swf image atlas
+	struct imageToPack_t {
+		int	characterID;
+		idVec2i	trueSize;	// in texels
+		byte * imageData;	// trueSize.x * trueSize.y * 4
+		idVec2i	allocSize;	// in DXT tiles, includes a border texel and rounding up to DXT blocks
+	};
+
+ 	class idSortBlocks : public idSort_Quick< imageToPack_t, idSortBlocks > {
+ 	public:
+ 		int Compare( const imageToPack_t & a, const imageToPack_t & b ) const {
+ 			return ( b.allocSize.x * b.allocSize.y ) - ( a.allocSize.x * a.allocSize.y );
+ 		}
+ 	};
+
+	idList<imageToPack_t, TAG_SWF>	packImages;	// only used during creation
+	void			WriteSwfImageAtlas( const char *filename );
+
+	//----------------------------------
+	// SWF_Text.cpp
+	//----------------------------------
+	void			DefineFont2( idSWFBitStream & bitstream );
+	void			DefineFont3( idSWFBitStream & bitstream );
+	void			DefineTextX( idSWFBitStream & bitstream, bool rgba );
+	void			DefineText( idSWFBitStream & bitstream );
+	void			DefineText2( idSWFBitStream & bitstream );
+	void			DefineEditText( idSWFBitStream & bitstream );
+
+	//----------------------------------
+	// SWF_Zlib.cpp
+	//----------------------------------
+	bool			Inflate( const byte * input, int inputSize, byte * output, int outputSize );
+
 public:
-  // Recovered virtual interface; IDA vtable ordinal 14826.
-  virtual ~idSWFScriptFunction_deactivate();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
+	//----------------------------------
+	// SWF_Names.cpp
+	//----------------------------------
+	static const char * GetTagName( swfTag_t tag );
+	static const char * GetActionName( swfAction_t action );
 
 };
 
-// IDA Local Type ordinal 14827; PDB kind: class.
-class idSWF::idSWFScriptFunction_inhibitControl : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14828.
-  virtual ~idSWFScriptFunction_inhibitControl();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14829; PDB kind: class.
-class idSWF::idSWFScriptFunction_useInhibit : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14830.
-  virtual ~idSWFScriptFunction_useInhibit();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14831; PDB kind: class.
-class idSWF::idSWFScriptFunction_precacheSound : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14832.
-  virtual ~idSWFScriptFunction_precacheSound();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14833; PDB kind: class.
-class idSWF::idSWFScriptFunction_playSound : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14834.
-  virtual ~idSWFScriptFunction_playSound();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14835; PDB kind: class.
-class idSWF::idSWFScriptFunction_stopSounds : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14836.
-  virtual ~idSWFScriptFunction_stopSounds();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14837; PDB kind: class.
-class idSWF::idSWFScriptFunction_getPlatform : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14838.
-  virtual ~idSWFScriptFunction_getPlatform();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14839; PDB kind: class.
-class idSWF::idSWFScriptFunction_getTruePlatform : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14840.
-  virtual ~idSWFScriptFunction_getTruePlatform();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14841; PDB kind: class.
-class idSWF::idSWFScriptFunction_getLocalString : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14842.
-  virtual ~idSWFScriptFunction_getLocalString();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14843; PDB kind: class.
-class idSWF::idSWFScriptFunction_isMultiplayer : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14844.
-  virtual ~idSWFScriptFunction_isMultiplayer();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14845; PDB kind: class.
-class idSWF::idSWFScriptFunction_swapPS3Buttons : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14846.
-  virtual ~idSWFScriptFunction_swapPS3Buttons();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14847; PDB kind: class.
-class idSWF::idSWFScriptFunction_getCVarInteger : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14848.
-  virtual ~idSWFScriptFunction_getCVarInteger();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14849; PDB kind: class.
-class idSWF::idSWFScriptFunction_setCVarInteger : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14850.
-  virtual ~idSWFScriptFunction_setCVarInteger();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14851; PDB kind: class.
-class idSWF::idSWFScriptFunction_strReplace : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14852.
-  virtual ~idSWFScriptFunction_strReplace();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14853; PDB kind: class.
-class idSWF::idSWFScriptFunction_isJapanese : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14854.
-  virtual ~idSWFScriptFunction_isJapanese();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14855; PDB kind: class.
-class idSWF::idSWFScriptFunction_acos : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14856.
-  virtual ~idSWFScriptFunction_acos();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14857; PDB kind: class.
-class idSWF::idSWFScriptFunction_cos : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14858.
-  virtual ~idSWFScriptFunction_cos();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14859; PDB kind: class.
-class idSWF::idSWFScriptFunction_sin : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14860.
-  virtual ~idSWFScriptFunction_sin();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14861; PDB kind: class.
-class idSWF::idSWFScriptFunction_round : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14862.
-  virtual ~idSWFScriptFunction_round();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14863; PDB kind: class.
-class idSWF::idSWFScriptFunction_pow : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14864.
-  virtual ~idSWFScriptFunction_pow();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14865; PDB kind: class.
-class idSWF::idSWFScriptFunction_sqrt : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14866.
-  virtual ~idSWFScriptFunction_sqrt();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14867; PDB kind: class.
-class idSWF::idSWFScriptFunction_abs : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14868.
-  virtual ~idSWFScriptFunction_abs();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14869; PDB kind: class.
-class idSWF::idSWFScriptFunction_rand : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14870.
-  virtual ~idSWFScriptFunction_rand();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14871; PDB kind: class.
-class idSWF::idSWFScriptFunction_floor : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14872.
-  virtual ~idSWFScriptFunction_floor();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14873; PDB kind: class.
-class idSWF::idSWFScriptFunction_ceil : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14874.
-  virtual ~idSWFScriptFunction_ceil();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14875; PDB kind: class.
-class idSWF::idSWFScriptFunction_toUpper : public idSWFScriptFunction_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14876.
-  virtual ~idSWFScriptFunction_toUpper();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14879; PDB kind: class.
-class idSWF::idSWFScriptNativeVar_platform : public idSWFScriptNativeVariable_Nested<idSWF::idSWFScriptFunction_getPlatform>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14880.
-  virtual ~idSWFScriptNativeVar_platform();
-  virtual bool IsReadOnly();
-  virtual void Set(idSWFScriptObject *, const idSWFScriptVar *);
-  virtual idSWFScriptVar *Get(idSWFScriptVar *result, idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14883; PDB kind: class.
-class idSWF::idSWFScriptNativeVar_blackbars : public idSWFScriptNativeVariable_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14884.
-  virtual ~idSWFScriptNativeVar_blackbars();
-  virtual bool IsReadOnly();
-  virtual void Set(idSWFScriptObject *, const idSWFScriptVar *);
-  virtual idSWFScriptVar *Get(idSWFScriptVar *result, idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14885; PDB kind: class.
-class idSWF::idSWFScriptNativeVar_crop : public idSWFScriptNativeVariable_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14886.
-  virtual ~idSWFScriptNativeVar_crop();
-  virtual bool IsReadOnly();
-  virtual void Set(idSWFScriptObject *, const idSWFScriptVar *);
-  virtual idSWFScriptVar *Get(idSWFScriptVar *result, idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14887; PDB kind: class.
-class idSWF::idSWFScriptNativeVar_automaticRescale : public idSWFScriptNativeVariable_Nested<idSWF>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14888.
-  virtual ~idSWFScriptNativeVar_automaticRescale();
-  virtual bool IsReadOnly();
-  virtual void Set(idSWFScriptObject *, const idSWFScriptVar *);
-  virtual idSWFScriptVar *Get(idSWFScriptVar *result, idSWFScriptObject *);
-
-};
-
-// IDA Local Type ordinal 14889; PDB kind: class.
-class idSWF::idSWFScriptFunction_Object : public idSWFScriptFunction
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14890.
-  virtual ~idSWFScriptFunction_Object();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-  idSWFScriptObject object;
-};
-
-// IDA Local Type ordinal 14916; PDB kind: struct.
-struct idSWF::keyButtonImages_t
-{
-  const char *key;
-  const char *xbImage;
-  const char *psImage;
-  int width;
-  int height;
-  int baseline;
-};
-
-// IDA Local Type ordinal 14918; PDB kind: struct.
-struct idSWF::tooltipIcon_t
-{
-  int startIndex;
-  int endIndex;
-  const idMaterial *material;
-  __int16 imageWidth;
-  __int16 imageHeight;
-  int baseline;
-};
-
-// IDA Local Type ordinal 14920; PDB kind: class.
-class idSWF::idDecompressJPEG
-{
-public:
-  void *vinfo;
-};
-
-// IDA Local Type ordinal 14921; PDB kind: struct.
-struct idSWF::imageToPack_t
-{
-  int characterID;
-  idVec2i trueSize;
-  unsigned __int8 *imageData;
-  idVec2i allocSize;
-};
-
-// IDA Local Type ordinal 22057; PDB kind: class.
-class idSWF::idSortBlocks : public idSort_Quick<idSWF::imageToPack_t,idSWF::idSortBlocks>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 22058.
-  virtual ~idSortBlocks();
-  virtual void Sort(idSWF::imageToPack_t *, unsigned int);
-
-};
-
-// IDA Local Type ordinal 23387; PDB kind: struct.
-struct idSWF::Inflate::__l2::local_swf_alloc_t
-{
-};
+#endif // !__SWF_H__

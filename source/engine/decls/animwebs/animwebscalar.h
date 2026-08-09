@@ -3,8 +3,17 @@
 #include "idlib/text/atomicstring.h"
 
 class idMD6Node;
+template<typename type, int memoryTag> class idList;
 
 struct idScalarMemBlock {
+    idScalarMemBlock() : floats(nullptr), num(0) {}
+    ~idScalarMemBlock();
+
+    void Alloc(int count);
+    void Free();
+    void Free(idList<class idAnimWebScalar, 5>& scalars);
+    void Free(idList<class idAnimWebScalar, 33>& scalars);
+
     float* floats;
     int num;
 };
@@ -12,6 +21,17 @@ struct idScalarMemBlock {
 class idAnimWebScalar {
 public:
     enum flags_t : int { AWSFLAG_INIT_TO_1 = 1 };
+
+    idAnimWebScalar()
+        : name(""), flags(0), scalarIndex(-1), scalarPtr(nullptr) {}
+
+    void SetScalarPtr(float* scalar);
+    void SetIndex(const idScalarMemBlock& memBlock, int index);
+    void SetName(const char* scalarName);
+    float GetScalar(const idScalarMemBlock& memBlock) const;
+    void SetScalar(idScalarMemBlock& memBlock, float value);
+    void Init(const char* scalarName, unsigned char scalarFlags,
+        float* scalar);
 
     idAtomicString name;
     unsigned char flags;
@@ -36,6 +56,10 @@ public:
         FT_PAUSE_FRAME = 3,
         FT_COORDINATE = 4
     };
+
+    idAnimWebScalarPair()
+        : scalarIndex(-1), coordinateIndex(-1), node(nullptr),
+          fieldType(0), fieldFlags(0), data1(0), data2(0) {}
 
     int scalarIndex;
     int coordinateIndex;

@@ -1,62 +1,29 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\decls\decltable.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decl.h"
 
+class idLookupTable;
 
-// IDA Local Type ordinal 13456; PDB kind: class.
-class idDeclTable : public idDecl
-{
+class idDeclTable : public idDecl {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 13457.
-  virtual ~idDeclTable();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    idDeclTable();
+    ~idDeclTable() override;
 
-  float left;
-  float right;
-  idLookupTable *table;
+    idDeclInfo* GetDeclInfo() const override;
+    const char* DefaultDefinition() const override;
+    void Parse(idParser* parser) override;
+    void FreeData() override;
+
+    float left;
+    float right;
+    idLookupTable* table;
+
+    static idDeclInfoTemplate<idDeclTable> resourceList;
 };
 
-// IDA Local Type ordinal 13812; PDB kind: class.
-class idDeclThrowable : public idDeclInventory
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 33916.
-  virtual ~idDeclThrowable();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+class idDeclThrowable;
 
-  const idDeclProjectile *projectileDecl;
-  const idDeclProjectile *boostProjectileDecl;
-  float pitchOffsetForPlayer;
-  float animIndex;
-};
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclTable) == 68,
+    "Recovered table declaration ABI changed");
+#endif

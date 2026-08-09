@@ -1,33 +1,21 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\decls\declproductionfilter.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decltypeinfo.h"
 
-
-// IDA Local Type ordinal 21836; PDB kind: class.
-class idDeclProductionFilter : public idDeclTypeInfo
-{
+class idDeclProductionFilter : public idDeclTypeInfo {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21837.
-  virtual ~idDeclProductionFilter();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    idDeclProductionFilter();
+    ~idDeclProductionFilter() override;
+    void Parse(idParser* parser) override;
+    idDeclInfo* GetDeclInfo() const override;
 
-  idList<idStr,5> entityFilter;
-  idList<idStr,5> entityRenderModelFilter;
+    idList<idStr, 5> entityFilter;
+    idList<idStr, 5> entityRenderModelFilter;
+
+    static idDeclInfoTemplate<idDeclProductionFilter> resourceList;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclProductionFilter) == 96,
+    "Recovered production-filter declaration ABI changed");
+#endif

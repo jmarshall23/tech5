@@ -9,8 +9,12 @@
 
 class idAnimStack;
 class idClip;
+class idDeclAnimWeb;
+class idDeclAnimWebNode;
+class idFile_String;
 class idGameTimeManager;
 class idMD6Anim;
+class idParser;
 class idTreeAnimator;
 
 #ifndef ID_CLIP_QUERY_DEFINED
@@ -243,6 +247,27 @@ struct blendParms_t {
         char originBlend;
         char blendType;
     } parms;
+
+    blendParms_t();
+
+    int GetDuration() const;
+    int GetDurationMS() const;
+    void Write(idFile_String& file, const char* indent) const;
+    bool GetSourceFrames(const idMD6Anim* anim, std::int16_t& firstFrame,
+        std::int16_t& lastFrame) const;
+    bool GetDestFrames(const idMD6Anim* anim, std::int16_t& firstFrame,
+        std::int16_t& duration) const;
+    void SetDestStartFrame(int frame);
+    void SetDuration(int frames);
+    void SetDurationMS(int milliseconds);
+    void Parse(idDeclAnimWeb* declaration, idDeclAnimWebNode* node,
+        const char* toSubWebName, const char* toStateName, idParser& parser);
+
+private:
+    bool GetRelativeFrames(const idMD6Anim* anim, bool endRelative,
+        const std::int16_t& inFirstFrame, const std::int16_t& inDuration,
+        std::int16_t& outFirstRelativeFrame,
+        std::int16_t& outLastRelativeFrame) const;
 };
 
 struct idGameTimeManagerPtr {

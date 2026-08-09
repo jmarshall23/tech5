@@ -112,6 +112,10 @@ const char* TokenTypeName(const int type) {
 
 } // namespace
 
+const punctuation_t* GetDefaultPunctuations() {
+    return defaultPunctuations;
+}
+
 idLexer::idLexer(const int flags_)
     : loaded(false), filename(""), allocated(0), buffer(nullptr),
       script_p(nullptr), end_p(nullptr), lastScript_p(nullptr),

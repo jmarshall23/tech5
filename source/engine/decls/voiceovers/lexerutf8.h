@@ -1,34 +1,56 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\decls\voiceovers\lexerutf8.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/text/lexer.h"
 
-
-// IDA Local Type ordinal 3223; PDB kind: unknown.
-enum idLexerUTF8::Error::__l14::<unnamed_tag> : __int32
-{
-  BuffSize = 0x80,
-};
-
-// IDA Local Type ordinal 18073; PDB kind: class.
-class __declspec(align(2)) idLexerUTF8
-{
+class idLexerUTF8 {
 public:
-  idStr filename;
-  int flags;
-  const unsigned __int8 *buffer;
-  const unsigned __int8 *cur;
-  const unsigned __int8 *end;
-  const unsigned __int8 *prev;
-  unsigned int len;
-  int lastline;
-  int line;
-  const punctuation_t *punctuations;
-  int *punctuationtable;
-  int *nextpunctuation;
-  bool loaded;
-  bool hadError;
-  bool hadWarning;
+    explicit idLexerUTF8(int lexerFlags = 0);
+    ~idLexerUTF8();
+
+    void LoadMemory(const unsigned char* pointer, unsigned int length,
+        const char* name);
+    void UnreadToken();
+    const char* GetPunctuationFromId(int id) const;
+    bool ReadToken(idToken& token);
+    bool CheckTokenType(int type, int subtype, idToken& token);
+    bool ExpectTokenType(int type, int subtype, idToken& token);
+    bool ExpectTokenString(const char* string);
+    bool CheckTokenString(const char* string);
+    bool SkipBracedSection(bool parseFirstBrace = true);
+    float ParseFloat();
+    int ParseInt();
+    void Error(const char* format, ...);
+
+    bool HadError() const { return hadError; }
+    bool HadWarning() const { return hadWarning; }
+
+    idStr filename;
+    int flags;
+    const unsigned char* buffer;
+    const unsigned char* cur;
+    const unsigned char* end;
+    const unsigned char* prev;
+    unsigned int len;
+    int lastline;
+    int line;
+    const punctuation_t* punctuations;
+    int* punctuationtable;
+    int* nextpunctuation;
+    bool loaded;
+    bool hadError;
+    bool hadWarning;
+
+private:
+    bool SkipWhitespace();
+    bool ReadName(idToken& token);
+    bool ReadPunctuation(idToken& token);
+    void CreatePunctuationTable(const punctuation_t* punctuationList);
+    bool ReadNumber(idToken& token);
+    bool ReadEscapeCharacter(unsigned int& character);
+    bool ReadString(idToken& token, unsigned int quote);
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idLexerUTF8) == 80,
+    "Recovered UTF-8 lexer ABI changed");
+#endif

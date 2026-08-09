@@ -1,32 +1,41 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\decls\declskins.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decl.h"
 
+class idMaterial;
 
-// IDA Local Type ordinal 13529; PDB kind: class.
-class idDeclSkins : public idDecl
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 13530.
-  virtual ~idDeclSkins();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
-
-  idList<idSkin,46> skins;
+struct idSkinMapping {
+    const idMaterial* from;
+    const idMaterial* to;
 };
+
+struct idSkin {
+    idSkin() : name(""), mappings(16) {}
+    const idMaterial* Remap(const idMaterial* material) const;
+
+    idAtomicString name;
+    idList<idSkinMapping, 46> mappings;
+};
+
+class idDeclSkins : public idDecl {
+public:
+    idDeclSkins();
+    idDeclInfo* GetDeclInfo() const override;
+    const char* DefaultDefinition() const override;
+    bool RebuildTextSource() override;
+    void Parse(idParser* parser) override;
+    void FreeData() override;
+
+    int IndexForSkin(const char* skinName) const;
+
+    idList<idSkin, 46> skins;
+    static idDeclInfoTemplate<idDeclSkins> resourceList;
+};
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idSkinMapping) == 8,
+    "Recovered skin mapping ABI changed");
+static_assert(sizeof(idSkin) == 20, "Recovered skin ABI changed");
+static_assert(sizeof(idDeclSkins) == 72,
+    "Recovered skins declaration ABI changed");
+#endif

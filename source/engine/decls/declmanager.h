@@ -1,32 +1,39 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\decls\declmanager.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decl.h"
 
+class idAutoComplete;
 
-// IDA Local Type ordinal 17601; PDB kind: class.
-class idDeclManager
-{
+class idDeclManager {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 17602.
-  virtual ~idDeclManager();
-  virtual void Init();
-  virtual void Shutdown();
-  virtual void Reload(bool);
-  virtual void MarkStatic();
-  virtual void FreeDynamic();
-  virtual void RegisterDeclFolder(const char *, const char *, idDeclInfo *);
-  virtual int GetNumDeclTypes();
-  virtual idDeclInfo *GetDeclType(const char *);
-  virtual idDeclInfo *GetDeclType_2(int);
-  virtual idDeclInfo *GetDeclTypeFromClassname(const char *);
-  virtual idDecl *CreateNewDecl(idDeclInfo *, const char *, const char *, const char *);
-  virtual void AddDependency(idDecl *, const char *);
-  virtual void AddDependency_2(idDecl *, const idDecl *);
-  virtual void ArgCompletion_DeclTypeName(idAutoComplete *);
-  virtual void ArgCompletion_DeclName(idAutoComplete *, idDeclInfo *);
-  virtual void PrintMultiplayerDeclOverrides();
-
+    virtual ~idDeclManager() = default;
+    virtual void Init() = 0;
+    virtual void Shutdown() = 0;
+    virtual void Reload(bool force) = 0;
+    virtual void MarkStatic() = 0;
+    virtual void FreeDynamic() = 0;
+    virtual void RegisterDeclFolder(const char* folder,
+        const char* extension, idDeclInfo* defaultType) = 0;
+    virtual int GetNumDeclTypes() const = 0;
+    virtual idDeclInfo* GetDeclType(const char* typeName) const = 0;
+    virtual idDeclInfo* GetDeclType(int index) const = 0;
+    virtual idDeclInfo* GetDeclTypeFromClassname(
+        const char* className) const = 0;
+    virtual idDecl* CreateNewDecl(idDeclInfo* type, const char* name,
+        const char* fileName, const char* sourceText) = 0;
+    virtual void AddDependency(idDecl* declaration,
+        const char* dependencyFile) = 0;
+    virtual void AddDependency(idDecl* declaration,
+        const idDecl* dependency) = 0;
+    virtual void ArgCompletion_DeclTypeName(idAutoComplete* completion) = 0;
+    virtual void ArgCompletion_DeclName(idAutoComplete* completion,
+        idDeclInfo* type) = 0;
+    virtual void PrintMultiplayerDeclOverrides() const = 0;
 };
+
+extern idDeclManager* declManager;
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclManager) == 4,
+    "Recovered declaration-manager interface ABI changed");
+#endif

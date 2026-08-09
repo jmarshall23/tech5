@@ -1,36 +1,30 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\decls\decltypeinfo.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decl.h"
 
+class idParser;
 
-// IDA Local Type ordinal 13311; PDB kind: class.
-class __declspec(align(4)) idDeclTypeInfo : public idDecl
-{
+// Type-info declarations are reflected declaration objects.  Their authored
+// body is applied on top of either an inherited declaration or an empty
+// object of the same registered type.
+class alignas(4) idDeclTypeInfo : public idDecl {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 13312.
-  virtual ~idDeclTypeInfo();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    idDeclTypeInfo();
+    ~idDeclTypeInfo() override;
 
-  idDeclTypeInfo *parent;
-  bool hasBeenParsedAtLeastOnce;
+    void Parse(idParser* parser) override;
+    bool RebuildTextSource() override;
+    idDeclInfo* GetDeclInfo() const override;
+
+    void SetState(const idDeclTypeInfo* emptyState);
+
+    idDeclTypeInfo* parent;
+    bool hasBeenParsedAtLeastOnce;
+
+    static idDeclInfoTemplate<idDeclTypeInfo> resourceList;
 };
 
-// IDA Local Type ordinal 28004; PDB kind: typedef.
-typedef XGRAPHICS::_XLT_DECLTEX_INFO XLT_DECLTEX_INFO;
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclTypeInfo) == 64,
+    "Recovered type-info declaration ABI changed");
+#endif

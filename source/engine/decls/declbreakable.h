@@ -1,41 +1,92 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\decls\declbreakable.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decltypeinfo.h"
+#include "gamelib/effectphysics/effectphysicsbreakable.h"
+#include "idlib/math/vector.h"
 
+class idDeclParticle;
+class idMaterial;
+class idParser;
 
-// IDA Local Type ordinal 14552; PDB kind: class.
-class idDeclBreakable : public idDecl
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14553.
-  virtual ~idDeclBreakable();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+struct alignas(4) idBreakableSettings {
+    idBreakableSettings();
 
-  idAtomicString modelName;
-  int numPieces;
-  idBreakableSettings settings;
-  idList<idBreakableExplosion,59> explosions;
-  idList<idBreakableTrail,59> trails;
-  idList<int,59> armoredPieces;
-  idList<int,59> healthPieces;
-  idList<idBreakableDecal,59> decals;
-  idList<idBreakablePieceDecal,5> pieceDecals;
-  idBreakableSpark sparks;
+    float linearFriction;
+    float angularFriction;
+    float contactFriction;
+    float linearFrictionWater;
+    float angularFrictionWater;
+    float bouncyness;
+    idVec3 gravityVector;
+    bool worldCollisionOnly;
+    bool simplePointCollision;
+    float crazyBounceChance;
+    float maxSimulationTime;
+    const idDeclParticle* impactParticle;
+    const idDeclParticle* deathParticle;
+    const idDeclParticle* harmlessParticle;
+    float stopSpeed;
+    float maxLinearVelocity;
+    float maxAngularVelocity;
+    bool noShadows;
+    int clipMask;
+    float dampeningDecay;
 };
+
+struct alignas(4) idBreakablePieceDecal {
+    idBreakablePieceDecal();
+
+    const idMaterial* material;
+    idVec2 size;
+    float depth;
+    float angle;
+    idVec3 position;
+    idVec3 direction;
+    idList<int, 5> affectedPieces;
+};
+
+class alignas(4) idDeclBreakable : public idDecl {
+public:
+    idDeclBreakable();
+
+    const char* DefaultDefinition() const override;
+    void Parse(idParser* parser) override;
+    idDeclInfo* GetDeclInfo() const override;
+
+    static int ContentsFromString(const char* text);
+    static void GenerateDecalInfoFromModel(
+        const idDeclBreakable* declaration, const char* decalModelName);
+
+    idAtomicString modelName;
+    int numPieces;
+    idBreakableSettings settings;
+    idList<idBreakableExplosion, 59> explosions;
+    idList<idBreakableTrail, 59> trails;
+    idList<int, 59> armoredPieces;
+    idList<int, 59> healthPieces;
+    idList<idBreakableDecal, 59> decals;
+    idList<idBreakablePieceDecal, 5> pieceDecals;
+    idBreakableSpark sparks;
+
+    static idDeclInfoTemplate<idDeclBreakable> resourceList;
+
+private:
+    void Clear();
+    void ParseArmoredPieces(idParser& parser);
+    void ParseHealthPieces(idParser& parser);
+    void ParseContents(idParser& parser, int& contents) const;
+    void ParseSpark(idParser& parser);
+    void ParseExplosion(idParser& parser);
+    void ParseTrail(idParser& parser);
+    void ParseDecals(idParser& parser);
+    void ParsePieceDecal(idParser& parser);
+};
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idBreakableSettings) == 84,
+    "Recovered breakable settings ABI changed");
+static_assert(sizeof(idBreakablePieceDecal) == 60,
+    "Recovered piece-decal ABI changed");
+static_assert(sizeof(idDeclBreakable) == 276,
+    "Recovered breakable declaration ABI changed");
+#endif

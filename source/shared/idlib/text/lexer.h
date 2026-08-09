@@ -9,6 +9,8 @@ struct punctuation_t {
     int n;
 };
 
+const punctuation_t* GetDefaultPunctuations();
+
 // Recovered from the lexer PDB enums and the subtype tests in lexer.cpp.
 enum lexerTokenType_t : int {
     TT_STRING = 1,

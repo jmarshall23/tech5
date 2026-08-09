@@ -1,31 +1,32 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\network\smtp.h
-// Recovered logical types: 3
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+// Recovered from w:\tech5\engine\network\smtp.h PDB records and the
+// matching Xbox 360 SMTP implementation.  idStr/idList/idTCP are supplied by
+// network_precompiled.h, as in the original engine build.
 
-
-// IDA Local Type ordinal 12990; PDB kind: struct.
-struct idMTP::request_t
-{
-  unsigned __int64 offset;
-  unsigned int length;
-  unsigned __int16 filenameLength;
-  unsigned __int16 operation;
+struct emailData_t {
+	idStr			server;
+	idStr			subject;
+	idStr			senderName;
+	idStr			senderEmail;
+	idList< idStr >	recipientEmail;
+	idStr			body;
+	idStr			attachment;
 };
 
-// IDA Local Type ordinal 12992; PDB kind: struct.
-struct idMTP::stats_t
-{
-  unsigned __int64 length;
-  unsigned int timestamp;
-  unsigned int unused;
-};
-
-// IDA Local Type ordinal 23109; PDB kind: class.
-class idSMTP
-{
+class idSMTP {
 public:
-  idTCP tcp;
+	void		SendEmail( emailData_t & data );
+
+private:
+	int			EncodeBase64( byte * source, int sourceLength, byte ** encoded );
+	bool		RecvFromServer( const char * expected );
+	bool		SendToServer( const char * text );
+
+	idTCP		tcp;
 };
+
+#if INTPTR_MAX == INT32_MAX
+static_assert( sizeof( emailData_t ) == 208, "Recovered emailData_t ABI changed" );
+static_assert( sizeof( idSMTP ) == 20, "Recovered idSMTP ABI changed" );
+#endif
