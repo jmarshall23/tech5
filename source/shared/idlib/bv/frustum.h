@@ -1,11 +1,11 @@
 #pragma once
 
-#include "idlib/precompiled.h"
+#include "../math/vector.h"
 
 class idFrustum {
 public:
     idFrustum()
-        : origin(vec3_origin), axis(mat3_identity), dNear(0.0f), dFar(0.0f),
+        : origin(0.0f, 0.0f, 0.0f), axis(1.0f), dNear(0.0f), dFar(0.0f),
           dLeft(0.0f), dUp(0.0f), invFar(0.0f) {
     }
 
@@ -19,7 +19,7 @@ public:
 
     void ToPoints(idVec3 points[8]) const;
 
-private:
+    // Public in the recovered PDB declaration (ordinal 13098).
     idVec3 origin;
     idMat3 axis;
     float dNear;

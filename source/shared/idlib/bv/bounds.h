@@ -2,8 +2,7 @@
 
 #include "../math/vector.h"
 
-// Minimal tungsten ABI facade used while the BFG idBounds implementation is
-// still the baseline for the larger geometry subsystem.
+// Recovered two-vector bounds layout used by the geometry reconstruction.
 class idBounds {
 public:
     idVec3 b[2];

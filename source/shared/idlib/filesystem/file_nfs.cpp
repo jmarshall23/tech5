@@ -162,13 +162,13 @@ bool HasExtension(const std::wstring& name, const char* extension) {
 } // namespace
 
 idFile_Nfs::idFile_Nfs()
-    : uniqID(0), openRemote(false), openPadding{}, fh{},
-      fullPath("invalid"), mode(NFS_FS_READ), position(0), size(0),
-      timeStamp(0), demandSeek(false), seekPadding{}, nfsClient(nullptr),
+    : openRemote(false), fh{},
+      fullPath("invalid"), mode(FS_READ), position(0), size(0),
+      timeStamp(0), demandSeek(false), nfsClient(nullptr),
       ro(false) {}
 
 idFile_Nfs::~idFile_Nfs() {
-    delete static_cast<FileState*>(nfsClient);
+    delete reinterpret_cast<FileState*>(nfsClient);
     nfsClient = nullptr;
     openRemote = false;
 }
@@ -205,30 +205,30 @@ void idFile_Nfs::UnmountAll() {
     mounts.clear();
 }
 
-bool idFile_Nfs::Open(const char* path, const nfsFileMode_t openMode,
+bool idFile_Nfs::Open(const char* path, const fsMode_t openMode,
         bool create, const bool createPath) {
-    delete static_cast<FileState*>(nfsClient);
+    delete reinterpret_cast<FileState*>(nfsClient);
     nfsClient = nullptr;
     openRemote = false;
 
     std::wstring native;
     bool mountReadOnly = false;
     if (!Resolve(path, native, &mountReadOnly)) return false;
-    const bool wantsWrite = openMode == NFS_FS_WRITE
-        || openMode == NFS_FS_READ_WRITE || openMode == NFS_FS_APPEND;
+    const bool wantsWrite = openMode == FS_WRITE
+        || openMode == FS_READ_WRITE || openMode == FS_APPEND;
     if (mountReadOnly && wantsWrite) return false;
-    if (openMode == NFS_FS_WRITE || openMode == NFS_FS_APPEND) create = true;
+    if (openMode == FS_WRITE || openMode == FS_APPEND) create = true;
     if (createPath && create && !CreateDirectories(native, false)) return false;
 
     DWORD access = GENERIC_READ;
     DWORD disposition = OPEN_EXISTING;
-    if (openMode == NFS_FS_WRITE) {
+    if (openMode == FS_WRITE) {
         access = GENERIC_WRITE | GENERIC_READ;
         disposition = CREATE_ALWAYS;
-    } else if (openMode == NFS_FS_READ_WRITE) {
+    } else if (openMode == FS_READ_WRITE) {
         access = GENERIC_WRITE | GENERIC_READ;
         disposition = create ? OPEN_ALWAYS : OPEN_EXISTING;
-    } else if (openMode == NFS_FS_APPEND) {
+    } else if (openMode == FS_APPEND) {
         access = GENERIC_WRITE | GENERIC_READ;
         disposition = OPEN_ALWAYS;
     }
@@ -242,7 +242,7 @@ bool idFile_Nfs::Open(const char* path, const nfsFileMode_t openMode,
         delete state;
         return false;
     }
-    nfsClient = state;
+    nfsClient = reinterpret_cast<idNfsClient*>(state);
     openRemote = true;
     ro = mountReadOnly;
     mode = openMode;
@@ -253,13 +253,13 @@ bool idFile_Nfs::Open(const char* path, const nfsFileMode_t openMode,
         openRemote = false;
         return false;
     }
-    position = openMode == NFS_FS_APPEND ? size : 0;
+    position = openMode == FS_APPEND ? size : 0;
     return true;
 }
 
-int idFile_Nfs::ReadOfs(const std::int64_t offset, void* buffer,
-        const int len) {
-    FileState* const state = static_cast<FileState*>(nfsClient);
+unsigned int idFile_Nfs::ReadOfs(const std::int64_t offset, void* buffer,
+        const unsigned int len) {
+    FileState* const state = reinterpret_cast<FileState*>(nfsClient);
     if (state == nullptr || buffer == nullptr || len <= 0 || offset < 0) return 0;
     std::lock_guard<std::mutex> lock(state->mutex);
     LARGE_INTEGER saved{}, target{};
@@ -273,9 +273,9 @@ int idFile_Nfs::ReadOfs(const std::int64_t offset, void* buffer,
     return success ? static_cast<int>(amount) : 0;
 }
 
-int idFile_Nfs::WriteOfs(const std::int64_t offset, const void* buffer,
-        const int len) {
-    FileState* const state = static_cast<FileState*>(nfsClient);
+unsigned int idFile_Nfs::WriteOfs(const std::int64_t offset,
+        const void* buffer, const unsigned int len) {
+    FileState* const state = reinterpret_cast<FileState*>(nfsClient);
     if (state == nullptr || ro || buffer == nullptr || len <= 0 || offset < 0) return 0;
     std::lock_guard<std::mutex> lock(state->mutex);
     LARGE_INTEGER saved{}, target{};
@@ -287,36 +287,36 @@ int idFile_Nfs::WriteOfs(const std::int64_t offset, const void* buffer,
         static_cast<DWORD>(len), &amount, nullptr);
     SetFilePointerEx(state->handle, saved, nullptr, FILE_BEGIN);
     if (success) {
-        size = std::max(size, static_cast<std::uint64_t>(offset) + amount);
+        size = (std::max)(size, static_cast<std::uint64_t>(offset) + amount);
         RefreshMetadata(*state, size, timeStamp);
     }
     return success ? static_cast<int>(amount) : 0;
 }
 
-int idFile_Nfs::Read(void* buffer, const int len) {
-    const int amount = ReadOfs(static_cast<std::int64_t>(position), buffer, len);
+unsigned int idFile_Nfs::Read(void* buffer, const unsigned int len) {
+    const unsigned int amount = ReadOfs(
+        static_cast<std::int64_t>(position), buffer, len);
     position += static_cast<std::uint64_t>(amount);
     return amount;
 }
 
-int idFile_Nfs::Write(const void* buffer, const int len) {
-    if (mode == NFS_FS_APPEND) position = size;
-    const int amount = WriteOfs(static_cast<std::int64_t>(position), buffer, len);
+unsigned int idFile_Nfs::Write(const void* buffer, const unsigned int len) {
+    if (mode == FS_APPEND) position = size;
+    const unsigned int amount = WriteOfs(
+        static_cast<std::int64_t>(position), buffer, len);
     position += static_cast<std::uint64_t>(amount);
     return amount;
 }
 
-int idFile_Nfs::Length() const {
-    return size > static_cast<std::uint64_t>(INT_MAX) ? INT_MAX
-        : static_cast<int>(size);
+std::int64_t idFile_Nfs::Length() const {
+    return static_cast<std::int64_t>(size);
 }
 
-int idFile_Nfs::Tell() const {
-    return position > static_cast<std::uint64_t>(INT_MAX) ? INT_MAX
-        : static_cast<int>(position);
+std::int64_t idFile_Nfs::Tell() const {
+    return static_cast<std::int64_t>(position);
 }
 
-int idFile_Nfs::Seek(const long offset, const fsOrigin_t origin) {
+int idFile_Nfs::Seek(const std::int64_t offset, const fsOrigin_t origin) {
     return Seek64(offset, origin);
 }
 
@@ -334,7 +334,7 @@ int idFile_Nfs::Seek64(const std::int64_t offset, const fsOrigin_t origin) {
 void idFile_Nfs::SetLength(const unsigned int len) { SetLength64(len); }
 
 bool idFile_Nfs::SetLength64(const std::uint64_t len) {
-    FileState* const state = static_cast<FileState*>(nfsClient);
+    FileState* const state = reinterpret_cast<FileState*>(nfsClient);
     if (state == nullptr || ro || len > static_cast<std::uint64_t>(INT64_MAX)) return false;
     std::lock_guard<std::mutex> lock(state->mutex);
     LARGE_INTEGER saved{}, target{};
@@ -350,7 +350,7 @@ bool idFile_Nfs::SetLength64(const std::uint64_t len) {
 }
 
 void idFile_Nfs::Flush() {
-    FileState* const state = static_cast<FileState*>(nfsClient);
+    FileState* const state = reinterpret_cast<FileState*>(nfsClient);
     if (state != nullptr && !ro) FlushFileBuffers(state->handle);
 }
 

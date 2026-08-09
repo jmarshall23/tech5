@@ -1,3 +1,3 @@
 // Tungsten's containers/BTree.cpp contains only the testBinaryTree console
-// command. The reusable idBTree implementation is header-only and is supplied
-// by the compiled Doom 3 BFG idlib/containers/BTree.h baseline.
+// command. The reusable recovered idBTree implementation is header-only in
+// btree.h; the engine console registration is intentionally deferred.

@@ -1,23 +1,24 @@
 #pragma once
 
-#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <new>
+#include <utility>
 
+// Small ABI-compatible list used by recovered subsystems whose PDB type was
+// emitted as an anonymous idList specialization.  Unlike the earlier POD-only
+// facade, this version preserves constructors and destructors for idStr-backed
+// XML values as required by the recovered call sites.
 template<class T>
 class idRecoveredList {
 public:
-    explicit idRecoveredList(const int initialGranularity = 16)
+    explicit idRecoveredList(const int initialGranularity = 16,
+            const std::uint8_t tag = 0)
         : list(nullptr), num(0), size(0),
           granularity(static_cast<std::int16_t>(initialGranularity)),
-          memTag(0), listStatic(0) {
-    }
+          memTag(tag), listStatic(0) {}
 
-    ~idRecoveredList() {
-        Clear(true);
-    }
+    ~idRecoveredList() { Clear(true); }
 
     idRecoveredList(const idRecoveredList&) = delete;
     idRecoveredList& operator=(const idRecoveredList&) = delete;
@@ -29,9 +30,9 @@ public:
         T* const replacement = static_cast<T*>(
             std::malloc(sizeof(T) * static_cast<std::size_t>(newSize)));
         if (replacement == nullptr) return false;
-        if (list != nullptr && num > 0) {
-            std::memcpy(replacement, list,
-                sizeof(T) * static_cast<std::size_t>(num));
+        for (int index = 0; index < num; ++index) {
+            new (&replacement[index]) T(std::move(list[index]));
+            list[index].~T();
         }
         std::free(list);
         list = replacement;
@@ -41,19 +42,20 @@ public:
 
     T* Alloc() {
         if (!Reserve(num + 1)) return nullptr;
-        T* const result = list + num++;
-        std::memset(result, 0, sizeof(T));
+        T* const result = &list[num++];
+        new (result) T();
         return result;
     }
 
-    bool Append(const T& value) {
-        T* const destination = Alloc();
-        if (destination == nullptr) return false;
-        *destination = value;
-        return true;
+    T* Append(const T& value) {
+        if (!Reserve(num + 1)) return nullptr;
+        T* const result = &list[num++];
+        new (result) T(value);
+        return result;
     }
 
     void Clear(const bool freeMemory = false) {
+        for (int index = 0; index < num; ++index) list[index].~T();
         num = 0;
         if (freeMemory) {
             std::free(list);
@@ -82,4 +84,3 @@ private:
 static_assert(sizeof(idRecoveredList<int>) == 16,
     "Recovered list ABI changed");
 #endif
-

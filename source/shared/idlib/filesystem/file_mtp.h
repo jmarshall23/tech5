@@ -1,39 +1,30 @@
 #pragma once
 
-#include "idlib/precompiled.h"
-
-#ifdef nullptr
-#undef nullptr
-#endif
+#include "file.h"
+#include "../containers/list.h"
 
 #include <cstdint>
 
-enum mtpFileMode_t {
-    MTP_FS_READ = 0,
-    MTP_FS_WRITE = 1,
-    MTP_FS_READ_WRITE = 2,
-    MTP_FS_READ_NO_BUFFERING = 3,
-    MTP_FS_APPEND = 4
-};
-
-class idFile_MTP : public idFile {
+class alignas(8) idFile_MTP : public idFile {
 public:
     idFile_MTP();
     ~idFile_MTP() override;
 
     const char* GetName() const override { return name.c_str(); }
     const char* GetFullPath() const override { return fullPath.c_str(); }
-    int Read(void* buffer, int len) override;
-    int Write(const void* buffer, int len) override;
-    int Length() const override;
-    ID_TIME_T Timestamp() const override { return timestamp; }
-    int Tell() const override;
-    int Seek(long offset, fsOrigin_t origin) override;
+    unsigned int Read(void* buffer, unsigned int len) override;
+    unsigned int Write(const void* buffer, unsigned int len) override;
+    unsigned int ReadOfs(std::int64_t offset, void* buffer,
+        unsigned int len) override;
+    unsigned int WriteOfs(std::int64_t offset, const void* buffer,
+        unsigned int len) override;
+    std::int64_t Length() const override;
+    unsigned int Timestamp() const override { return timestamp; }
+    std::int64_t Tell() const override;
+    int Seek(std::int64_t offset, fsOrigin_t origin) override;
 
-    bool Open(const char* filename, mtpFileMode_t openMode);
-    int ReadOfs(std::int64_t offset, void* buffer, int len);
-    int WriteOfs(std::int64_t offset, const void* buffer, int len);
-    void SetLength(unsigned int len);
+    bool Open(const char* filename, fsMode_t openMode);
+    void SetLength(unsigned int len) override;
     std::uint64_t Length64() const { return length; }
     std::uint64_t Tell64() const { return position; }
     bool List(const char* directory, const char* extension,
@@ -57,12 +48,10 @@ private:
     static bool SendRequest(std::uint64_t offset, unsigned int requestLength,
         operation_t operation, const char* filename);
 
-    // BFG's idFile predates the recovered idTech 5 uniqID field.
-    unsigned int uniqID;
     idStr name;
     idStr fullPath;
     std::uint64_t position;
-    mtpFileMode_t mode;
+    fsMode_t mode;
     std::uint64_t length;
     unsigned int timestamp;
 };

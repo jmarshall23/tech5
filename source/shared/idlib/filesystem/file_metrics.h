@@ -1,16 +1,6 @@
 #pragma once
 
-// The recovery target still uses Doom 3 BFG's portable idFile implementation
-// as its base file layer.  idFile_Metrics retains the tungsten data layout and
-// supplies the additional network-backed stream behavior recovered from the
-// Xbox 360 executable.
-#include "idlib/precompiled.h"
-
-// BFG emulates the C++11 keyword for its original compiler.  Recovery sources
-// use the real C++14 keyword and the standard library.
-#ifdef nullptr
-#undef nullptr
-#endif
+#include "file.h"
 
 class idFile_Metrics : public idFile {
 public:
@@ -19,11 +9,11 @@ public:
 
     const char* GetName() const override { return name.c_str(); }
     const char* GetFullPath() const override;
-    int Read(void* buffer, int len) override;
-    int Write(const void* buffer, int len) override;
-    int Length() const override { return bytesSent; }
-    int Tell() const override { return bytesSent; }
-    int Seek(long offset, fsOrigin_t origin) override;
+    unsigned int Read(void* buffer, unsigned int len) override;
+    unsigned int Write(const void* buffer, unsigned int len) override;
+    std::int64_t Length() const override { return bytesSent; }
+    std::int64_t Tell() const override { return bytesSent; }
+    int Seek(std::int64_t offset, fsOrigin_t origin) override;
     void Flush() override;
     void ForceFlush() override;
 
@@ -46,9 +36,6 @@ private:
     static void WriteFrame(bool& queueTraffic, const char* streamName,
         const void* buffer, int len);
 
-    // idTech 5 added uniqID to idFile; BFG's portable base predates it.  Keep
-    // the field in the same derived-object position to preserve tungsten ABI.
-    unsigned int uniqID;
     idStr name;
     mutable idStr fullpath;
     int bytesSent;

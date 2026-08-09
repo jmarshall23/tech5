@@ -12,6 +12,7 @@ public:
     idVec1() = default;
     explicit idVec1(const float newX) : x(newX) {}
     void Zero() { x = 0.0f; }
+    int GetDimension() const { return 1; }
     float operator[](const int) const { return x; }
     float& operator[](const int) { return x; }
 };
@@ -41,6 +42,8 @@ public:
         x = 0.0f;
         y = 0.0f;
     }
+
+    int GetDimension() const { return 2; }
 
     float operator[](const int index) const {
         assert(index >= 0 && index < 2);
@@ -83,6 +86,9 @@ public:
         y = 0.0f;
         z = 0.0f;
     }
+
+
+    int GetDimension() const { return 3; }
 
     float operator[](const int index) const {
         assert(index >= 0 && index < 3);
@@ -144,8 +150,73 @@ public:
         mat[2].Set(0.0f, 0.0f, diagonal);
     }
 
+    idMat3(float xx, float xy, float xz,
+            float yx, float yy, float yz,
+            float zx, float zy, float zz) {
+        mat[0].Set(xx, xy, xz);
+        mat[1].Set(yx, yy, yz);
+        mat[2].Set(zx, zy, zz);
+    }
+
     idVec3& operator[](const int index) { return mat[index]; }
     const idVec3& operator[](const int index) const { return mat[index]; }
+
+    idVec3 operator*(const idVec3& vector) const {
+        return idVec3(
+            mat[0].x * vector.x + mat[0].y * vector.y + mat[0].z * vector.z,
+            mat[1].x * vector.x + mat[1].y * vector.y + mat[1].z * vector.z,
+            mat[2].x * vector.x + mat[2].y * vector.y + mat[2].z * vector.z);
+    }
+
+    idMat3 operator*(const idMat3& other) const {
+        idMat3 result;
+        for (int row = 0; row < 3; ++row) {
+            for (int column = 0; column < 3; ++column) {
+                result[row][column] = mat[row][0] * other[0][column]
+                    + mat[row][1] * other[1][column]
+                    + mat[row][2] * other[2][column];
+            }
+        }
+        return result;
+    }
+
+    idMat3& operator*=(const idMat3& other) {
+        *this = *this * other;
+        return *this;
+    }
+
+    idMat3 Transpose() const {
+        return idMat3(
+            mat[0].x, mat[1].x, mat[2].x,
+            mat[0].y, mat[1].y, mat[2].y,
+            mat[0].z, mat[1].z, mat[2].z);
+    }
+
+    float Determinant() const {
+        return mat[0].x * (mat[1].y * mat[2].z - mat[1].z * mat[2].y)
+            - mat[0].y * (mat[1].x * mat[2].z - mat[1].z * mat[2].x)
+            + mat[0].z * (mat[1].x * mat[2].y - mat[1].y * mat[2].x);
+    }
+
+    bool InverseSelf() {
+        const float determinant = Determinant();
+        if (std::fabs(determinant) < 1.0e-14f) return false;
+        const float inverseDeterminant = 1.0f / determinant;
+        const idMat3 source = *this;
+        mat[0].Set(
+            (source[1].y * source[2].z - source[1].z * source[2].y) * inverseDeterminant,
+            (source[0].z * source[2].y - source[0].y * source[2].z) * inverseDeterminant,
+            (source[0].y * source[1].z - source[0].z * source[1].y) * inverseDeterminant);
+        mat[1].Set(
+            (source[1].z * source[2].x - source[1].x * source[2].z) * inverseDeterminant,
+            (source[0].x * source[2].z - source[0].z * source[2].x) * inverseDeterminant,
+            (source[0].z * source[1].x - source[0].x * source[1].z) * inverseDeterminant);
+        mat[2].Set(
+            (source[1].x * source[2].y - source[1].y * source[2].x) * inverseDeterminant,
+            (source[0].y * source[2].x - source[0].x * source[2].y) * inverseDeterminant,
+            (source[0].x * source[1].y - source[0].y * source[1].x) * inverseDeterminant);
+        return true;
+    }
 };
 
 static_assert(sizeof(idMat3) == 36, "Recovered idMat3 layout changed");
@@ -183,6 +254,8 @@ public:
         w = newW;
     }
 
+    int GetDimension() const { return 4; }
+
     float operator[](const int index) const {
         assert(index >= 0 && index < 4);
         return (&x)[index];
@@ -195,6 +268,35 @@ public:
 };
 
 static_assert(sizeof(idVec4) == 16, "Recovered idVec4 layout changed");
+
+class idVec5 {
+public:
+    float x;
+    float y;
+    float z;
+    float s;
+    float t;
+
+    idVec5() = default;
+    idVec5(float newX, float newY, float newZ, float newS, float newT)
+        : x(newX), y(newY), z(newZ), s(newS), t(newT) {}
+    int GetDimension() const { return 5; }
+    float& operator[](int index) { return (&x)[index]; }
+    float operator[](int index) const { return (&x)[index]; }
+};
+
+class idVec6 {
+public:
+    float p[6];
+    int GetDimension() const { return 6; }
+
+    idVec6() = default;
+    float& operator[](int index) { return p[index]; }
+    float operator[](int index) const { return p[index]; }
+};
+
+static_assert(sizeof(idVec5) == 20, "Recovered idVec5 layout changed");
+static_assert(sizeof(idVec6) == 24, "Recovered idVec6 layout changed");
 
 class idAngles {
 public:
@@ -209,6 +311,66 @@ public:
 
     float operator[](const int index) const { return (&pitch)[index]; }
     float& operator[](const int index) { return (&pitch)[index]; }
+
+    idAngles operator+(const idAngles& other) const {
+        return idAngles(pitch + other.pitch, yaw + other.yaw, roll + other.roll);
+    }
+    idAngles operator-(const idAngles& other) const {
+        return idAngles(pitch - other.pitch, yaw - other.yaw, roll - other.roll);
+    }
+    idAngles operator*(const float scale) const {
+        return idAngles(pitch * scale, yaw * scale, roll * scale);
+    }
+
+    idAngles& Normalize360() {
+        float* angle = &pitch;
+        for (int index = 0; index < 3; ++index) {
+            angle[index] -= std::floor(angle[index] / 360.0f) * 360.0f;
+            if (angle[index] >= 360.0f) angle[index] -= 360.0f;
+            if (angle[index] < 0.0f) angle[index] += 360.0f;
+        }
+        return *this;
+    }
+
+    idAngles& Normalize180() {
+        Normalize360();
+        if (pitch > 180.0f) pitch -= 360.0f;
+        if (yaw > 180.0f) yaw -= 360.0f;
+        if (roll > 180.0f) roll -= 360.0f;
+        return *this;
+    }
+
+    void ToVectors(idVec3* forward, idVec3* right = nullptr,
+            idVec3* up = nullptr) const {
+        constexpr float DEG2RAD = 0.01745329251994329577f;
+        const float sy = std::sin(yaw * DEG2RAD);
+        const float cy = std::cos(yaw * DEG2RAD);
+        const float sp = std::sin(pitch * DEG2RAD);
+        const float cp = std::cos(pitch * DEG2RAD);
+        const float sr = std::sin(roll * DEG2RAD);
+        const float cr = std::cos(roll * DEG2RAD);
+        if (forward != nullptr) forward->Set(cp * cy, cp * sy, -sp);
+        if (right != nullptr) right->Set(
+            cr * sy - sr * sp * cy,
+            -(sr * sp * sy + cr * cy),
+            -sr * cp);
+        if (up != nullptr) up->Set(
+            cr * sp * cy + sr * sy,
+            cr * sp * sy - sr * cy,
+            cr * cp);
+    }
+
+    idVec3 ToForward() const {
+        idVec3 result;
+        ToVectors(&result);
+        return result;
+    }
+
+    idMat3 ToMat3() const {
+        idMat3 result;
+        ToVectors(&result[0], &result[1], &result[2]);
+        return result;
+    }
 };
 
 static_assert(sizeof(idAngles) == 12, "Recovered idAngles layout changed");
@@ -227,14 +389,23 @@ public:
 
     float operator[](const int index) const { return (&x)[index]; }
     float& operator[](const int index) { return (&x)[index]; }
+
+    idQuat operator+(const idQuat& other) const {
+        return idQuat(x + other.x, y + other.y, z + other.z, w + other.w);
+    }
+    idQuat operator-(const idQuat& other) const {
+        return idQuat(x - other.x, y - other.y, z - other.z, w - other.w);
+    }
+    idQuat operator*(const float scale) const {
+        return idQuat(x * scale, y * scale, z * scale, w * scale);
+    }
 };
 
 static_assert(sizeof(idQuat) == 16, "Recovered idQuat layout changed");
 
 // The Xbox 360 type-information stream serializes the dynamic math types by
-// their three/four-field facades.  Keep these definitions allocation-simple on
-// the standalone recovery targets; the complete idLib target uses BFG's
-// layout-compatible implementations.
+// their three/four-field facades. Keep these definitions allocation-simple on
+// the standalone recovery targets while preserving the recovered public ABI.
 class idVecX {
 public:
     idVecX() : size(0), alloced(0), p(nullptr) {}
@@ -268,7 +439,7 @@ public:
     float& operator[](const int index) { return p[index]; }
     float operator[](const int index) const { return p[index]; }
 
-private:
+public:
     int size;
     int alloced;
     float* p;
@@ -319,7 +490,7 @@ public:
         return mat + row * numColumns;
     }
 
-private:
+public:
     int numRows;
     int numColumns;
     int alloced;

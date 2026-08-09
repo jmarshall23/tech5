@@ -1,7 +1,6 @@
 #pragma once
 
-#include "idlib/precompiled.h"
-
+#include "vector.h"
 #include "spatialvec.h"
 
 // Tungsten stores every spatial matrix in a six-row, eight-float-stride slab.
@@ -65,6 +64,8 @@ private:
     bool Inverse6x6(idSpatialMat& dst) const;
     void ClearPadding();
 
+public:
+    // Public in the recovered PDB declaration (ordinal 12835).
     int numRows;
     int numColumns;
     int allocatedRows;
@@ -74,4 +75,3 @@ private:
 #if INTPTR_MAX == INT32_MAX
 static_assert(sizeof(idSpatialMat) == 16, "Recovered idSpatialMat ABI changed");
 #endif
-

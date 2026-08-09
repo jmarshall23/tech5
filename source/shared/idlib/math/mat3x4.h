@@ -1,6 +1,6 @@
 #pragma once
 
-#include "idlib/precompiled.h"
+#include "vector.h"
 
 class idMat3x4 {
 public:
@@ -75,7 +75,7 @@ public:
     float* ToFloatPtr() { return mat; }
     const float* ToFloatPtr() const { return mat; }
 
-private:
+public:
     float mat[12];
 };
 

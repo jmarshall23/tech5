@@ -4,6 +4,8 @@
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
+#include <cstdarg>
+#include <cstdio>
 
 // Exact tungsten idStr storage layout (tungsten.exe.h type 12142). This is a
 // deliberately small ABI facade; more recovered text methods will be added as
@@ -103,6 +105,17 @@ public:
         Append(text.c_str());
     }
 
+    void Format(const char* format, ...) {
+        char buffer[4096];
+        va_list arguments;
+        va_start(arguments, format);
+        const int count = _vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE,
+            format != nullptr ? format : "", arguments);
+        va_end(arguments);
+        if (count >= 0) Assign(buffer);
+        else Clear();
+    }
+
     void ReplaceRecovered(const char* oldText, const char* newText) {
         if (oldText == nullptr || oldText[0] == '\0') {
             return;
@@ -181,7 +194,7 @@ private:
             return false;
         }
 
-        const int newAmount = std::max(amount, amount + amount / 2);
+        const int newAmount = (std::max)(amount, amount + amount / 2);
         char* const replacement = static_cast<char*>(
             std::malloc(static_cast<std::size_t>(newAmount))
         );

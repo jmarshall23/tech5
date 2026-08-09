@@ -44,7 +44,7 @@ int StringBytes(const char* text) {
 } // namespace
 
 idFile_Metrics::idFile_Metrics(const char* streamName)
-    : uniqID(0), name(streamName == nullptr ? "" : streamName), bytesSent(0) {
+    : name(streamName == nullptr ? "" : streamName), bytesSent(0) {
 }
 
 idFile_Metrics::~idFile_Metrics() {
@@ -67,17 +67,18 @@ const char* idFile_Metrics::GetFullPath() const {
     return fullpath.c_str();
 }
 
-int idFile_Metrics::Read(void*, int) {
+unsigned int idFile_Metrics::Read(void*, unsigned int) {
     return 0;
 }
 
-int idFile_Metrics::Write(const void* buffer, const int len) {
-    const int written = WriteInternal(name.c_str(), buffer, len);
+unsigned int idFile_Metrics::Write(const void* buffer, const unsigned int len) {
+    const int written = WriteInternal(
+        name.c_str(), buffer, static_cast<int>(len));
     bytesSent += written;
     return written;
 }
 
-int idFile_Metrics::Seek(long, fsOrigin_t) {
+int idFile_Metrics::Seek(std::int64_t, fsOrigin_t) {
     return -1;
 }
 
@@ -126,8 +127,8 @@ void idFile_Metrics::ConfigureServer(const char* host, const unsigned short port
     std::strncpy(metricsServer, safeHost, sizeof(metricsServer) - 1);
     metricsServer[sizeof(metricsServer) - 1] = '\0';
     metricsPort = port;
-    initialRetryTime = std::max(1, initialRetryMilliseconds);
-    maximumRetryTime = std::max(initialRetryTime, maximumRetryMilliseconds);
+    initialRetryTime = (std::max)(1, initialRetryMilliseconds);
+    maximumRetryTime = (std::max)(initialRetryTime, maximumRetryMilliseconds);
     retryTime = 0;
     timeoutWait = 0;
     sendIndex = pendingIndex = 0;
@@ -156,7 +157,7 @@ bool idFile_Metrics::EnsureConnection() {
     }
 
     retryTime = retryTime == 0 ? initialRetryTime
-        : std::min(maximumRetryTime, retryTime * 2);
+        : (std::min)(maximumRetryTime, retryTime * 2);
     timeoutWait = Milliseconds() + static_cast<std::uint64_t>(retryTime);
     return false;
 }
@@ -166,7 +167,7 @@ void idFile_Metrics::WriteToQueue(const void* buffer, const int len) {
     const int retained = pendingIndex - sendIndex;
     const int required = retained + len;
     if (required > sendQueueSize) {
-        int newSize = std::max(1024, sendQueueSize);
+        int newSize = (std::max)(1024, sendQueueSize);
         while (newSize < required) newSize *= 2;
         unsigned char* const replacement = static_cast<unsigned char*>(
             std::malloc(static_cast<std::size_t>(newSize)));
@@ -200,7 +201,7 @@ void idFile_Metrics::BufferedWriteInternal(bool& queueTraffic,
         return;
     }
     const int written = metricsTCP.Write(buffer, len);
-    const int validWritten = std::max(0, written);
+    const int validWritten = (std::max)(0, written);
     if (written != len) {
         queueTraffic = true;
         WriteToQueue(static_cast<const unsigned char*>(buffer) + validWritten,

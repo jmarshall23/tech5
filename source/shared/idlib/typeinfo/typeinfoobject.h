@@ -1,6 +1,7 @@
 #pragma once
 
 #include "idlib/text/str.h"
+#include "idlib/typeinfo/typeinfovariable.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -75,6 +76,13 @@ struct typeInfo_t {
 
 class idTypeInfoTools {
 public:
+    struct readWrite_t {
+        void (*Write)(const idTypeInfoTools*, idTypeInfoFile*, const char*,
+            const char*, const char*, const char*, int, const char*, void*);
+        void (*Read)(const idTypeInfoTools*, idTypeInfoFile*, const char*,
+            const char*, const char*, const char*, int, const char*, void*);
+    };
+
     explicit idTypeInfoTools(const typeInfo_t* info = nullptr)
         : typeInfo(info), enumHash{}, classHash{}, enumObject{}, enumPointer{},
           classObject{}, classPointer{}, editDepth(0), designDepth(0),
@@ -232,48 +240,6 @@ struct idPathTypeInfo {
     int designDepth;
     int defDepth;
     std::uint32_t metaData[4];
-};
-
-struct idTypeInfoVariable {
-    idTypeInfoVariable(const char* typeName = "", const char* typeOps = "",
-            const char* variablePath = "")
-        : type(typeName), ops(typeOps), path(variablePath) {}
-    const char* type;
-    const char* ops;
-    const char* path;
-};
-
-struct idTypeInfoVariable_bool : idTypeInfoVariable {
-    using idTypeInfoVariable::idTypeInfoVariable;
-};
-struct idTypeInfoVariable_int : idTypeInfoVariable {
-    using idTypeInfoVariable::idTypeInfoVariable;
-};
-struct idTypeInfoVariable_float : idTypeInfoVariable {
-    using idTypeInfoVariable::idTypeInfoVariable;
-};
-struct idTypeInfoVariable_StrPtr : idTypeInfoVariable {
-    using idTypeInfoVariable::idTypeInfoVariable;
-};
-
-struct idTypeInfoVariableTemplate : idTypeInfoVariable {
-    idTypeInfoVariableTemplate(const char* typeName = "",
-            const char* typeOps = "", const char* variablePath = "",
-            const char* argumentType = "", const char* argumentOps = "")
-        : idTypeInfoVariable(typeName, typeOps, variablePath),
-          argType(argumentType), argOps(argumentOps) {}
-    const char* argType;
-    const char* argOps;
-};
-
-struct idTypeInfoVariable_idList : idTypeInfoVariableTemplate {
-    using idTypeInfoVariableTemplate::idTypeInfoVariableTemplate;
-};
-struct idTypeInfoVariable_enum : idTypeInfoVariable {
-    using idTypeInfoVariable::idTypeInfoVariable;
-};
-struct idTypeInfoVariable_idStr : idTypeInfoVariable {
-    using idTypeInfoVariable::idTypeInfoVariable;
 };
 
 class idTypeInfoObject {
