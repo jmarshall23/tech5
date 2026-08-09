@@ -1,36 +1,32 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\sound\soundsystem.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+class idDecl;
+class idRenderWorld;
+class idSoundWorld;
 
-
-// IDA Local Type ordinal 18506; PDB kind: class.
-class idSoundSystem
-{
+class idSoundSystem {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 18507.
-  virtual ~idSoundSystem();
-  virtual void Init();
-  virtual void Shutdown();
-  virtual idSoundWorld *AllocSoundWorld(const char *, idRenderWorld *);
-  virtual void FreeSoundWorld(idSoundWorld *);
-  virtual void SetPlayingSoundWorld(idSoundWorld *);
-  virtual idSoundWorld *GetPlayingSoundWorld();
-  virtual void SetEditorSoundWorld(idSoundWorld *);
-  virtual idSoundWorld *GetEditorSoundWorld();
-  virtual void Render(bool);
-  virtual void WaitForSoundThread();
-  virtual void MuteBackgroundMusic(bool);
-  virtual void SetMute(bool);
-  virtual bool IsMuted();
-  virtual void OnReloadSound(const idDecl *);
-  virtual void StopAllSounds();
-  virtual void InitStreamBuffers();
-  virtual void FreeStreamBuffers();
-  virtual void *GetIXAudio2();
-  virtual int GetNumSpeakers();
-  virtual int GetSpeakerMask();
-
+	virtual ~idSoundSystem() {}
+	virtual void Init() = 0;
+	virtual void Shutdown() = 0;
+	virtual idSoundWorld * AllocSoundWorld( const char * name, idRenderWorld * renderWorld ) = 0;
+	virtual void FreeSoundWorld( idSoundWorld * soundWorld ) = 0;
+	virtual void SetPlayingSoundWorld( idSoundWorld * soundWorld ) = 0;
+	virtual idSoundWorld * GetPlayingSoundWorld() = 0;
+	virtual void SetEditorSoundWorld( idSoundWorld * soundWorld ) = 0;
+	virtual idSoundWorld * GetEditorSoundWorld() = 0;
+	virtual void Render( bool threaded ) = 0;
+	virtual void WaitForSoundThread() = 0;
+	virtual void MuteBackgroundMusic( bool mute ) = 0;
+	virtual void SetMute( bool mute ) = 0;
+	virtual bool IsMuted() = 0;
+	virtual void OnReloadSound( const idDecl * sound ) = 0;
+	virtual void StopAllSounds() = 0;
+	virtual void InitStreamBuffers() = 0;
+	virtual void FreeStreamBuffers() = 0;
+	virtual void * GetIXAudio2() = 0;
+	virtual int GetNumSpeakers() = 0;
+	virtual int GetSpeakerMask() = 0;
 };
+
+extern idSoundSystem * soundSystem;

@@ -1,56 +1,115 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\sound\soundemitter_local.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "soundemitter.h"
+#include "soundvoice.h"
+#include "occlusion/soundocclusion.h"
 
+class idSoundWorldLocal;
+class idRenderWorld;
 
-// IDA Local Type ordinal 13714; PDB kind: class.
-class __declspec(align(4)) idSoundEmitterLocal : public idSoundEmitter
-{
+class idSoundFade {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 13729.
-  virtual int Index();
-  virtual void Free(bool);
-  virtual void Reset();
-  virtual void UpdateEmitter(const idVec3 *, const idMat3 *, const idVec3 *, int);
-  virtual int StartSound(soundChannel_t, const idSoundShader *, const soundShaderParms_t *);
-  virtual void ModifySound(soundChannel_t, const idSoundShader *, const soundShaderParms_t *);
-  virtual void StopSound(soundChannel_t);
-  virtual void SetVolume(soundChannel_t, float);
-  virtual void SetPitch(soundChannel_t, float);
-  virtual void FadeSound(soundChannel_t, float, float, float, bool);
-  virtual void FadePitch(soundChannel_t, float, float, float);
-  virtual bool IsCurrentlyPlaying(soundChannel_t);
-  virtual void SetVolumeAdjustment(float);
-  virtual void ClearVolumeAdjustment();
-  virtual float GetVolumeAdjustment();
-  virtual const idSoundShader *GetCurrentSoundShader(soundChannel_t);
-  virtual idSoundSample *GetCurrentSample(soundChannel_t);
-  virtual idTypesafeNumber<int,enum millisecondUnique_t> *GetCurrentSampleTime(idTypesafeNumber<int,enum millisecondUnique_t> *result, soundChannel_t);
-  virtual idTypesafeNumber<int,enum millisecondUnique_t> *GetRemainingSampleTime(idTypesafeNumber<int,enum millisecondUnique_t> *result, soundChannel_t);
-  virtual bool GetDebugInfo(int, soundDebugInfo_t *);
-  virtual void SetDebugName(const char *);
-  virtual const char *GetDebugName();
-  virtual const idVec3 *GetPosition();
-  virtual ~idSoundEmitterLocal();
+	idSoundFade();
+	void Clear();
+	void SetVolume( float to );
+	float GetVolume( int soundTime ) const;
+	void Fade( float to, int length, int soundTime, int delay = 0 );
+	int fadeStartTime;
+	int fadeEndTime;
+	float fadeStartVolume;
+	float fadeEndVolume;
+};
 
-  idSoundWorldLocal *soundWorld;
-  int index;
-  bool canFree;
-  float volumeAdjustment;
-  idStaticList<idSoundChannel *,16> channels;
-  int areaNum;
-  idVec3 origin;
-  idMat3 axis;
-  idVec3 velocity;
-  int emitterId;
-  float distance;
-  float occludedDistance;
-  idVec3 occludedDirection;
-  float occlusion;
-  soundOcclusionParms_t *occlusionParms;
-  const char *debugName;
-  bool occlusionValidLastUpdate;
+class idSoundEmitterLocal;
+
+class idSoundChannel {
+public:
+	idSoundChannel();
+	~idSoundChannel();
+	bool CanMute() const;
+	void Mute();
+	bool IsLooping() const;
+	bool CheckForCompletion( int currentTime ) const;
+	void SetSilent();
+	void UpdateVolume( float volumeAdd, int currentTime );
+	void UpdateHardware( float volumeAdd, int currentTime, int listenerId );
+	millisecond_t GetCurrentSampleTime( int currentTime ) const;
+
+	idSoundEmitterLocal * emitter;
+	int startTime;
+	int endTime;
+	soundChannel_t logicalChannel;
+	soundShaderParms_t parms;
+	const idSoundShader * soundShader;
+	idSoundSample * sample;
+	idSoundFade volumeFade;
+	idSoundFade pitchFade;
+	float randomVolume;
+	float randomPitch;
+	float dopplerPitch;
+	float volumeDB;
+	float currentAmplitude;
+	float currentShakeAmplitude;
+	idSoundVoice * hardwareVoice;
+	idLinkList< idSoundChannel > channelNode;
+	float voiceVolumeOffsetDB;
+	float dryVolumeDB;
+	float wetVolumeDB;
+};
+
+class alignas(4) idSoundEmitterLocal : public idSoundEmitter {
+public:
+	idSoundEmitterLocal();
+	~idSoundEmitterLocal() override;
+	void Init( int emitterIndex, idSoundWorldLocal * world );
+	int CheckForCompletion( int currentTime );
+	float Update( struct listener_t * listener, int currentTime );
+	void OnReloadSound( const idSoundShader * declaration );
+	void DrawDebugInfo( idRenderWorld * renderWorld );
+
+	int Index() override { return index; }
+	void Free( bool immediate ) override;
+	void Reset() override;
+	void UpdateEmitter( const idVec3 * newOrigin, const idMat3 * newAxis,
+		const idVec3 * newVelocity, int newEmitterId ) override;
+	int StartSound( soundChannel_t channel, const idSoundShader * shader,
+		const soundShaderParms_t * overrideParms = NULL ) override;
+	void ModifySound( soundChannel_t channel, const idSoundShader * shader,
+		const soundShaderParms_t * overrideParms ) override;
+	void StopSound( soundChannel_t channel ) override;
+	void SetVolume( soundChannel_t channel, float volume ) override;
+	void SetPitch( soundChannel_t channel, float pitch ) override;
+	void FadeSound( soundChannel_t channel, float to, float over, float delay,
+		bool stopWhenDone ) override;
+	void FadePitch( soundChannel_t channel, float to, float over, float delay ) override;
+	bool IsCurrentlyPlaying( soundChannel_t channel ) override;
+	void SetVolumeAdjustment( float volume ) override { volumeAdjustment = volume; }
+	void ClearVolumeAdjustment() override { volumeAdjustment = 0.0f; }
+	float GetVolumeAdjustment() override { return volumeAdjustment; }
+	const idSoundShader * GetCurrentSoundShader( soundChannel_t channel ) override;
+	idSoundSample * GetCurrentSample( soundChannel_t channel ) override;
+	millisecond_t GetCurrentSampleTime( soundChannel_t channel ) override;
+	millisecond_t GetRemainingSampleTime( soundChannel_t channel ) override;
+	bool GetDebugInfo( int channel, soundDebugInfo_t * info ) override;
+	void SetDebugName( const char * name ) override { debugName = name; }
+	const char * GetDebugName() override { return debugName != NULL ? debugName : ""; }
+	const idVec3 * GetPosition() override { return &origin; }
+
+	idSoundWorldLocal * soundWorld;
+	int index;
+	bool canFree;
+	float volumeAdjustment;
+	idStaticList< idSoundChannel *, 16 > channels;
+	int areaNum;
+	idVec3 origin;
+	idMat3 axis;
+	idVec3 velocity;
+	int emitterId;
+	float distance;
+	float occludedDistance;
+	idVec3 occludedDirection;
+	float occlusion;
+	soundOcclusionParms_t * occlusionParms;
+	const char * debugName;
+	bool occlusionValidLastUpdate;
 };

@@ -1,223 +1,65 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\sound\soundemitter.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "soundshader.h"
+#include "../../shared/idlib/typesafenumber.h"
 
+class idSoundEmitter;
+class idSoundSample;
+class idMat3;
+class idVec3;
+class idStr;
+enum millisecondUnique_t : int;
+using millisecond_t = idTypesafeNumber< int, millisecondUnique_t >;
 
-// IDA Local Type ordinal 13512; PDB kind: class.
-class idSoundEmitter
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 13515.
-  virtual int Index();
-  virtual void Free(bool);
-  virtual void Reset();
-  virtual void UpdateEmitter(const idVec3 *, const idMat3 *, const idVec3 *, int);
-  virtual int StartSound(soundChannel_t, const idSoundShader *, const soundShaderParms_t *);
-  virtual void ModifySound(soundChannel_t, const idSoundShader *, const soundShaderParms_t *);
-  virtual void StopSound(soundChannel_t);
-  virtual void SetVolume(soundChannel_t, float);
-  virtual void SetPitch(soundChannel_t, float);
-  virtual void FadeSound(soundChannel_t, float, float, float, bool);
-  virtual void FadePitch(soundChannel_t, float, float, float);
-  virtual bool IsCurrentlyPlaying(soundChannel_t);
-  virtual void SetVolumeAdjustment(float);
-  virtual void ClearVolumeAdjustment();
-  virtual float GetVolumeAdjustment();
-  virtual const idSoundShader *GetCurrentSoundShader(soundChannel_t);
-  virtual idSoundSample *GetCurrentSample(soundChannel_t);
-  virtual idTypesafeNumber<int,enum millisecondUnique_t> *GetCurrentSampleTime(idTypesafeNumber<int,enum millisecondUnique_t> *result, soundChannel_t);
-  virtual idTypesafeNumber<int,enum millisecondUnique_t> *GetRemainingSampleTime(idTypesafeNumber<int,enum millisecondUnique_t> *result, soundChannel_t);
-  virtual bool GetDebugInfo(int, soundDebugInfo_t *);
-  virtual void SetDebugName(const char *);
-  virtual const char *GetDebugName();
-  virtual const idVec3 *GetPosition();
-  virtual ~idSoundEmitter();
-
+struct soundDebugInfo_t {
+	const idSoundEmitter * emitter;
+	bool hardwareVoice;
+	bool playing;
+	bool looping;
+	float volume;
+	float voiceVolume;
+	float voiceDryVolume;
+	float voiceWetVolume;
+	float distance;
+	float pitch;
+	const idSoundShader * shader;
+	int channel;
+	idStr sample;
+	bool isdefault;
+	bool iscompressed;
+	bool isstereo;
+	int startTime;
 };
 
-// IDA Local Type ordinal 19721; PDB kind: class.
-class idWindEmitter : public idEntity
-{
+class idSoundEmitter {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 19722.
-  virtual idTypeInfo *GetType();
-  virtual ~idWindEmitter();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-
-  const idSoundShader *sndBaseWind;
-  const idSoundShader *sndGustOverlay[3];
-  int minGustDuration;
-  int maxGustDuration;
-  int gustCrossFadeTime;
-  float gustWeight;
-  float minWindVolume;
-  float maxWindVolume;
-  float minDistance;
-  float maxDistance;
-  float windStrengthStartVal;
-  float windStrengthEndVal;
-  float windAngle;
-  idEntityInfluenceTrail influence;
-  float fadeOut;
-  bool startOff;
-  bool cycleTrigger;
-  idInterpolateAccelDecelSine<float> windStrength;
-  int currGustOverlayIdx;
+	virtual int Index() = 0;
+	virtual void Free( bool immediate ) = 0;
+	virtual void Reset() = 0;
+	virtual void UpdateEmitter( const idVec3 * origin, const idMat3 * axis,
+		const idVec3 * velocity, int emitterId ) = 0;
+	virtual int StartSound( soundChannel_t channel, const idSoundShader * shader,
+		const soundShaderParms_t * parms = NULL ) = 0;
+	virtual void ModifySound( soundChannel_t channel, const idSoundShader * shader,
+		const soundShaderParms_t * parms ) = 0;
+	virtual void StopSound( soundChannel_t channel ) = 0;
+	virtual void SetVolume( soundChannel_t channel, float volume ) = 0;
+	virtual void SetPitch( soundChannel_t channel, float pitch ) = 0;
+	virtual void FadeSound( soundChannel_t channel, float to, float over,
+		float delay = 0.0f, bool stopWhenDone = false ) = 0;
+	virtual void FadePitch( soundChannel_t channel, float to, float over,
+		float delay = 0.0f ) = 0;
+	virtual bool IsCurrentlyPlaying( soundChannel_t channel ) = 0;
+	virtual void SetVolumeAdjustment( float volume ) = 0;
+	virtual void ClearVolumeAdjustment() = 0;
+	virtual float GetVolumeAdjustment() = 0;
+	virtual const idSoundShader * GetCurrentSoundShader( soundChannel_t channel ) = 0;
+	virtual idSoundSample * GetCurrentSample( soundChannel_t channel ) = 0;
+	virtual millisecond_t GetCurrentSampleTime( soundChannel_t channel ) = 0;
+	virtual millisecond_t GetRemainingSampleTime( soundChannel_t channel ) = 0;
+	virtual bool GetDebugInfo( int channel, soundDebugInfo_t * info ) = 0;
+	virtual void SetDebugName( const char * name ) = 0;
+	virtual const char * GetDebugName() = 0;
+	virtual const idVec3 * GetPosition() = 0;
+	virtual ~idSoundEmitter() {}
 };

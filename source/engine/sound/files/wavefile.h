@@ -1,176 +1,93 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\sound\files\wavefile.h
-// Recovered logical types: 17
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
-
-
-// IDA Local Type ordinal 2937; PDB kind: unknown.
-enum idWaveFile::<unnamed_tag> : __int32
-{
-  CHANNEL_INDEX_FRONT_LEFT = 0x0,
-  CHANNEL_INDEX_FRONT_RIGHT = 0x1,
-  CHANNEL_INDEX_FRONT_CENTER = 0x2,
-  CHANNEL_INDEX_LOW_FREQUENCY = 0x3,
-  CHANNEL_INDEX_BACK_LEFT = 0x4,
-  CHANNEL_INDEX_BACK_RIGHT = 0x5,
-  CHANNEL_INDEX_FRONT_LEFT_CENTER = 0x6,
-  CHANNEL_INDEX_FRONT_RIGHT_CENTER = 0x7,
-  CHANNEL_INDEX_BACK_CENTER = 0x8,
-  CHANNEL_INDEX_SIDE_LEFT = 0x9,
-  CHANNEL_INDEX_SIDE_RIGHT = 0xA,
-  CHANNEL_INDEX_MAX = 0xB,
-};
-
-// IDA Local Type ordinal 13497; PDB kind: struct.
-struct idWaveFile::waveFmt_t::basic_t
-{
-  unsigned __int16 formatTag;
-  unsigned __int16 numChannels;
-  unsigned int samplesPerSec;
-  unsigned int avgBytesPerSec;
-  unsigned __int16 blockSize;
-  unsigned __int16 bitsPerSample;
-};
-
-// IDA Local Type ordinal 13498; PDB kind: struct.
-struct idWaveFile::waveFmt_t::extra_t::extensible_t::guid_t
-{
-  unsigned int data1;
-  unsigned __int16 data2;
-  unsigned __int16 data3;
-  unsigned __int16 data4;
-  unsigned __int8 data5[6];
-};
-
-// IDA Local Type ordinal 13499; PDB kind: struct.
-struct __unaligned __declspec(align(2)) idWaveFile::waveFmt_t::extra_t::extensible_t
-{
-  unsigned __int16 validBitsPerSample;
-  unsigned int channelMask;
-  idWaveFile::waveFmt_t::extra_t::extensible_t::guid_t subFormat;
-};
-
-// IDA Local Type ordinal 13500; PDB kind: struct.
-struct idWaveFile::waveFmt_t::extra_t::adpcm_t::adpcmcoef_t
-{
-  __int16 coef1;
-  __int16 coef2;
-};
-
-// IDA Local Type ordinal 13501; PDB kind: struct.
-struct idWaveFile::waveFmt_t::extra_t::adpcm_t
-{
-  unsigned __int16 samplesPerBlock;
-  unsigned __int16 numCoef;
-  idWaveFile::waveFmt_t::extra_t::adpcm_t::adpcmcoef_t aCoef[7];
-};
-
-// IDA Local Type ordinal 13502; PDB kind: struct.
-struct __unaligned __declspec(align(2)) idWaveFile::waveFmt_t::extra_t::xma2_t
-{
-  unsigned __int16 numStreams;
-  unsigned int channelMask;
-  unsigned int samplesEncoded;
-  unsigned int bytesPerBlock;
-  unsigned int playBegin;
-  unsigned int playLength;
-  unsigned int loopBegin;
-  unsigned int loopLength;
-  unsigned __int8 loopCount;
-  unsigned __int8 encoderVersion;
-  unsigned __int16 blockCount;
-};
-
-// IDA Local Type ordinal 13503; PDB kind: union.
-union idWaveFile::waveFmt_t::extra_t
-{
-  idWaveFile::waveFmt_t::extra_t::extensible_t extensible;
-  idWaveFile::waveFmt_t::extra_t::adpcm_t adpcm;
-  idWaveFile::waveFmt_t::extra_t::xma2_t xma2;
-};
-
-// IDA Local Type ordinal 13504; PDB kind: struct.
-struct idWaveFile::waveFmt_t
-{
-  idWaveFile::waveFmt_t::basic_t basic;
-  unsigned __int16 extraSize;
-  idWaveFile::waveFmt_t::extra_t extra;
-};
-
-// IDA Local Type ordinal 21716; PDB kind: struct.
-struct idWaveFile::chunk_t
-{
-  unsigned int id;
-  unsigned int size;
-  unsigned int offset;
-};
-
-// IDA Local Type ordinal 22471; PDB kind: class.
-class idWaveFile
-{
+class idWaveFile {
 public:
-  idFile *file;
-  idStaticList<idWaveFile::chunk_t,32> chunks;
-};
+	enum {
+		CHANNEL_INDEX_FRONT_LEFT = 0,
+		CHANNEL_INDEX_FRONT_RIGHT,
+		CHANNEL_INDEX_FRONT_CENTER,
+		CHANNEL_INDEX_LOW_FREQUENCY,
+		CHANNEL_INDEX_BACK_LEFT,
+		CHANNEL_INDEX_BACK_RIGHT,
+		CHANNEL_INDEX_FRONT_LEFT_CENTER,
+		CHANNEL_INDEX_FRONT_RIGHT_CENTER,
+		CHANNEL_INDEX_BACK_CENTER,
+		CHANNEL_INDEX_SIDE_LEFT,
+		CHANNEL_INDEX_SIDE_RIGHT,
+		CHANNEL_INDEX_MAX
+	};
 
-// IDA Local Type ordinal 22472; PDB kind: struct.
-struct idWaveFile::dataChunk_t
-{
-  unsigned int size;
-  void *data;
-};
+	enum formatTag_t {
+		FORMAT_PCM = 0x0001,
+		FORMAT_ADPCM = 0x0002,
+		FORMAT_IEEE_FLOAT = 0x0003,
+		FORMAT_XMA2 = 0x0166,
+		FORMAT_EXTENSIBLE = 0xFFFE
+	};
 
-// IDA Local Type ordinal 22473; PDB kind: struct.
-struct __declspec(align(4)) idWaveFile::formatChunk_t
-{
-  unsigned int size;
-  unsigned __int16 compressionCode;
-  unsigned __int16 numChannels;
-  unsigned int sampleRate;
-  unsigned int averageBytesPerSecond;
-  unsigned __int16 blockAlign;
-  unsigned __int16 bitsPerSample;
-  unsigned __int16 numExtraFormatByte;
-};
+#pragma pack(push, 2)
+	struct waveFmt_t {
+		struct basic_t {
+			unsigned short formatTag;
+			unsigned short numChannels;
+			unsigned int samplesPerSec;
+			unsigned int avgBytesPerSec;
+			unsigned short blockSize;
+			unsigned short bitsPerSample;
+		} basic;
+		unsigned short extraSize;
+		union extra_t {
+			struct extensible_t {
+				unsigned short validBitsPerSample;
+				unsigned int channelMask;
+				struct guid_t {
+					unsigned int data1;
+					unsigned short data2;
+					unsigned short data3;
+					unsigned short data4;
+					unsigned char data5[ 6 ];
+				} subFormat;
+			} extensible;
+			struct adpcm_t {
+				struct adpcmcoef_t { short coef1; short coef2; };
+				unsigned short samplesPerBlock;
+				unsigned short numCoef;
+				adpcmcoef_t aCoef[ 7 ];
+			} adpcm;
+			struct xma2_t {
+				unsigned short numStreams;
+				unsigned int channelMask;
+				unsigned int samplesEncoded;
+				unsigned int bytesPerBlock;
+				unsigned int playBegin;
+				unsigned int playLength;
+				unsigned int loopBegin;
+				unsigned int loopLength;
+				unsigned char loopCount;
+				unsigned char encoderVersion;
+				unsigned short blockCount;
+			} xma2;
+			extra_t() { memset( this, 0, sizeof( *this ) ); }
+		} extra;
+	};
+#pragma pack(pop)
 
-// IDA Local Type ordinal 22474; PDB kind: struct.
-struct idWaveFile::samplerChunk_t
-{
-  unsigned int manufacturer;
-  unsigned int product;
-  unsigned int samplePeriod;
-  unsigned int MIDIUnityNote;
-  unsigned int MIDIPitchFraction;
-  unsigned int SMPTEFormat;
-  unsigned int SMPTEOffset;
-  unsigned int numSampleLoops;
-  unsigned int extraSamplerData;
-};
+	struct chunk_t {
+		unsigned int id;
+		unsigned int size;
+		unsigned int offset;
+	};
 
-// IDA Local Type ordinal 22475; PDB kind: struct.
-struct idWaveFile::sampleData_t
-{
-  unsigned int identifier;
-  unsigned int type;
-  unsigned int start;
-  unsigned int end;
-  unsigned int fraction;
-  unsigned int playCount;
-};
+	idWaveFile();
+	~idWaveFile();
+	bool Open( const char * fileName );
+	void Close();
+	unsigned int SeekToChunk( unsigned int id );
+	unsigned int GetChunkOffset( unsigned int id );
+	bool ReadLoopData( int & loopStart, int & loopEnd );
+	const char * ReadWaveFormat( waveFmt_t & format );
+	static bool ReadWaveFormatDirect( waveFmt_t & format, idFile * file );
 
-// IDA Local Type ordinal 22766; PDB kind: struct.
-struct idWaveFile::Open::__l23::header_t
-{
-  unsigned int id;
-  unsigned int size;
-  unsigned int format;
-};
-
-// IDA Local Type ordinal 22767; PDB kind: struct.
-struct idWaveFile::Open::__l28::chuckHeader_t
-{
-  unsigned int id;
-  unsigned int size;
+	idFile * file;
+	idStaticList< chunk_t, 32 > chunks;
 };
