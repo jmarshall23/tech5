@@ -1,35 +1,25 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\cm\jobs\spheremodel\spheremodel.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "cm/collisiontypes.h"
 
+struct trace_t;
+class idJointMat;
 
-// IDA Local Type ordinal 20008; PDB kind: struct.
-struct cm_sphereModel_t
-{
-  unsigned int totalSize;
-  unsigned int timeStamp;
-  idBounds bounds;
-  unsigned int contents;
-  unsigned __int16 numModelJoints;
-  unsigned __int16 numSpheres;
-  unsigned __int16 jointOffset;
-  unsigned __int16 offsetXOffset;
-  unsigned __int16 offsetYOffset;
-  unsigned __int16 offsetZOffset;
-  unsigned __int16 radiusOffset;
-  unsigned __int16 surfTypeOffset;
+class idSphereModelCollisionDetection {
+public:
+    static int SetupCollisionSpherePtrs(const cm_sphereModel_t* model,
+        cm_sphereModelPtrs_t& pointers);
+    static void TraceThroughModel(trace_t& trace,
+        const cm_sphereModel_t& model, const idVec3& start,
+        const idVec3& end, float radius, const idMat3& trmAxis,
+        const idJointMat* modelJoints, const idVec3& modelOrigin,
+        const idMat3& modelAxis, int modelEntityNum, int modelPhysicsId,
+        int modelBodyId, int selfId, int modelContentsOverride);
 };
 
-// IDA Local Type ordinal 20016; PDB kind: struct.
-struct cm_sphereModelPtrs_t
-{
-  unsigned __int8 *joint;
-  float *offsetX;
-  float *offsetY;
-  float *offsetZ;
-  float *radius;
-  unsigned __int8 *surfType;
-};
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(cm_sphereModel_t) == 52,
+    "Recovered cm_sphereModel_t ABI changed");
+static_assert(sizeof(cm_sphereModelPtrs_t) == 24,
+    "Recovered cm_sphereModelPtrs_t ABI changed");
+#endif

@@ -1,30 +1,60 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\cm\jobs\collisionmerge.h
-// Recovered logical types: 3
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "cm/jobs/collisionquery.h"
 
-
-// IDA Local Type ordinal 3237; PDB kind: enum.
-enum collisionFeature_t : __int32
-{
-  COLLISION_FEATURE_INVALID = 0x0,
-  COLLISION_FEATURE_VERTEX = 0x1,
-  COLLISION_FEATURE_EDGE = 0x2,
-  COLLISION_FEATURE_POLYGON = 0x3,
-  COLLISION_FEATURE_POLYTOPE = 0x4,
+enum collisionFeature_t : int {
+    COLLISION_FEATURE_INVALID = 0,
+    COLLISION_FEATURE_VERTEX = 1,
+    COLLISION_FEATURE_EDGE = 2,
+    COLLISION_FEATURE_POLYGON = 3,
+    COLLISION_FEATURE_POLYTOPE = 4
 };
 
-// IDA Local Type ordinal 23756; PDB kind: class.
-class idCollisionDetectionMerge
-{
+struct slideMoveState_t {
+    idVec3 velocity;
+    idVec3 endVelocity;
+    contactInfo_t firstContact;
+    float fractionRemaining;
+    float steppedUp;
+    idVec3 startNormal;
+    idVec3 planes[4];
+    int numPlanes;
+    int pad;
+};
+
+bool ClipVelocity(idVec3& velocity, const idVec3* planes, int numPlanes);
+
+class idCollisionDetectionMerge {
 public:
+    static void MergeContentsResults(queryResults_t* finalResult,
+        const queryResults_t* mergeResults, int numMergeResults,
+        int resultSize);
+    static void MergeMotionResults(trace_t* result, const trace_t* rotation,
+        const trace_t* translation);
+    static void MergeStepMoveResults(trace_t* result, const trace_t* down,
+        const trace_t* forward2, const trace_t* forward1, bool slideMove);
+    static void InitSlideMoveState(slideMoveState_t* state,
+        const idVec3& velocity, const idVec3& gravityVector);
+    static bool UpdateSlideMoveState(slideMoveState_t* state,
+        trace_t* trace);
+    static void FinishSlideMoveState(slideMoveState_t* state,
+        trace_t* trace);
+    static void MergeTraceResults(queryResults_t* finalResult,
+        const queryResults_t* mergeResults, int numMergeResults,
+        int resultSize);
+    static void MergeContactsResults(queryResults_t* finalResult,
+        const queryResults_t* mergeResults, int numMergeResults,
+        int resultSize);
+    static void MergeClipResults(queryResults_t* finalResult,
+        const queryResults_t* mergeResults, int numMergeResults,
+        int resultSize);
+    static void MergeQueryResults(queryResults_t* finalResult,
+        int resultSize, traceType_t type,
+        const queryResults_t* mergeResults, int numMergeResults,
+        slideMoveState_t* slideMoveState, dependencyType_t dependencyType,
+        const queryResults_t* dependency1,
+        const queryResults_t* dependency2);
 };
 
-// IDA Local Type ordinal 23757; PDB kind: struct.
-struct idCollisionDetectionMerge::MergeContactsResults::__l2::contactGroup_t
-{
-  const contactInfo_t *contacts[12];
-  int numContacts;
-};
+static_assert(sizeof(slideMoveState_t) == 176,
+    "Recovered slideMoveState_t ABI changed");
