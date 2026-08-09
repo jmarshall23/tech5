@@ -1,48 +1,73 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\animstack\animator_channel.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "gamelib/animstack/animator_base.h"
+#include "idlib/math/random.h"
 
-
-// IDA Local Type ordinal 14292; PDB kind: class.
-class __declspec(align(2)) idAnimator_Channel : public idAnimator_Base
-{
+class idAnimator_Channel : public idAnimator_Base {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 14293.
-  virtual ~idAnimator_Channel();
-  virtual idAnimator_Base::priority_t GetStackPriority();
-  virtual serializeType_t GetSerializeType();
-  virtual void SerializeSnapshot(idSerializer *);
-  virtual void PreBlendSnapshot(idAnimStack *, int, const int, float);
-  virtual void PreSerializeInit(idAnimStack *, idClip *, idGameTimeManager *);
-  virtual bool InternalInit(const idAnimatorParms_Base *);
-  virtual bool InternalPostInit(const idAnimatorParms_Base *);
-  virtual void InternalShutdown(idAnimStack *);
-  virtual void InternalPreBlendTree(const idAnimStack *, const int, const int);
-  virtual void InternalPostBlendTree(const idAnimStack *, const int);
-  virtual void InternalStart(const idAnimStack *, const int, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalEnd(const idAnimStack *, const int, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalBlend(const idAnimStack *, const int, const float, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual bool InternalIsContributing();
-  virtual const idMD6Branch *InternalGetMergeBranch();
-  virtual idMD6Branch *InternalGetMergeBranch_2();
-  virtual void InternalPause(const idAnimStack *, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalUnpause(const idAnimStack *, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual const idMD6Branch *InternalGetEndBranch();
-  virtual idMD6Branch *InternalGetEndBranch_2();
+    idAnimator_Channel();
+    ~idAnimator_Channel() override;
 
-  idMD6LeafPlay *leaves[3];
-  idMD6Branch *branches[2];
-  idMD6Branch *mergeBranch;
-  idMD6LeafPlay *freeLeaves[3];
-  idMD6Branch *freeBranches[2];
-  idRandom random;
-  __int16 numFreeLeaves;
-  __int16 numFreeBranches;
-  __int16 blendOutDurationMS;
-  unsigned __int8 : 6;
-  __int8 omitFreeLeafWarning : 1;
-  __int8 forceFree : 1;
+    bool InternalInit(const idAnimatorParms_Base& parameters) override;
+    void InternalShutdown(idAnimStack* stack) override;
+    void InternalPreBlendTree(const idAnimStack* stack, int currentTime,
+        int ticksPerSecond) override;
+    void InternalEnd(const idAnimStack* stack, int currentTime,
+        idTypesafeNumber<int, gameTimeUnique_t> blendTime) override;
+    const idMD6Branch* InternalGetMergeBranch() const override {
+        return mergeBranch;
+    }
+    idMD6Branch* InternalGetMergeBranch() override { return mergeBranch; }
+
+    void ClearAnimator();
+    idMD6LeafPlay* GetLastPlayedLeaf() const;
+    bool IsDone(const idAnimStack* stack, int currentTime) const;
+    bool IsDone(const idAnimStack* stack, int currentTime,
+        bool clampIgnoreExtraFrame) const;
+    bool IsAnimPlaying(const idAnimStack* stack,
+        const idAnimAliasHandle& alias, int currentTime) const;
+    bool PlayAnim(const idAnimStack* stack, const idMD6Anim* animation,
+        int currentTime, float rateScale, const blendParms_t& blendParms,
+        int blendOutDurationMS = -1,
+        idMD6LeafPlay** leafStarted = nullptr);
+    bool CycleAnim(const idAnimStack* stack, const idMD6Anim* animation,
+        int currentTime, float rateScale, const blendParms_t& blendParms,
+        idMD6LeafPlay** leafStarted = nullptr);
+    bool PlayAnim(const idAnimStack* stack, const idAnimAliasHandle& alias,
+        int currentTime, float rateScale, const blendParms_t& blendParms,
+        int blendOutDurationMS = -1,
+        idMD6LeafPlay** leafStarted = nullptr);
+    bool CycleAnim(const idAnimStack* stack, const idAnimAliasHandle& alias,
+        int currentTime, float rateScale, const blendParms_t& blendParms,
+        idMD6LeafPlay** leafStarted = nullptr);
+
+    idMD6LeafPlay* leaves[3];
+    idMD6Branch* branches[2];
+    idMD6Branch* mergeBranch;
+    idMD6LeafPlay* freeLeaves[3];
+    idMD6Branch* freeBranches[2];
+    idRandom random;
+    std::int16_t numFreeLeaves;
+    std::int16_t numFreeBranches;
+    std::int16_t blendOutDurationMS;
+    std::uint8_t reserved : 6;
+    std::uint8_t omitFreeLeafWarning : 1;
+    std::uint8_t forceFree : 1;
+
+protected:
+    void ForceFreeLeaf();
+    void FreeTree(idMD6Node* node);
+    idMD6LeafPlay* AllocLeaf();
+    bool StartNode(idMD6Node* node, int currentTime,
+        idMD6Leaf::wrapMode_t wrap, const blendParms_t& blendParms,
+        int blendOutDurationMS_);
+    bool StartLeaf(const idMD6Anim* animation, int currentTime,
+        float rateScale, idMD6Leaf::wrapMode_t wrap,
+        const blendParms_t& blendParms, int blendOutDurationMS_,
+        idMD6LeafPlay** leafStarted);
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAnimator_Channel) == 96,
+    "Recovered idAnimator_Channel ABI changed");
+#endif

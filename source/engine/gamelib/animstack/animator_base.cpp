@@ -21,6 +21,8 @@ int GameLib_ConvertRealMillisecondsToGameTime(
     const idGameTimeManager* gameTimeManager, int milliseconds);
 int GameLib_GetGameTicksPerSecond();
 bool GameLib_IsMD6NodeValid(const idMD6Node* node);
+void GameLib_SerializeAnimatorBase(idSerializer* serializer,
+    idAnimator_Base& animator);
 
 namespace {
 
@@ -63,6 +65,83 @@ idAnimator_Base::idAnimator_Base()
 }
 
 idAnimator_Base::~idAnimator_Base() = default;
+
+idAnimator_Base::priority_t idAnimator_Base::GetStackPriority() {
+    return PRIORITY_WEB;
+}
+
+serializeType_t idAnimator_Base::GetSerializeType() {
+    return STYPE_GENERIC;
+}
+
+void idAnimator_Base::SerializeSnapshot(idSerializer* const serializer) {
+    if (serializer != nullptr) {
+        GameLib_SerializeAnimatorBase(serializer, *this);
+    }
+}
+
+void idAnimator_Base::PreBlendSnapshot(idAnimStack* const stack,
+        const int currentTime, const int ticksPerSecond, float) {
+    InternalPreBlendTree(stack, currentTime, ticksPerSecond);
+    InternalPostBlendTree(stack, currentTime);
+}
+
+bool idAnimator_Base::InternalInit(const idAnimatorParms_Base&) {
+    return true;
+}
+
+void idAnimator_Base::InternalShutdown(idAnimStack*) {
+}
+
+void idAnimator_Base::InternalPreBlendTree(const idAnimStack*, int, int) {
+}
+
+void idAnimator_Base::InternalPostBlendTree(const idAnimStack*, int) {
+}
+
+void idAnimator_Base::InternalStart(const idAnimStack*, int,
+        idTypesafeNumber<int, gameTimeUnique_t>) {
+}
+
+void idAnimator_Base::InternalEnd(const idAnimStack*, int,
+        idTypesafeNumber<int, gameTimeUnique_t>) {
+}
+
+void idAnimator_Base::InternalBlend(const idAnimStack*, int, float,
+        idTypesafeNumber<int, gameTimeUnique_t>) {
+}
+
+bool idAnimator_Base::InternalIsContributing() const {
+    return true;
+}
+
+const idMD6Branch* idAnimator_Base::InternalGetMergeBranch() const {
+    return serializeProps.serializedTrees[0];
+}
+
+idMD6Branch* idAnimator_Base::InternalGetMergeBranch() {
+    return serializeProps.serializedTrees[0];
+}
+
+void idAnimator_Base::InternalPause(const idAnimStack*,
+        idTypesafeNumber<int, gameTimeUnique_t>) {
+}
+
+void idAnimator_Base::InternalUnpause(const idAnimStack*,
+        idTypesafeNumber<int, gameTimeUnique_t>) {
+}
+
+const idMD6Branch* idAnimator_Base::InternalGetEndBranch() const {
+    return serializeProps.serializedTrees[1] != nullptr
+        ? serializeProps.serializedTrees[1]
+        : InternalGetMergeBranch();
+}
+
+idMD6Branch* idAnimator_Base::InternalGetEndBranch() {
+    return serializeProps.serializedTrees[1] != nullptr
+        ? serializeProps.serializedTrees[1]
+        : InternalGetMergeBranch();
+}
 
 bool idAnimator_Base::InternalPostInit(
     const idAnimatorParms_Base& parameters) {

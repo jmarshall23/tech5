@@ -1,72 +1,88 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\animstack\animrecorder.h
-// Recovered logical types: 6
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/array.h"
+#include "idlib/containers/list.h"
+#include "idlib/containers/pair.h"
 
+class idAnimStack;
+class idCompressor;
+class idDecl;
+class idFile;
+class idGameTimeManager;
+class idMD6Anim;
+class idResource;
+class idSerializer;
 
-// IDA Local Type ordinal 1934; PDB kind: enum.
-enum idAnimRecorder::blockType_t : __int32
-{
-  RECORD_HEADER_BLOCK = 0x0,
-  ANIM_STACK_BLOCK = 0x1,
-  INVALID_BLOCK = 0x2,
-};
-
-// IDA Local Type ordinal 1935; PDB kind: enum.
-enum idAnimRecorder::recordingFileMode_t : __int32
-{
-  RECORDING_FILE_CLOSED = 0x0,
-  RECORDING_FILE_READ = 0x1,
-  RECORDING_FILE_WRITE = 0x2,
-};
-
-// IDA Local Type ordinal 17490; PDB kind: class.
-class __declspec(align(4)) idAnimRecorder
-{
+class idAnimRecorder {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 17491.
-  virtual void Serialize(int *, idGameTimeManager *, const bool);
-  virtual void Stop();
-  virtual void ReadFrames(int);
-  virtual ~idAnimRecorder();
-  virtual void WriteHeaderBlock();
-  virtual bool ReadHeaderBlock();
+    enum blockType_t : int {
+        RECORD_HEADER_BLOCK = 0,
+        ANIM_STACK_BLOCK = 1,
+        INVALID_BLOCK = 2
+    };
+    enum recordingFileMode_t : int {
+        RECORDING_FILE_CLOSED = 0,
+        RECORDING_FILE_READ = 1,
+        RECORDING_FILE_WRITE = 2
+    };
+    struct NameStruct_t {
+        const char* typeName;
+        const char* objectName;
+    };
+    using networkNamePair_t = idPair<unsigned short, NameStruct_t>;
+    using allocFunction_t = idAnimRecorder* (*)();
 
-  idArray<unsigned char,1282> buffer;
-  idList<idPair<unsigned short,idAnimRecorder::NameStruct_t>,5> networkIDDict;
-  int cachedGameTime;
-  int cachedMessageSize;
-  int dataStart;
-  idCompressor *compressor;
-  idFile *file;
-  idSerializer *activeSerializer;
-  idAnimStack *activeAnimStack;
-  idAnimRecorder::recordingFileMode_t recordingFileMode;
-  bool isPaused;
+    idAnimRecorder();
+    virtual void Serialize(int* gameTime, idGameTimeManager* manager,
+        bool paused);
+    virtual void Stop();
+    virtual void ReadFrames(int gameTime);
+    virtual ~idAnimRecorder();
+    virtual void WriteHeaderBlock();
+    virtual bool ReadHeaderBlock();
+
+    static idAnimRecorder* AllocInstance();
+    static void KillInstance();
+    static idAnimRecorder* GetInstance();
+
+    void RecordAnimStack(idAnimStack& stack);
+    void PlaybackAnimStack(idAnimStack& stack);
+    unsigned short AddAnimNetworkID(const idAnimStack& stack,
+        const idMD6Anim* animation);
+    unsigned short AddDeclNetworkID(const idSerializer& serializer,
+        const idDecl* declaration);
+    const idMD6Anim* SerializeAnimNetworkID(const idAnimStack& stack,
+        unsigned short networkID);
+    const idResource* SerializeDeclNetworkID(const idSerializer& serializer,
+        unsigned short networkID);
+
+    idArray<unsigned char, 1282> buffer;
+    idList<networkNamePair_t, 5> networkIDDict;
+    int cachedGameTime;
+    int cachedMessageSize;
+    int dataStart;
+    idCompressor* compressor;
+    idFile* file;
+    idSerializer* activeSerializer;
+    idAnimStack* activeAnimStack;
+    recordingFileMode_t recordingFileMode;
+    bool isPaused;
+
+private:
+    void ValidateBlock(unsigned char expectedType);
+    void CloseFile();
+    bool OpenFile(bool read);
+    void ValidateFile(bool read);
+
+    static idAnimRecorder* instance;
+    static allocFunction_t allocFunction;
 };
 
-// IDA Local Type ordinal 17493; PDB kind: struct.
-struct idAnimRecorder::NameStruct_t
-{
-  const char *typeName;
-  const char *objectName;
-};
-
-// IDA Local Type ordinal 21939; PDB kind: class.
-class idAnimRecorder::idSearch_NetworkIDNamePair : public idSearch_Binary<idPair<unsigned short,idAnimRecorder::NameStruct_t>,idAnimRecorder::idSearch_NetworkIDNamePair>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 21940.
-  virtual ~idSearch_NetworkIDNamePair();
-  virtual int Search(const idPair<unsigned short,idAnimRecorder::NameStruct_t> *, unsigned int, const idPair<unsigned short,idAnimRecorder::NameStruct_t> *);
-  virtual int Search_FirstGreater(const idPair<unsigned short,idAnimRecorder::NameStruct_t> *, const int, const idPair<unsigned short,idAnimRecorder::NameStruct_t> *);
-  virtual int Search_FirstGreaterEqual(const idPair<unsigned short,idAnimRecorder::NameStruct_t> *, const int, const idPair<unsigned short,idAnimRecorder::NameStruct_t> *);
-  virtual int Search_LastLess(const idPair<unsigned short,idAnimRecorder::NameStruct_t> *, const int, const idPair<unsigned short,idAnimRecorder::NameStruct_t> *);
-  virtual int Search_LastLessEqual(const idPair<unsigned short,idAnimRecorder::NameStruct_t> *, const int, const idPair<unsigned short,idAnimRecorder::NameStruct_t> *);
-
-};
-
-// IDA Local Type ordinal 31409; PDB kind: typedef.
-typedef idAnimRecorder *(__fastcall *idAnimRecorderAlloc_t)();
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAnimRecorder::NameStruct_t) == 8,
+    "Recovered recorder name ABI changed");
+static_assert(sizeof(idAnimRecorder::networkNamePair_t) == 12,
+    "Recovered recorder dictionary-pair ABI changed");
+static_assert(sizeof(idAnimRecorder) == 1340,
+    "Recovered idAnimRecorder ABI changed");
+#endif

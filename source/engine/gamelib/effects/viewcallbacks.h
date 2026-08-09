@@ -1,46 +1,57 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\effects\viewcallbacks.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/math/vector.h"
 
+class idDeclEnv;
+class idDeclRenderParm;
+class idPresentablePlayer;
+class idRenderModel;
 
-// IDA Local Type ordinal 15149; PDB kind: class.
-class idViewCallbacks
-{
+class idViewCallbacks {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15150.
-  virtual const char *GetName();
-  virtual int GetViewID();
-  virtual void GetPosition(idVec3 *, idMat3 *);
-  virtual void GetViewPosition(idVec3 *, idMat3 *);
-  virtual void ApplyScreenShake(const float, const idAngles *, const idVec3 *);
-  virtual void ApplyControllerShake(const float, const float, const float, const float);
-  virtual void ApplyDynEnvOverride(const idDeclEnv *, const float);
-  virtual void ApplyDynEnvParmOverride(const idDeclRenderParm *, const idVec4 *, const bool, const float);
-  virtual void ApplyRadialBlur(const idVec3 *, const float, const float, const float, const float, const float);
-  virtual int AddScreenParticle(idRenderModel *, const float);
-  virtual void RemoveScreenParticle(const int, const int);
-
+    virtual const char* GetName() = 0;
+    virtual int GetViewID() = 0;
+    virtual void GetPosition(idVec3* origin, idMat3* axis) = 0;
+    virtual void GetViewPosition(idVec3* origin, idMat3* axis) = 0;
+    virtual void ApplyScreenShake(float scale, const idAngles* angles,
+        const idVec3* translation) = 0;
+    virtual void ApplyControllerShake(float highMagnitude,
+        float highDuration, float lowMagnitude, float lowDuration) = 0;
+    virtual void ApplyDynEnvOverride(const idDeclEnv* environment,
+        float fraction) = 0;
+    virtual void ApplyDynEnvParmOverride(const idDeclRenderParm* parameter,
+        const idVec4* value, bool clear, float fraction) = 0;
+    virtual void ApplyRadialBlur(const idVec3* origin, float radius,
+        float intensity, float duration, float start, float fade) = 0;
+    virtual int AddScreenParticle(idRenderModel* model, float lifetime) = 0;
+    virtual void RemoveScreenParticle(int handle, int time) = 0;
 };
 
-// IDA Local Type ordinal 15330; PDB kind: class.
-class idPlayerViewCallbacks : public idViewCallbacks
-{
+class idPlayerViewCallbacks : public idViewCallbacks {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15329.
-  virtual const char *GetName();
-  virtual int GetViewID();
-  virtual void GetPosition(idVec3 *, idMat3 *);
-  virtual void GetViewPosition(idVec3 *, idMat3 *);
-  virtual void ApplyScreenShake(const float, const idAngles *, const idVec3 *);
-  virtual void ApplyControllerShake(const float, const float, const float, const float);
-  virtual void ApplyDynEnvOverride(const idDeclEnv *, const float);
-  virtual void ApplyDynEnvParmOverride(const idDeclRenderParm *, const idVec4 *, const bool, const float);
-  virtual void ApplyRadialBlur(const idVec3 *, const float, const float, const float, const float, const float);
-  virtual int AddScreenParticle(idRenderModel *, const float);
-  virtual void RemoveScreenParticle(const int, const int);
+    const char* GetName() override;
+    int GetViewID() override;
+    void GetPosition(idVec3* origin, idMat3* axis) override;
+    void GetViewPosition(idVec3* origin, idMat3* axis) override;
+    void ApplyScreenShake(float scale, const idAngles* angles,
+        const idVec3* translation) override;
+    void ApplyControllerShake(float highMagnitude, float highDuration,
+        float lowMagnitude, float lowDuration) override;
+    void ApplyDynEnvOverride(const idDeclEnv* environment,
+        float fraction) override;
+    void ApplyDynEnvParmOverride(const idDeclRenderParm* parameter,
+        const idVec4* value, bool clear, float fraction) override;
+    void ApplyRadialBlur(const idVec3* origin, float radius,
+        float intensity, float duration, float start, float fade) override;
+    int AddScreenParticle(idRenderModel* model, float lifetime) override;
+    void RemoveScreenParticle(int handle, int time) override;
 
-  idPresentablePlayer *self;
+    idPresentablePlayer* self;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idViewCallbacks) == 4,
+    "Recovered view-callback ABI changed");
+static_assert(sizeof(idPlayerViewCallbacks) == 8,
+    "Recovered player view-callback ABI changed");
+#endif

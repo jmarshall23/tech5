@@ -1,19 +1,50 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\animstack\animweb\animwebblendtree.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/animwebs/animwebscalar.h"
+#include "gamelib/animstack/animstacktypes.h"
+#include "idlib/containers/list.h"
 
+class idAnimator_AnimWeb;
+class idDeclAnimWebNode;
+class idMD6AnimProps;
 
-// IDA Local Type ordinal 15072; PDB kind: class.
-class idAnimWebBlendTree
-{
+class idAnimWebBlendTree {
 public:
-  idMD6Node *tree;
-  idIndex<short,enum idDeclAnimWeb::invalidNodeIndex_t> nodeIndex;
-  __int16 modelIndex;
-  idAnimator_AnimWeb *web;
-  idList<idAnimWebScalarPair,33> scalarPairs;
-  idList<idMD6LeafPlay const *,33> leaves;
+    explicit idAnimWebBlendTree(idAnimWebNodeIndex node =
+        idAnimWebNodeIndex());
+    ~idAnimWebBlendTree();
+
+    bool Init(idAnimator_AnimWeb* owner, const idDeclAnimWebNode* node,
+        short model, const char* blendEquation, const void* modelInfo,
+        int ticksPerSecond);
+    void Free();
+    void BeginPlaying(idAnimator_AnimWeb* owner,
+        const idMD6AnimProps* animationProperties, int propertyCount,
+        int currentTime, int ticksPerSecond);
+    void PreBlendTree(const idAnimator_AnimWeb* owner, int currentTime,
+        int ticksPerSecond) const;
+    bool GetAnimLength(int currentTime, int ticksPerSecond,
+        idMD6Leaf::wrapMode_t wrapMode, bool ignoreAdditive,
+        int& currentFrame, int& frameCount, int& frameRate) const;
+    bool UsesAnyScalarIndices(const idAnimator_AnimWeb* owner,
+        const idList<int, 5>& testScalars) const;
+    void GetUsedScalarIndices(const idAnimator_AnimWeb* owner,
+        idList<int, 5>& usedScalars, int minimumIndex,
+        int maximumIndex) const;
+
+    idMD6Node* tree;
+    idAnimWebNodeIndex nodeIndex;
+    short modelIndex;
+    idAnimator_AnimWeb* web;
+    idList<idAnimWebScalarPair, 33> scalarPairs;
+    idList<const idMD6LeafPlay*, 33> leaves;
+
+private:
+    void CopyScalars(const idAnimator_AnimWeb* owner, int currentTime,
+        int ticksPerSecond, unsigned char fieldFlags) const;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAnimWebBlendTree) == 44,
+    "Recovered idAnimWebBlendTree ABI changed");
+#endif

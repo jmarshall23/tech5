@@ -1,62 +1,77 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\animstack\animator_animwebhands.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "gamelib/animstack/animator_animweb.h"
+#include "network/serializer.h"
 
-
-// IDA Local Type ordinal 15366; PDB kind: class.
-class idAnimator_AnimWebHands : public idAnimator_AnimWeb
-{
+class idAnimator_AnimWebHands : public idAnimator_AnimWeb {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15367.
-  virtual ~idAnimator_AnimWebHands();
-  virtual idAnimator_Base::priority_t GetStackPriority();
-  virtual serializeType_t GetSerializeType();
-  virtual void SerializeSnapshot(idSerializer *);
-  virtual void PreBlendSnapshot(idAnimStack *, int, const int, float);
-  virtual void PreSerializeInit(idAnimStack *, idClip *, idGameTimeManager *);
-  virtual bool InternalInit(const idAnimatorParms_Base *);
-  virtual bool InternalPostInit(const idAnimatorParms_Base *);
-  virtual void InternalShutdown(idAnimStack *);
-  virtual void InternalPreBlendTree(const idAnimStack *, const int, const int);
-  virtual void InternalPostBlendTree(const idAnimStack *, const int);
-  virtual void InternalStart(const idAnimStack *, const int, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalEnd(const idAnimStack *, const int, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalBlend(const idAnimStack *, const int, const float, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual bool InternalIsContributing();
-  virtual const idMD6Branch *InternalGetMergeBranch();
-  virtual idMD6Branch *InternalGetMergeBranch_2();
-  virtual void InternalPause(const idAnimStack *, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalUnpause(const idAnimStack *, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual const idMD6Branch *InternalGetEndBranch();
-  virtual idMD6Branch *InternalGetEndBranch_2();
-  virtual const idHandle<short,enum invalidAnimWebHandle_t,-1> *GetHandle();
-  virtual void InternalInitWeb();
-  virtual void InternalUpdate(const int);
-  virtual idDeclAnimWebNode::animDelta_t InternalGetCurrentAnimDeltaMode();
-  virtual void InternalSetAnimDelta(const idIndex<short,enum idDeclAnimWeb::invalidModelIndex_t>, const idDeclAnimWebNode *);
-  virtual int InternalGetEdgeCost(const idIndex<short,enum idDeclAnimWeb::invalidNodeIndex_t>, const idIndex<short,enum idDeclAnimWeb::invalidEdgeIndex_t>);
-  virtual void InternalStartPath();
-  virtual void InternalUpdateScalars(const int);
-  virtual void InternalStartBlend(const idDeclAnimWebNode *, const idDeclAnimWebNode *, const int);
-  virtual void InternalFinishBlend(const idDeclAnimWebNode *, const idDeclAnimWebNode *, const int);
-  virtual awCheckPathResult_t CheckNextNode(const idDeclAnimWebNode *, const idDeclAnimWebNode *);
-  virtual bool InternalShouldStartNextNode(const idIndex<short,enum idDeclAnimWeb::invalidNodeIndex_t>, const idIndex<short,enum idDeclAnimWeb::invalidNodeIndex_t>, const int, const int, const blendParms_t *, idIndex<short,enum idDeclAnimWeb::invalidModelIndex_t>, const bool, animWebEvent_t *);
-  virtual void InternalTriggerEvent(const idDeclAnimWebNode *, const animWebEvent_t, const idHandle<short,enum invalidAnimWebHandle_t,-1> *, const int, const int);
-  virtual void InternalTriggerBlendEvent(int, idIndex<short,enum idDeclAnimWeb::invalidModelIndex_t>, idIndex<short,enum idDeclAnimWeb::invalidNodeIndex_t>, idIndex<short,enum idDeclAnimWeb::invalidNodeIndex_t>, const int);
-  virtual bool InternalRemapNames(idStr *, idStr *);
-  virtual void InternalUpdateBlendEvents(const idAnimStack *, const int, const int);
+    idAnimator_AnimWebHands()
+        : punchSelector(0.0f)
+        , throwSelector(0.0f)
+        , idleSelector(0.0f)
+        , meleeReturnSelector(0.0f)
+        , zoomSelector(0.0f)
+        , weaponCondition(0.0f)
+        , variationIndex(0.0f)
+        , previousVariationIndex(0.0f)
+        , weaponAnimVarIndex(0.0f)
+        , attackVariation(0.0f) {
+    }
 
-  float punchSelector;
-  float throwSelector;
-  float idleSelector;
-  float meleeReturnSelector;
-  float zoomSelector;
-  float weaponCondition;
-  float variationIndex;
-  float previousVariationIndex;
-  float weaponAnimVarIndex;
-  float attackVariation;
+    ~idAnimator_AnimWebHands() override = default;
+
+    void SerializeSnapshot(idSerializer* serializer) override {
+        if (serializer == nullptr || GetSerializeType() == STYPE_GENERIC)
+            return;
+        serializer->Serialize(punchSelector);
+        serializer->Serialize(throwSelector);
+        serializer->Serialize(idleSelector);
+        serializer->Serialize(meleeReturnSelector);
+        serializer->Serialize(zoomSelector);
+        serializer->Serialize(weaponCondition);
+        serializer->Serialize(variationIndex);
+        serializer->Serialize(previousVariationIndex);
+        serializer->Serialize(weaponAnimVarIndex);
+        serializer->Serialize(attackVariation);
+    }
+
+    void InternalInitWeb() override {
+        idAnimator_AnimWeb::InternalInitWeb();
+        AddBlendVariable("punchSelector", &punchSelector,
+            idAnimWebScalarPair::FF_NO_OVERRIDE);
+        AddBlendVariable("throwSelector", &throwSelector,
+            idAnimWebScalarPair::FF_NO_OVERRIDE);
+        AddBlendVariable("idleSelector", &idleSelector,
+            idAnimWebScalarPair::FF_NO_OVERRIDE);
+        AddBlendVariable("meleeReturnSelector", &meleeReturnSelector,
+            idAnimWebScalarPair::FF_NO_OVERRIDE);
+        AddBlendVariable("zoomSelector", &zoomSelector,
+            idAnimWebScalarPair::FF_NO_OVERRIDE);
+        AddBlendVariable("weaponCondition", &weaponCondition,
+            idAnimWebScalarPair::FF_NO_OVERRIDE);
+        AddBlendVariable("variationIndex", &variationIndex,
+            idAnimWebScalarPair::FF_NO_OVERRIDE);
+        AddBlendVariable("previousVariationIndex", &previousVariationIndex,
+            idAnimWebScalarPair::FF_NO_OVERRIDE);
+        AddBlendVariable("weaponAnimVarIndex", &weaponAnimVarIndex,
+            idAnimWebScalarPair::FF_NO_OVERRIDE);
+        AddBlendVariable("attackVariation", &attackVariation,
+            idAnimWebScalarPair::FF_NO_OVERRIDE);
+    }
+
+    float punchSelector;
+    float throwSelector;
+    float idleSelector;
+    float meleeReturnSelector;
+    float zoomSelector;
+    float weaponCondition;
+    float variationIndex;
+    float previousVariationIndex;
+    float weaponAnimVarIndex;
+    float attackVariation;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAnimator_AnimWebHands) == 688,
+    "Recovered idAnimator_AnimWebHands ABI changed");
+#endif

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "idlib/bv/bounds.h"
+#include "idlib/handle.h"
+#include "idlib/index.h"
 #include "idlib/math/vector.h"
 
 #include <cstdint>
@@ -9,8 +11,84 @@ class idAnimStack;
 class idClip;
 class idGameTimeManager;
 class idMD6Anim;
+class idTreeAnimator;
+
+#ifndef ID_CLIP_QUERY_DEFINED
+#define ID_CLIP_QUERY_DEFINED
+struct idClipQuery {
+    unsigned long long index;
+};
+#endif
+
+enum invalidAliasHandle_t : int;
+using idAnimAliasHandle = idHandle<unsigned short, invalidAliasHandle_t,
+    65535>;
+
+// AnimWeb indices are all signed 16-bit values in tungsten.  Keeping the
+// tags here prevents the separately recovered AnimWeb headers from creating
+// incompatible aliases for the same ABI types.
+enum invalidAnimWebNodeIndex_t : int;
+enum invalidAnimWebSubWebIndex_t : int;
+enum invalidAnimWebStateIndex_t : int;
+enum invalidAnimWebModelIndex_t : int;
+enum invalidAnimWebEdgeIndex_t : int;
+enum invalidAnimWebHandle_t : int;
+using idAnimWebNodeIndex = idIndex<short, invalidAnimWebNodeIndex_t>;
+using idAnimWebSubWebIndex = idIndex<short, invalidAnimWebSubWebIndex_t>;
+using idAnimWebStateIndex = idIndex<short, invalidAnimWebStateIndex_t>;
+using idAnimWebModelIndex = idIndex<short, invalidAnimWebModelIndex_t>;
+using idAnimWebEdgeIndex = idIndex<short, invalidAnimWebEdgeIndex_t>;
+using idAnimWebHandle = idHandle<short, invalidAnimWebHandle_t, -1>;
+
+struct idAnimWebStateList {
+    idAnimWebStateIndex stateIndex[4];
+    unsigned short numStates;
+};
+
+enum awPathResult_t : int {
+    AWPATH_FAILED = 0,
+    AWPATH_OK = 1,
+    AWPATH_ALREADY_THERE = 2
+};
+
+enum interruptPath_t : int {
+    INTR_PATH_NO = 0,
+    INTR_PATH_YES = 1,
+    INTR_PATH_IMMEDIATE = 2,
+    INTR_PATH_MAX = 3
+};
+
+enum interruptBlend_t : int {
+    INTR_BLEND_NO = 0,
+    INTR_BLEND_YES = 1,
+    INTR_BLEND_MULTI = 2,
+    INTR_BLEND_MAX = 3
+};
+
+enum awCheckPathResult_t : int {
+    CHECKPATH_OK = 0,
+    CHECKPATH_WAIT = 1,
+    CHECKPATH_INVALID_NODE = 2
+};
+
+enum idAnimWebDeltaMode_t : int {
+    ANIMDELTA_DEFAULT = 0,
+    ANIMDELTA_FULL = 1,
+    ANIMDELTA_FULL_NOCLIP = 2,
+    ANIMDELTA_FULL_GRAVITY = 3,
+    ANIMDELTA_TURN = 4,
+    ANIMDELTA_FULL_VELOCITY = 5,
+    ANIMDELTA_FULL_DRIVE_AI = 6,
+    ANIMDELTA_IGNORE = 7,
+    ANIMDELTA_MAX = 8
+};
 
 enum gameTimeUnique_t : int;
+enum invalidJointIndex_t : int;
+enum invalidUserChannelIndex_t : int;
+using animationPose_t = int;
+using idJointIndex = idIndex<short, invalidJointIndex_t>;
+using idUserChannelIndex = idIndex<short, invalidUserChannelIndex_t>;
 
 enum md6WeightGroup_t : int {
     MD6_WEIGHTGROUP_ALL = 0,
@@ -88,14 +166,47 @@ struct idMD6OpaqueList {
     std::uint8_t listStatic;
 };
 
-class idMD6LeafPause : public idMD6Node {
+class idMD6Leaf : public idMD6Node {
 public:
-    std::uint8_t nodePadding[3];
+    enum wrapMode_t : int {
+        WRAP_CLAMP = 0,
+        WRAP_REPEAT = 1,
+        WRAP_MAX = 2
+    };
+
     const idMD6Anim* anim;
     std::uint8_t weightGroup;
     std::uint8_t wrapMode;
     std::uint8_t initCounter;
     std::uint8_t pad;
+};
+
+class alignas(4) idMD6LeafPlay : public idMD6Leaf {
+public:
+    int startTime;
+    float rateScale;
+    std::uint8_t syncGroup;
+    std::uint8_t syncEnabled;
+    std::uint8_t tailPadding[2];
+
+    void Init(const idMD6Anim* animation, int gameTime, float rate,
+        wrapMode_t wrap, md6WeightGroup_t group) {
+        type = NODE_LEAF_PLAY;
+        anim = animation;
+        weightGroup = static_cast<std::uint8_t>(group);
+        wrapMode = static_cast<std::uint8_t>(wrap);
+        initCounter = 0;
+        pad = 0;
+        startTime = gameTime;
+        rateScale = rate;
+        syncGroup = 0;
+        syncEnabled = 0;
+        tailPadding[0] = tailPadding[1] = 0;
+    }
+};
+
+class idMD6LeafPause : public idMD6Leaf {
+public:
     int currentDeferred;
     idMD6OpaqueList animMods[2];
     std::int16_t flags;
@@ -105,12 +216,33 @@ public:
 
     void Init(const idMD6Anim* animation, float animationFrame,
         std::uint8_t animationWrapMode, md6WeightGroup_t animationWeightGroup) {
+        type = NODE_LEAF_PAUSE;
         frame = animationFrame;
         anim = animation;
         flags = 0;
         weightGroup = static_cast<std::uint8_t>(animationWeightGroup);
         wrapMode = animationWrapMode;
     }
+};
+
+struct blendParms_t {
+    enum blendFlags_t : int {
+        BLENDFLAG_SOURCE_END_RELATIVE = 1,
+        BLENDFLAG_DEST_END_RELATIVE = 2,
+        BLENDFLAG_CONVERT_SOURCE_TO_RELATIVE = 4,
+        BLENDFLAG_CONVERT_DEST_TO_RELATIVE = 8
+    };
+    struct parms_t {
+        const idMD6Anim* srcAnim;
+        const idMD6Anim* destAnim;
+        std::int16_t sourceStartFrame;
+        std::int16_t sourceDuration;
+        std::int16_t destStartFrame;
+        std::int16_t destDuration;
+        char flags;
+        char originBlend;
+        char blendType;
+    } parms;
 };
 
 struct idGameTimeManagerPtr {
@@ -129,3 +261,11 @@ static_assert(sizeof(idMD6LeafPause) == 80,
 static_assert(sizeof(idGameTimeManagerPtr) == 4,
     "Recovered idGameTimeManagerPtr ABI changed");
 #endif
+static_assert(sizeof(idMD6LeafPlay) == 24,
+    "Recovered idMD6LeafPlay ABI changed");
+static_assert(sizeof(blendParms_t) == 20,
+    "Recovered blend parameters ABI changed");
+static_assert(sizeof(idClipQuery) == 8,
+    "Recovered clip-query ABI changed");
+static_assert(sizeof(idAnimWebStateList) == 10,
+    "Recovered AnimWeb state-list ABI changed");

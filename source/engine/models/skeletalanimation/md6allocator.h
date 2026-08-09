@@ -1,40 +1,20 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\skeletalanimation\md6allocator.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "gamelib/animstack/animstacktypes.h"
 
-
-// IDA Local Type ordinal 14227; PDB kind: class.
-class idMD6Allocator
-{
+class idMD6Allocator {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 14229.
-  virtual ~idMD6Allocator();
-  virtual idMD6Node *Alloc(const idMD6Node::nodeType_t);
-  virtual void Free(idMD6Node *);
-  virtual void Condense();
-  virtual unsigned int Size();
-  virtual int NumNodes();
-  virtual idMD6Node *NodeForIndex(const int);
-  virtual const idMD6Node *NodeForIndex_2(const int);
-
+    virtual ~idMD6Allocator();
+    virtual idMD6Node* Alloc(idMD6Node::nodeType_t type) = 0;
+    virtual void Free(idMD6Node* node) = 0;
+    virtual void Condense() = 0;
+    virtual unsigned int Size() = 0;
+    virtual int NumNodes() = 0;
+    virtual idMD6Node* NodeForIndex(int index) = 0;
+    virtual const idMD6Node* NodeForIndex(int index) const = 0;
 };
 
-// IDA Local Type ordinal 21758; PDB kind: class.
-class idMD6Allocator_New : public idMD6Allocator
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 21759.
-  virtual ~idMD6Allocator_New();
-  virtual idMD6Node *Alloc(const idMD6Node::nodeType_t);
-  virtual void Free(idMD6Node *);
-  virtual void Condense();
-  virtual unsigned int Size();
-  virtual int NumNodes();
-  virtual idMD6Node *NodeForIndex(const int);
-  virtual const idMD6Node *NodeForIndex_2(const int);
-
-  idList<idMD6Node *,19> nodes;
-};
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idMD6Allocator) == 4,
+    "Recovered idMD6Allocator ABI changed");
+#endif

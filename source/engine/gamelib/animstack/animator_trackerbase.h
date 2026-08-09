@@ -1,74 +1,90 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\animstack\animator_trackerbase.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "gamelib/animstack/animator_base.h"
+#include "idlib/math/degrees.h"
 
-
-// IDA Local Type ordinal 16727; PDB kind: class.
-class __declspec(align(4)) idAnimator_TrackerBase : public idAnimator_Base
-{
+class idAnimatorParms_TrackerBase : public idAnimatorParms_Base {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 16728.
-  virtual ~idAnimator_TrackerBase();
-  virtual idAnimator_Base::priority_t GetStackPriority();
-  virtual serializeType_t GetSerializeType();
-  virtual void SerializeSnapshot(idSerializer *);
-  virtual void PreBlendSnapshot(idAnimStack *, int, const int, float);
-  virtual void PreSerializeInit(idAnimStack *, idClip *, idGameTimeManager *);
-  virtual bool InternalInit(const idAnimatorParms_Base *);
-  virtual bool InternalPostInit(const idAnimatorParms_Base *);
-  virtual void InternalShutdown(idAnimStack *);
-  virtual void InternalPreBlendTree(const idAnimStack *, const int, const int);
-  virtual void InternalPostBlendTree(const idAnimStack *, const int);
-  virtual void InternalStart(const idAnimStack *, const int, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalEnd(const idAnimStack *, const int, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalBlend(const idAnimStack *, const int, const float, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual bool InternalIsContributing();
-  virtual const idMD6Branch *InternalGetMergeBranch();
-  virtual idMD6Branch *InternalGetMergeBranch_2();
-  virtual void InternalPause(const idAnimStack *, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalUnpause(const idAnimStack *, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual const idMD6Branch *InternalGetEndBranch();
-  virtual idMD6Branch *InternalGetEndBranch_2();
-  virtual void SetReferenceJointOverride(const idIndex<short,enum invalidJointIndex_t>);
-  virtual const idIndex<short,enum invalidJointIndex_t> *GetReferenceJointOverride(const idIndex<short,enum invalidJointIndex_t> *result);
-  virtual void GetModelSpaceFrameOfReferenceForChild(const idTreeAnimator *, idVec3 *, idMat3 *);
-  virtual void GetWorldSpaceFrameOfReferenceForChild(const idTreeAnimator *, idVec3 *, idMat3 *);
-  virtual void GetWorldSpaceFrameOfReference(const idAnimator_TrackerBase *, const idTreeAnimator *, idVec3 *, idMat3 *);
-  virtual void GetModelSpaceFrameOfReference(const idAnimator_TrackerBase *, const idTreeAnimator *, idVec3 *, idMat3 *);
-  virtual void InternalUpdate(const idAnimator_TrackerBase *);
-  virtual void GetUnconstrainedAngleDeltas(const idAnimator_TrackerBase *, idTreeAnimator *, idAngles *, idAngles *, idVec3 *);
-
-  const idAnimator_TrackerBase *parentTracker;
-  idVec3 focusPoint;
-  idVec3 focusPoints[2];
-  idTypesafeNumber<float,enum DegreesUnique_t> yawRight;
-  idTypesafeNumber<float,enum DegreesUnique_t> yawLeft;
-  idTypesafeNumber<float,enum DegreesUnique_t> pitchUp;
-  idTypesafeNumber<float,enum DegreesUnique_t> pitchDown;
-  int trackGroupIndex;
-  idMD6Branch *mergeBranch;
-  idMD6LeafPause *leaf;
-  idVec3 msDirToFocus;
-  idVec3 wsFocusJointPos;
-  idVec3 msReferenceJointPos;
-  idAngles idealOffsetAngles;
-  idAngles curOffsetAngles;
-  idAngles lastAngles;
-  unsigned __int8 : 2;
-  __int8 lockTracking : 1;
-  __int8 clientSnapFocusPoint : 1;
-  __int8 projectReferenceOrientation : 1;
-  __int8 enableConstraints : 1;
-  __int8 pitchClamped : 1;
-  __int8 yawClamped : 1;
+    idAnimatorParms_TrackerBase();
+    bool projectReferenceOrientation;
 };
 
-// IDA Local Type ordinal 18907; PDB kind: class.
-class __declspec(align(4)) idAnimatorParms_TrackerBase : public idAnimatorParms_Base
-{
+class idAnimator_TrackerBase : public idAnimator_Base {
 public:
-  bool projectReferenceOrientation;
+    idAnimator_TrackerBase();
+    ~idAnimator_TrackerBase() override;
+
+    void SerializeSnapshot(idSerializer* serializer) override;
+    void PreBlendSnapshot(idAnimStack* stack, int currentTime,
+        int ticksPerSecond, float fraction) override;
+    bool InternalInit(const idAnimatorParms_Base& parameters) override;
+    void InternalShutdown(idAnimStack* stack) override;
+    void InternalPreBlendTree(const idAnimStack* stack, int currentTime,
+        int ticksPerSecond) override;
+    bool InternalIsContributing() const override;
+    const idMD6Branch* InternalGetMergeBranch() const override {
+        return mergeBranch;
+    }
+    idMD6Branch* InternalGetMergeBranch() override { return mergeBranch; }
+
+    virtual void SetReferenceJointOverride(idJointIndex joint);
+    virtual idJointIndex GetReferenceJointOverride() const;
+    virtual void GetModelSpaceFrameOfReferenceForChild(
+        const idTreeAnimator* animator, idVec3& origin, idMat3& axis) const;
+    virtual void GetWorldSpaceFrameOfReferenceForChild(
+        const idTreeAnimator* animator, idVec3& origin, idMat3& axis) const;
+    virtual void GetWorldSpaceFrameOfReference(
+        const idAnimator_TrackerBase* parent,
+        const idTreeAnimator* animator, idVec3& origin,
+        idMat3& axis) const;
+    virtual void GetModelSpaceFrameOfReference(
+        const idAnimator_TrackerBase* parent,
+        const idTreeAnimator* animator, idVec3& origin,
+        idMat3& axis) const;
+    virtual void InternalUpdate(const idAnimator_TrackerBase* parent);
+    virtual void GetUnconstrainedAngleDeltas(
+        const idAnimator_TrackerBase* parent, idTreeAnimator* animator,
+        idAngles& angleDeltas, idAngles& angles, idVec3& cross);
+
+    void Update(const idAnimator_TrackerBase* parent,
+        const idVec3& newFocusPoint, const idAngles& offsetAngles,
+        degrees_t pitchUpLimit, degrees_t pitchDownLimit,
+        degrees_t yawRightLimit, degrees_t yawLeftLimit);
+    void SetPitchConstraints(degrees_t up, degrees_t down);
+    void SetYawConstraints(degrees_t right, degrees_t left);
+
+    const idAnimator_TrackerBase* parentTracker;
+    idVec3 focusPoint;
+    idVec3 focusPoints[2];
+    degrees_t yawRight;
+    degrees_t yawLeft;
+    degrees_t pitchUp;
+    degrees_t pitchDown;
+    int trackGroupIndex;
+    idMD6Branch* mergeBranch;
+    idMD6LeafPause* leaf;
+    idVec3 msDirToFocus;
+    idVec3 wsFocusJointPos;
+    idVec3 msReferenceJointPos;
+    idAngles idealOffsetAngles;
+    idAngles curOffsetAngles;
+    idAngles lastAngles;
+    unsigned char reserved : 2;
+    unsigned char lockTracking : 1;
+    unsigned char clientSnapFocusPoint : 1;
+    unsigned char projectReferenceOrientation : 1;
+    unsigned char enableConstraints : 1;
+    unsigned char pitchClamped : 1;
+    unsigned char yawClamped : 1;
+
+protected:
+    void InternalDoTracking(const idAnimStack* stack,
+        float deltaLerpScale);
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAnimator_TrackerBase) == 184,
+    "Recovered idAnimator_TrackerBase ABI changed");
+static_assert(sizeof(idAnimatorParms_TrackerBase) == 60,
+    "Recovered tracker parameters ABI changed");
+#endif

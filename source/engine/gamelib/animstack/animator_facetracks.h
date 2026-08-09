@@ -1,43 +1,41 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\animstack\animator_facetracks.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "gamelib/animstack/animator_base.h"
+#include "idlib/containers/list.h"
 
+class idDeclMD6;
 
-// IDA Local Type ordinal 17136; PDB kind: class.
-class idAnimator_FaceTracks : public idAnimator_Base
-{
+class idAnimator_FaceTracks : public idAnimator_Base {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 17137.
-  virtual ~idAnimator_FaceTracks();
-  virtual idAnimator_Base::priority_t GetStackPriority();
-  virtual serializeType_t GetSerializeType();
-  virtual void SerializeSnapshot(idSerializer *);
-  virtual void PreBlendSnapshot(idAnimStack *, int, const int, float);
-  virtual void PreSerializeInit(idAnimStack *, idClip *, idGameTimeManager *);
-  virtual bool InternalInit(const idAnimatorParms_Base *);
-  virtual bool InternalPostInit(const idAnimatorParms_Base *);
-  virtual void InternalShutdown(idAnimStack *);
-  virtual void InternalPreBlendTree(const idAnimStack *, const int, const int);
-  virtual void InternalPostBlendTree(const idAnimStack *, const int);
-  virtual void InternalStart(const idAnimStack *, const int, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalEnd(const idAnimStack *, const int, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalBlend(const idAnimStack *, const int, const float, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual bool InternalIsContributing();
-  virtual const idMD6Branch *InternalGetMergeBranch();
-  virtual idMD6Branch *InternalGetMergeBranch_2();
-  virtual void InternalPause(const idAnimStack *, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalUnpause(const idAnimStack *, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual const idMD6Branch *InternalGetEndBranch();
-  virtual idMD6Branch *InternalGetEndBranch_2();
+    idAnimator_FaceTracks();
+    ~idAnimator_FaceTracks() override = default;
 
-  idList<idMD6LeafPause,5> leaves;
-  idList<idMD6Branch,5> branches;
-  idList<int,5> leafAnimModsTime;
-  idMD6Branch mergeBranch;
-  idMD6Branch *endBranch;
-  idHandle<unsigned short,enum invalidAliasHandle_t,65535> faceSetupAnimAlias;
-  int animModsTime;
+    static bool HasFaceTracks(const idDeclMD6* declaration);
+    void AddUserChannelMod(idUserChannelIndex userChannel, float value,
+        int currentTime);
+
+    bool InternalInit(const idAnimatorParms_Base& parameters) override;
+    void InternalPreBlendTree(const idAnimStack* stack, int currentTime,
+        int ticksPerSecond) override;
+    const idMD6Branch* InternalGetMergeBranch() const override {
+        return &mergeBranch;
+    }
+    idMD6Branch* InternalGetMergeBranch() override { return &mergeBranch; }
+    const idMD6Branch* InternalGetEndBranch() const override {
+        return endBranch;
+    }
+    idMD6Branch* InternalGetEndBranch() override { return endBranch; }
+
+    idList<idMD6LeafPause, 5> leaves;
+    idList<idMD6Branch, 5> branches;
+    idList<int, 5> leafAnimModsTime;
+    idMD6Branch mergeBranch;
+    idMD6Branch* endBranch;
+    idAnimAliasHandle faceSetupAnimAlias;
+    int animModsTime;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAnimator_FaceTracks) == 140,
+    "Recovered idAnimator_FaceTracks ABI changed");
+#endif

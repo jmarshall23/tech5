@@ -1,22 +1,26 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\aas2\aas2callback_findareaoutofrange.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "gamelib/aas2/aas2callback_avoidlocation.h"
 
+class idClip;
 
-// IDA Local Type ordinal 23526; PDB kind: class.
-class idAAS2Callback_FindAreaOutOfRange : public idAAS2Callback_AvoidLocation
-{
+class idAAS2Callback_FindAreaOutOfRange
+    : public idAAS2Callback_AvoidLocation {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 23527.
-  virtual ~idAAS2Callback_FindAreaOutOfRange();
-  virtual bool PathValid(const idAAS2 *, const idVec3 *, const idVec3 *);
-  virtual int AdditionalTravelTimeForPath(const idAAS2 *, const idVec3 *, const idVec3 *);
-  virtual bool AreaIsGoal(const idAAS2 *, int, const idVec3 *);
+    ~idAAS2Callback_FindAreaOutOfRange() override = default;
+    bool PathValid(const idAAS2* aas, const idVec3* start,
+        const idVec3* end) override;
+    int AdditionalTravelTimeForPath(const idAAS2* aas,
+        const idVec3* start, const idVec3* end) override;
+    bool AreaIsGoal(const idAAS2* aas, int areaNumber,
+        const idVec3* origin) override;
 
-  idClip *clip;
-  idVec3 targetPos;
-  float maxDistSqr;
+    idClip* clip;
+    idVec3 targetPos;
+    float maxDistSqr;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAAS2Callback_FindAreaOutOfRange) == 48,
+    "Recovered out-of-range AAS callback ABI changed");
+#endif

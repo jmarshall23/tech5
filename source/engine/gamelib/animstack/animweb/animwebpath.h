@@ -13,14 +13,7 @@ public:
     using idStr::operator=;
 };
 
-// The owning idDeclAnimWeb declaration is not compile-locked yet. This tag
-// retains the recovered two-byte node-index representation without importing
-// that malformed generated declaration into GameLib's active boundary.
-enum class idAnimWebInvalidNodeIndex_t : int {
-    invalid = -1
-};
-
-using idAnimWebNodeIndex = idIndex<short, idAnimWebInvalidNodeIndex_t>;
+#include "gamelib/animstack/animstacktypes.h"
 
 struct idAnimWebRoute {
     idAnimWebNodeIndex path[32];

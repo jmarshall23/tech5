@@ -1,33 +1,44 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\skeletalanimation\md6blockalloc.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "models/skeletalanimation/md6allocator.h"
+#include "idlib/containers/list.h"
 
-
-// IDA Local Type ordinal 14278; PDB kind: class.
-class idMD6BlockAlloc : public idMD6Allocator
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14279.
-  virtual ~idMD6BlockAlloc();
-  virtual idMD6Node *Alloc(const idMD6Node::nodeType_t);
-  virtual void Free(idMD6Node *);
-  virtual void Condense();
-  virtual unsigned int Size();
-  virtual int NumNodes();
-  virtual idMD6Node *NodeForIndex(const int);
-  virtual const idMD6Node *NodeForIndex_2(const int);
-
-  idBlockAlloc<idMD6LeafPlay,32,18> playLeaves;
-  idBlockAlloc<idMD6LeafPause,4,18> pauseLeaves;
-  idBlockAlloc<idMD6Branch,16,18> branches;
-  idBlockAlloc<idMD6BlendBranch,16,18> blendBranches;
-  idBlockAlloc<idMD6BlendAdditiveBranch,16,18> blendAdditiveBranches;
-  idBlockAlloc<idMD6FusionBranch,16,18> fusionBranches;
-  idBlockAlloc<idMD6BestLeaf,16,18> bestLeaves;
-  idBlockAlloc<idMD6TagFilter,16,18> tagFilters;
-  idList<idMD6Node *,18> nodes;
-  idList<idMD6Node *,18> nodesToDelete;
+struct idMD6RecoveredBlockState {
+    void* blocks;
+    void* free;
+    int total;
+    int active;
+    bool allowAllocs;
+    bool clearAllocs;
 };
+
+class idMD6BlockAlloc : public idMD6Allocator {
+public:
+    idMD6BlockAlloc();
+    ~idMD6BlockAlloc() override;
+    idMD6Node* Alloc(idMD6Node::nodeType_t type) override;
+    void Free(idMD6Node* node) override;
+    void Condense() override;
+    unsigned int Size() override;
+    int NumNodes() override;
+    idMD6Node* NodeForIndex(int index) override;
+    const idMD6Node* NodeForIndex(int index) const override;
+
+    idMD6RecoveredBlockState playLeaves;
+    idMD6RecoveredBlockState pauseLeaves;
+    idMD6RecoveredBlockState branches;
+    idMD6RecoveredBlockState blendBranches;
+    idMD6RecoveredBlockState blendAdditiveBranches;
+    idMD6RecoveredBlockState fusionBranches;
+    idMD6RecoveredBlockState bestLeaves;
+    idMD6RecoveredBlockState tagFilters;
+    idList<idMD6Node*, 18> nodes;
+    idList<idMD6Node*, 18> nodesToDelete;
+};
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idMD6RecoveredBlockState) == 20,
+    "Recovered MD6 block state ABI changed");
+static_assert(sizeof(idMD6BlockAlloc) == 196,
+    "Recovered idMD6BlockAlloc ABI changed");
+#endif
