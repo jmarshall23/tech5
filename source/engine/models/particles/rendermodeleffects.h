@@ -1,65 +1,93 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\particles\rendermodeleffects.h
-// Recovered logical types: 3
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "models/particles/jobs/particleparm.h"
+#include "models/rendermodel.h"
 
-
-// IDA Local Type ordinal 14013; PDB kind: struct.
-struct idRenderModelEffects::sortedParticleStage_t
-{
-  const idParticleStage *stage;
-  int first;
-  int num;
-};
-
-// IDA Local Type ordinal 14017; PDB kind: struct.
-struct idRenderModelEffects::deferredStage_t
-{
-  const idMaterial *mtr;
-  int vertCount;
-  int indexOffset;
-};
-
-// IDA Local Type ordinal 14019; PDB kind: class.
-class idRenderModelEffects : public idRenderModel
-{
+class idRenderModelEffects : public idRenderModel {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 14020.
-  virtual void Save(idFile *);
-  virtual bool Load(idFile *);
-  virtual void SerializeSnapshot(idSerializer *, bool);
-  virtual const idDeclSkins *GetSkins();
-  virtual idHandle<int,enum invalidDecalHandle_t,-1> *AddDecalFromPoint(idHandle<int,enum invalidDecalHandle_t,-1> *result, const decalParams_t *, const int, const idVec3 *, const idVec3 *, idIndex<short,enum invalidJointIndex_t>);
-  virtual bool RemoveDecal(const idHandle<int,enum invalidDecalHandle_t,-1>);
-  virtual void RemoveDecals();
-  virtual void FreeSurfaces();
-  virtual bool CommitSubclass();
-  virtual bool UpdateInView(const idRenderView *, const idRenderView *, idRenderModelUpdateTools *);
-  virtual const idList<sourceSurface_t,5> *GetSourceSurfaces();
-  virtual ~idRenderModelEffects();
+    struct sortedParticleStage_t {
+        const idParticleStage* stage;
+        int first;
+        int num;
+    };
 
-  effectParticleParms_t *particles;
-  int particleRange[2];
-  particleTrailParms_t *particleTrails;
-  int particleTrailRange[2];
-  tracerParms_t *tracers;
-  int tracerRange[2];
-  decalParms_t *decals;
-  decalVerts_t *decalVerts;
-  int decalRange[2];
-  int gameTime;
-  int deltaTime;
-  int latchedTime;
-  int lastLatchedParticleRange[2];
-  int latchedParticleRange[2];
-  int latchedTracerRange[2];
-  int latchedDecalRange[2];
-  idRenderModelEffects::sortedParticleStage_t sortedParticleStages[1024];
-  int numSortedParticleStages;
-  particleRenderView_t *particleRenderView;
-  deferredParticleGenParms_t *particleGenParms;
-  idList<idRenderModelEffects::deferredStage_t,5> deferredStages[3];
-  idTriangles *triangles;
+    struct deferredStage_t {
+        const idMaterial* mtr;
+        int vertCount;
+        int indexOffset;
+    };
+
+    using UpdateCallback = bool (*)(idRenderModelEffects* model,
+        const idRenderView* currentView, const idRenderView* nextView,
+        idRenderModelUpdateTools* tools);
+
+    idRenderModelEffects();
+    ~idRenderModelEffects() override;
+
+    static void SetUpdateCallback(UpdateCallback callback);
+    static int EstimateQuadAllocation(const idParticleStage* stage,
+        const effectParticleParms_t* particle, int renderTime);
+    bool CommitSubclass() override;
+    bool UpdateInView(const idRenderView* currentView,
+        const idRenderView* nextView,
+        idRenderModelUpdateTools* tools) override;
+
+    void AddDecal(const idMaterial* material,
+        const idDrawVert& v0, const idDrawVert& v1,
+        const idDrawVert& v2, const idDrawVert& v3,
+        int startTime, int lifeTime, int fadeInEndTime,
+        int fadeOutStartTime);
+    void AddTracer(const idMaterial* material, const idVec3& origin,
+        const idVec3& direction, const idVec3& maximumDistance,
+        float speed, float length, float height, bool ensureVisual,
+        float fractionInsured, float lifeTime);
+    bool AddParticles(const idDeclParticle* particle, int systemStartTime,
+        int gameMillisecondsPerFrame, float diversity,
+        const idVec3& origin, const idMat3& axis,
+        const idVec3& velocity, const unsigned int& color);
+    bool AddParticleTrail(const idDeclParticle* particle,
+        const idVec3& startPosition, const idVec3& direction,
+        int startTime, int endTime);
+    void Update(int newTime, int gameMillisecondsPerFrame);
+    void SortEffectParticles();
+
+    effectParticleParms_t* particles;
+    int particleRange[2];
+    particleTrailParms_t* particleTrails;
+    int particleTrailRange[2];
+    tracerParms_t* tracers;
+    int tracerRange[2];
+    decalParms_t* decals;
+    decalVerts_t* decalVerts;
+    int decalRange[2];
+    int gameTime;
+    int deltaTime;
+    int latchedTime;
+    int lastLatchedParticleRange[2];
+    int latchedParticleRange[2];
+    int latchedTracerRange[2];
+    int latchedDecalRange[2];
+    sortedParticleStage_t sortedParticleStages[1024];
+    int numSortedParticleStages;
+    particleRenderView_t* particleRenderView;
+    deferredParticleGenParms_t* particleGenParms;
+    idList<deferredStage_t, 5> deferredStages[3];
+    idTriangles* triangles;
+
+private:
+    static constexpr int MAX_EFFECT_PARTICLES = 4096;
+    static constexpr int MAX_PARTICLE_TRAILS = 32;
+    static constexpr int MAX_TRACERS = 128;
+    static constexpr int MAX_DECALS = 1024;
+    static constexpr int MAX_PARTICLE_GEN_PARMS = 4096;
+    static constexpr int MAX_EFFECT_TRIANGLES = 1024;
+
+    static UpdateCallback updateCallback;
 };
+
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(idRenderModelEffects::sortedParticleStage_t) == 12,
+    "Recovered sorted-particle stage ABI changed");
+static_assert(sizeof(idRenderModelEffects::deferredStage_t) == 12,
+    "Recovered deferred-stage ABI changed");
+#endif

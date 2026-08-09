@@ -1,39 +1,44 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\particles\rendermodelparticle.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "models/particles/jobs/particleparm.h"
+#include "models/rendermodel.h"
 
+class idDeclParticle;
 
-// IDA Local Type ordinal 14030; PDB kind: struct.
-struct idRenderModelParticle::stageCounts_t
-{
-  int vertCount;
-  int indexOffset;
-};
-
-// IDA Local Type ordinal 14032; PDB kind: class.
-class __declspec(align(8)) idRenderModelParticle : public idRenderModel
-{
+class alignas(16) idRenderModelParticle : public idRenderModel {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 14033.
-  virtual void Save(idFile *);
-  virtual bool Load(idFile *);
-  virtual void SerializeSnapshot(idSerializer *, bool);
-  virtual const idDeclSkins *GetSkins();
-  virtual idHandle<int,enum invalidDecalHandle_t,-1> *AddDecalFromPoint(idHandle<int,enum invalidDecalHandle_t,-1> *result, const decalParams_t *, const int, const idVec3 *, const idVec3 *, idIndex<short,enum invalidJointIndex_t>);
-  virtual bool RemoveDecal(const idHandle<int,enum invalidDecalHandle_t,-1>);
-  virtual void RemoveDecals();
-  virtual void FreeSurfaces();
-  virtual bool CommitSubclass();
-  virtual bool UpdateInView(const idRenderView *, const idRenderView *, idRenderModelUpdateTools *);
-  virtual const idList<sourceSurface_t,5> *GetSourceSurfaces();
-  virtual ~idRenderModelParticle();
+    struct stageCounts_t {
+        int vertCount;
+        int indexOffset;
+    };
 
-  idList<deferredParticleGenParms_t,5> genParms;
-  particleRenderView_t *particleRenderView;
-  modelParticleParms_t *modelParms;
-  idList<idRenderModelParticle::stageCounts_t,5> stageCounts[3];
-  const idDeclParticle *particleDecl;
+    using UpdateCallback = bool (*)(idRenderModelParticle* model,
+        const idRenderView* currentView, const idRenderView* nextView,
+        idRenderModelUpdateTools* tools);
+
+    explicit idRenderModelParticle(
+        const idDeclParticle* declaration = nullptr);
+    ~idRenderModelParticle() override;
+
+    static void SetUpdateCallback(UpdateCallback callback);
+    static void DeclNameToModelName(const char* declarationName,
+        idStr& modelName);
+    static int EstimateVertAllocation(const idParticleStage* stage,
+        int renderTime, float timeOffset, int stopTime, float deadTime,
+        int lodLevel);
+    bool UpdateInView(const idRenderView* currentView,
+        const idRenderView* nextView,
+        idRenderModelUpdateTools* tools) override;
+
+    idList<deferredParticleGenParms_t, 5> genParms;
+    particleRenderView_t* particleRenderView;
+    modelParticleParms_t* modelParms;
+    idList<stageCounts_t, 5> stageCounts[3];
+    const idDeclParticle* particleDecl;
+
+private:
+    static UpdateCallback updateCallback;
 };
+
+static_assert(sizeof(idRenderModelParticle::stageCounts_t) == 8,
+    "Recovered particle-stage count ABI changed");

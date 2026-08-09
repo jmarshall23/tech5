@@ -1,25 +1,42 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\particles\jobs\staticparticlemodeldata.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "framework/resource.h"
+#include "framework/resourcelist.h"
+#include "idlib/containers/list.h"
+#include "idlib/geometry/drawvert.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 13431; PDB kind: class.
-class idStaticParticleModelData : public idResource
-{
+class idStaticParticleModelData : public idResource {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 13432.
-  virtual ~idStaticParticleModelData();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
+    using GeometryLoader = bool (*)(const char* modelName,
+        idList<idDrawVert, 79>& vertices,
+        idList<std::uint16_t, 79>& indexes,
+        unsigned int& sourceTimestamp);
 
-  unsigned int timestamp;
-  idDrawVert *staticVerts;
-  int numStaticVerts;
+    idStaticParticleModelData();
+    ~idStaticParticleModelData() override;
+
+    void LoadResource() override;
+    bool ReloadIfStale() override;
+    idResourceList* GetResourceList() override;
+
+    void FreeData();
+    bool LoadBinary(const char* fileName);
+    bool WriteBinary(const char* fileName) const;
+    bool Generate();
+    bool GenerateFromGeometry(const idDrawVert* vertices, int numVertices,
+        const std::uint16_t* indexes, int numIndexes,
+        unsigned int sourceTimestamp);
+
+    static void SetGeometryLoader(GeometryLoader loader);
+
+    unsigned int timestamp;
+    idDrawVert* staticVerts;
+    int numStaticVerts;
+
+    static idTypedResourceList<idStaticParticleModelData> resourceList;
+
+private:
+    static GeometryLoader geometryLoader;
 };
