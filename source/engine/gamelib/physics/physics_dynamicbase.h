@@ -32,7 +32,7 @@ public:
     bool HasGroundContacts() override;
     bool IsGroundEntity(int entityNumber) override;
     bool IsGroundClipModel(int entityNumber, int bodyId) override;
-    bool IsOutsideWorld();
+    virtual bool IsOutsideWorld();
 
 protected:
     void AddContactPhysicsForContacts();

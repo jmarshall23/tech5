@@ -1,97 +1,100 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\physics\physics_staticmulti.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "gamelib/physics/physics_static.h"
 
-
-// IDA Local Type ordinal 18829; PDB kind: class.
-class __declspec(align(8)) idPhysics_StaticMulti : public idPhysics
-{
+class idPhysics_StaticMulti : public idPhysics {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 18830.
-  virtual ~idPhysics_StaticMulti();
-  virtual void SetClipModel(idClipModel *, float, int, bool);
-  virtual idClipModel *GetClipModel(int);
-  virtual int GetNumClipModels();
-  virtual void SetMass(float, int);
-  virtual float GetMass(int);
-  virtual void SetContents(int, int);
-  virtual int GetContents(int);
-  virtual void SetClipMask(int, int);
-  virtual int GetClipMask(int);
-  virtual const idBounds *GetBounds(int);
-  virtual const idBounds *GetAbsBounds(int);
-  virtual void SetOrigin(const idVec3 *, int);
-  virtual void SetAxis(const idMat3 *, int);
-  virtual void Translate(const idVec3 *, int);
-  virtual void Rotate(const idRotation *, int);
-  virtual const idVec3 *GetOrigin(int);
-  virtual const idMat3 *GetAxis(int);
-  virtual const idVec3 *GetLocalOrigin(int);
-  virtual const idMat3 *GetLocalAxis(int);
-  virtual void SetLinearVelocity(const idVec3 *, int);
-  virtual void SetAngularVelocity(const idVec3 *, int);
-  virtual idVec3 *GetLinearVelocity(idVec3 *result, int);
-  virtual idVec3 *GetAngularVelocity(idVec3 *result, int);
-  virtual void SetGravity(const idVec3 *);
-  virtual const idVec3 *GetGravity();
-  virtual const idVec3 *GetGravityNormal();
-  virtual void SetWaterLevel(float, int);
-  virtual float GetWaterLevel(int);
-  virtual void SetWaterViscosity(float, int);
-  virtual float GetWaterViscosity(int);
-  virtual void SetWaterEntNum(int);
-  virtual int GetWaterEntNum();
-  virtual void SetWaterSurfaceWrldHeight(float);
-  virtual float GetWaterSurfaceWrldHeight();
-  virtual void GetImpactInfo(const int, const idVec3 *, impactInfo_t *);
-  virtual void ApplyImpulse(const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const idVec3 *, const idVec3 *);
-  virtual void Activate();
-  virtual void PutToRest();
-  virtual bool IsAtRest();
-  virtual bool IsPushable(int);
-  virtual void SaveState();
-  virtual void RestoreState();
-  virtual bool Evaluate(int, int);
-  virtual void UpdateTime(int);
-  virtual void ClipTranslation(trace_t *, const idVec3 *, const idClipModel *);
-  virtual void ClipRotation(trace_t *, const idRotation *, const idClipModel *);
-  virtual int ClipContents(const idClipModel *, int);
-  virtual void DisableClip();
-  virtual void EnableClip();
-  virtual void UnlinkClip();
-  virtual void LinkClip();
-  virtual bool EvaluateContacts();
-  virtual int GetNumContacts();
-  virtual const contactInfo_t *GetContact(int);
-  virtual void ClearContacts();
-  virtual void AddContactPhysics(idPhysics *);
-  virtual void RemoveContactPhysics(idPhysics *);
-  virtual int GetNumContactPhysics();
-  virtual idPhysics *GetContactPhysics(int);
-  virtual void ActivateContactPhysics();
-  virtual bool HasGroundContacts();
-  virtual bool IsGroundEntity(int);
-  virtual bool IsGroundClipModel(int, int);
-  virtual void SetPushed(int);
-  virtual idVec3 *GetPushedLinearVelocity(idVec3 *result, const int);
-  virtual idVec3 *GetPushedAngularVelocity(idVec3 *result, const int);
-  virtual void SetMaster(bool, const idVec3 *, const idMat3 *, const bindFlags_t);
-  virtual void SetLocalOrigin(const idVec3 *, int);
-  virtual void SetLocalAxis(const idMat3 *, int);
-  virtual int GetBlockingEntityNum();
-  virtual int GetLinearEndTime();
-  virtual int GetAngularEndTime();
-  virtual bool IsInNonResidentCollisionArea(bool);
+    idPhysics_StaticMulti();
+    ~idPhysics_StaticMulti() override;
 
-  idList<idClipModel *,77> clipModels;
-  idList<float,77> mass;
-  idBounds bounds;
-  idBounds absBounds;
-  bool hasMaster;
-  bool isOrientated;
-  idList<staticPState_t,77> current;
+    void SetClipModel(idClipModel*, float, int, bool) override;
+    idClipModel* GetClipModel(int) override;
+    int GetNumClipModels() override;
+    void SetMass(float, int) override;
+    float GetMass(int) override;
+    void SetContents(int, int) override;
+    int GetContents(int) override;
+    void SetClipMask(int, int) override;
+    int GetClipMask(int) override;
+    const idBounds* GetBounds(int) override;
+    const idBounds* GetAbsBounds(int) override;
+    void SetOrigin(const idVec3*, int) override;
+    void SetAxis(const idMat3*, int) override;
+    void Translate(const idVec3*, int) override;
+    void Rotate(const idRotation*, int) override;
+    const idVec3* GetOrigin(int) override;
+    const idMat3* GetAxis(int) override;
+    const idVec3* GetLocalOrigin(int) override;
+    const idMat3* GetLocalAxis(int) override;
+    void SetLinearVelocity(const idVec3*, int) override;
+    void SetAngularVelocity(const idVec3*, int) override;
+    idVec3* GetLinearVelocity(idVec3*, int) override;
+    idVec3* GetAngularVelocity(idVec3*, int) override;
+    void SetGravity(const idVec3*) override;
+    const idVec3* GetGravity() override;
+    const idVec3* GetGravityNormal() override;
+    void SetWaterLevel(float, int) override;
+    float GetWaterLevel(int) override;
+    void SetWaterViscosity(float, int) override;
+    float GetWaterViscosity(int) override;
+    void SetWaterEntNum(int) override;
+    int GetWaterEntNum() override;
+    void SetWaterSurfaceWrldHeight(float) override;
+    float GetWaterSurfaceWrldHeight() override;
+    void GetImpactInfo(int, const idVec3*, impactInfo_t*) override;
+    void ApplyImpulse(int, const idVec3*, const idVec3*) override;
+    void ApplyForce(int, const idVec3*, const idVec3*) override;
+    void Activate() override;
+    void PutToRest() override;
+    bool IsAtRest() override;
+    bool IsPushable(int) override;
+    void SaveState() override;
+    void RestoreState() override;
+    bool Evaluate(int, int) override;
+    void UpdateTime(int) override;
+    void ClipTranslation(trace_t*, const idVec3*, const idClipModel*) override;
+    void ClipRotation(trace_t*, const idRotation*, const idClipModel*) override;
+    int ClipContents(const idClipModel*, int) override;
+    void DisableClip() override;
+    void EnableClip() override;
+    void UnlinkClip() override;
+    void LinkClip() override;
+    bool EvaluateContacts() override;
+    int GetNumContacts() override;
+    const contactInfo_t* GetContact(int) override;
+    void ClearContacts() override;
+    void AddContactPhysics(idPhysics*) override;
+    void RemoveContactPhysics(idPhysics*) override;
+    int GetNumContactPhysics() override;
+    idPhysics* GetContactPhysics(int) override;
+    void ActivateContactPhysics() override;
+    bool HasGroundContacts() override;
+    bool IsGroundEntity(int) override;
+    bool IsGroundClipModel(int, int) override;
+    void SetPushed(int) override;
+    idVec3* GetPushedLinearVelocity(idVec3*, int) override;
+    idVec3* GetPushedAngularVelocity(idVec3*, int) override;
+    void SetMaster(bool, const idVec3*, const idMat3*, bindFlags_t) override;
+    void SetLocalOrigin(const idVec3*, int) override;
+    void SetLocalAxis(const idMat3*, int) override;
+    int GetBlockingEntityNum() override;
+    int GetLinearEndTime() override;
+    int GetAngularEndTime() override;
+
+    idList<idClipModel*, 77> clipModels;
+    idList<float, 77> mass;
+    idBounds bounds;
+    idBounds absBounds;
+    bool hasMaster;
+    bool isOrientated;
+    idList<staticPState_t, 77> current;
+
+private:
+    bool IsValidId(int id) const;
+    void LinkModel(int id);
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idPhysics_StaticMulti) == 152,
+    "Recovered idPhysics_StaticMulti ABI changed");
+#endif

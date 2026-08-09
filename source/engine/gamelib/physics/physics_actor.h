@@ -40,9 +40,10 @@ public:
     void LinkClip() override;
     bool EvaluateContacts() override;
 
-    void DisableClip(actorClipModel_t clipType);
-    void EnableClip(actorClipModel_t clipType);
-    void LinkClip(const idVec3& origin, const idMat3& axis);
+    virtual const idMat3* GetGravityAxis() { return &clipModelAxis; }
+    virtual void DisableClip(actorClipModel_t clipType);
+    virtual void EnableClip(actorClipModel_t clipType);
+    virtual void LinkClip(const idVec3& origin, const idMat3& axis);
     void SetClipModelAxis();
     float GetMasterDeltaYaw() const;
     void RememberHistorySample();
