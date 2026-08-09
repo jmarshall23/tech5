@@ -11,6 +11,7 @@
 
 class idFile;
 class idLexer;
+template<class resourceType> class idTypedResourceList;
 
 enum aas2TravelFlag_t : int {
     AAS_TFL_INVALID = 0x1,
@@ -388,7 +389,7 @@ public:
     void FloodAddVisitedArea(int areaNum);
     void FloodClearVisitedAreas(int offset);
 
-    static idResourceList resourceList;
+    static idTypedResourceList<idAAS2File> resourceList;
 
     std::uint32_t crc;
     std::uint32_t timestamp;

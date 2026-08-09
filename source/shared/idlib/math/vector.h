@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 
@@ -135,9 +136,56 @@ public:
     float Length() const {
         return std::sqrt(LengthSqr());
     }
+
+    // Materialized in the authoritative shared/idlib/math/vector.h dump.
+    // The original PowerPC implementation uses a refined reciprocal square
+    // root; the scalar PC path preserves its normalized result and returns
+    // the vector's original length.
+    float NormalizeFast() {
+        const float lengthSqr = LengthSqr();
+        if (lengthSqr <= 0.0f) {
+            return 0.0f;
+        }
+
+        const float length = std::sqrt(lengthSqr);
+        const float inverseLength = 1.0f / length;
+        x *= inverseLength;
+        y *= inverseLength;
+        z *= inverseLength;
+        return length;
+    }
 };
 
 static_assert(sizeof(idVec3) == 12, "Recovered idVec3 layout changed");
+
+// Unit vectors embedded in AAS traversal records are stored as signed
+// 16-bit components.  The authoritative constructor normalizes before
+// quantizing with a scale of 32767.
+class idQuantizedVec3 {
+public:
+    std::int16_t x;
+    std::int16_t y;
+    std::int16_t z;
+
+    idQuantizedVec3() = default;
+    explicit idQuantizedVec3(const idVec3& vector) { Set(vector); }
+
+    void Set(idVec3 vector) {
+        vector.NormalizeFast();
+        x = static_cast<std::int16_t>(vector.x * 32767.0f);
+        y = static_cast<std::int16_t>(vector.y * 32767.0f);
+        z = static_cast<std::int16_t>(vector.z * 32767.0f);
+    }
+
+    idVec3 ToVec3() const {
+        constexpr float inverseQuantization = 1.0f / 32767.0f;
+        return idVec3(x * inverseQuantization, y * inverseQuantization,
+            z * inverseQuantization);
+    }
+};
+
+static_assert(sizeof(idQuantizedVec3) == 6,
+    "Recovered idQuantizedVec3 ABI changed");
 
 class idMat3 {
 public:
@@ -182,6 +230,15 @@ public:
 
     idMat3& operator*=(const idMat3& other) {
         *this = *this * other;
+        return *this;
+    }
+
+    idMat3& OrthoNormalizeSelf() {
+        mat[0].NormalizeFast();
+        mat[2] = mat[0].Cross(mat[1]);
+        mat[2].NormalizeFast();
+        mat[1] = mat[2].Cross(mat[0]);
+        mat[1].NormalizeFast();
         return *this;
     }
 
@@ -398,6 +455,21 @@ public:
     }
     idQuat operator*(const float scale) const {
         return idQuat(x * scale, y * scale, z * scale, w * scale);
+    }
+
+    // Materialized in the authoritative shared/idlib/math/quat.h dump.
+    idQuat& Normalize() {
+        const float lengthSqr = x * x + y * y + z * z + w * w;
+        if (lengthSqr <= 0.0f) {
+            return *this;
+        }
+
+        const float inverseLength = 1.0f / std::sqrt(lengthSqr);
+        x *= inverseLength;
+        y *= inverseLength;
+        z *= inverseLength;
+        w *= inverseLength;
+        return *this;
     }
 };
 

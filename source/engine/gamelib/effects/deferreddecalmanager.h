@@ -1,58 +1,65 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\effects\deferreddecalmanager.h
-// Recovered logical types: 5
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "cm/jobs/collisionquery.h"
+#include "idlib/math/vector.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 14039; PDB kind: struct.
-struct deferredDecalParams_t
-{
-  const idMaterial *decalMat;
-  float depth;
-  idVec2 size;
-  float angle;
-  int lifetime;
-  int fadetime;
-  int fadeInEndTime;
+class idClip;
+class idMaterial;
+class idRenderModelDecal;
+
+#ifndef ID_CLIP_QUERY_DEFINED
+#define ID_CLIP_QUERY_DEFINED
+struct idClipQuery { std::uint64_t index; };
+#endif
+
+struct deferredDecalParams_t {
+    const idMaterial* decalMat;
+    float depth;
+    idVec2 size;
+    float angle;
+    int lifetime;
+    int fadetime;
+    int fadeInEndTime;
 };
 
-// IDA Local Type ordinal 14040; PDB kind: class.
-class idDeferredDecalQuery
-{
+class idDeferredDecalQuery {
 public:
-  idClipQuery theQuery;
-  deferredDecalParams_t decalParams;
-  idVec3 origin;
-  idVec3 normal;
+    idDeferredDecalQuery();
+    void Reset();
+
+    idClipQuery theQuery;
+    deferredDecalParams_t decalParams;
+    idVec3 origin;
+    idVec3 normal;
 };
 
-// IDA Local Type ordinal 14135; PDB kind: class.
-class __declspec(align(8)) idDeferredDecalManager
-{
+class alignas(8) idDeferredDecalManager {
 public:
-  idDeferredDecalQuery lineQueries[16];
-  int numLineQueries;
-  idClip *clip;
-  idRenderModelDecal *decalModel;
+    idDeferredDecalManager();
+
+    void Init(idClip* clip_, idRenderModelDecal* decalModel_);
+    void Shutdown();
+    void AddDecalFromLineTrace(const deferredDecalParams_t* decalParameters,
+        const idVec3& start, const idVec3& end, int clipMask);
+    void AddDecalFromPoint(const deferredDecalParams_t* decalParameters,
+        int time, const idVec3& origin, const idVec3& normal);
+    void Update(int time);
+
+    idDeferredDecalQuery lineQueries[16];
+    int numLineQueries;
+    idClip* clip;
+    idRenderModelDecal* decalModel;
 };
 
-// IDA Local Type ordinal 15595; PDB kind: struct.
-struct __declspec(align(8)) idDeferredFireManager::deferredFire_t
-{
-  idFireParms fireParms;
-  idClipQuery queryHandles[16];
-  idTestFireResults fireResults;
-  unsigned int handle;
-  int numTraces;
-};
-
-// IDA Local Type ordinal 15596; PDB kind: class.
-class idDeferredFireManager
-{
-public:
-  idDeferredFireManager::deferredFire_t deferredFireBuffers[2][32];
-  unsigned int shotCount;
-  unsigned int activeBuffer;
-};
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idClipQuery) == 8,
+    "Recovered idClipQuery ABI changed");
+static_assert(sizeof(deferredDecalParams_t) == 32,
+    "Recovered deferred-decal parameters ABI changed");
+static_assert(sizeof(idDeferredDecalQuery) == 64,
+    "Recovered deferred-decal query ABI changed");
+static_assert(sizeof(idDeferredDecalManager) == 1040,
+    "Recovered idDeferredDecalManager ABI changed");
+#endif

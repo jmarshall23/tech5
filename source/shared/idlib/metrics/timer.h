@@ -14,10 +14,11 @@ public:
 
     void Start() { state = TS_STARTED; start = ClockNow(); }
     void Stop() {
-        if (state == TS_STARTED) {
-            clockTicks += ClockNow() - start;
-            state = TS_STOPPED;
-        }
+        if (state != TS_STARTED) return;
+        clockTicks += ClockNow() - start;
+        if (baseClockTicks < 0) InitBaseClockTicks();
+        if (clockTicks > baseClockTicks) clockTicks -= baseClockTicks;
+        state = TS_STOPPED;
     }
     void Clear() { state = TS_STOPPED; start = 0; clockTicks = 0; }
     std::int64_t ClockTicks() const { return clockTicks; }
@@ -28,6 +29,9 @@ public:
     std::int64_t clockTicks;
 
 private:
+    static std::int64_t baseClockTicks;
+    void InitBaseClockTicks() const;
+
     static std::int64_t ClockNow() {
         return std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -51,4 +55,3 @@ static_assert(sizeof(idTimer) == 32, "Recovered idTimer ABI changed");
 static_assert(sizeof(idJobTimer) == 40, "Recovered idJobTimer ABI changed");
 static_assert(sizeof(idSPUTimer) == 4, "Recovered idSPUTimer ABI changed");
 #endif
-

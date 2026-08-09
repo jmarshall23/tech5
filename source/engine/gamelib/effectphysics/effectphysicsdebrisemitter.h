@@ -1,28 +1,42 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\effectphysics\effectphysicsdebrisemitter.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "gamelib/effectphysics/effectphysicspieceemitter.h"
 
+class idDeclBreakable;
 
-// IDA Local Type ordinal 14594; PDB kind: struct.
-struct idEffectPhysicsDebrisEmitter::emitBufferItem_t
-{
-  idVec3 pos;
-  idVec3 normal;
-  int count;
-};
-
-// IDA Local Type ordinal 14595; PDB kind: class.
-class idEffectPhysicsDebrisEmitter
-{
+class idEffectPhysicsDebrisEmitter {
 public:
-  idEffectPhysicsPieceEmitter piecePhysics;
-  idEffectPhysicsDebrisEmitter::emitBufferItem_t emitBuffer[10];
-  int emitBufferPos;
-  int serializeEmitCount;
-  bool skipFirstFrame;
-  bool active;
-  idRandom2 random;
+    struct emitBufferItem_t {
+        idVec3 pos;
+        idVec3 normal;
+        int count;
+    };
+
+    idEffectPhysicsDebrisEmitter();
+
+    void Init(const idDeclBreakable* breakableDebris, int entityNumber,
+        idClip& clip, idRenderModelEffects* renderModelEffects);
+    void EmitDebris(idVec3 position, idVec3 velocity, idVec3 normal,
+        int count, int currentTime);
+    void Update(const idVec3& origin, const idMat3& axis,
+        const idVec3& drawScale3D, int currentTime, int gameMsPerFrame);
+
+    idEffectPhysicsPieceEmitter piecePhysics;
+    emitBufferItem_t emitBuffer[10];
+    int emitBufferPos;
+    int serializeEmitCount;
+    bool skipFirstFrame;
+    bool active;
+    idRandom2 random;
+
+private:
+    void EmitBuffered(const emitBufferItem_t& item,
+        const idVec3& velocity, int currentTime);
 };
+
+static_assert(sizeof(idEffectPhysicsDebrisEmitter::emitBufferItem_t) == 28,
+    "Recovered debris emit-buffer ABI changed");
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idEffectPhysicsDebrisEmitter) == 464,
+    "Recovered idEffectPhysicsDebrisEmitter ABI changed");
+#endif

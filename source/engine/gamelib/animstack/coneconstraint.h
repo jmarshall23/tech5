@@ -1,207 +1,57 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\animstack\coneconstraint.h
-// Recovered logical types: 4
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/math/quat.h"
+#include "idlib/math/radians.h"
 
-
-// IDA Local Type ordinal 16484; PDB kind: class.
-class idConeConstraint_Quat
-{
+// Reconstructed from the recovered coneconstraint.h declarations and the
+// six authoritative functions in animstack/coneconstraint.cpp.
+class idConeConstraint_Quat {
 public:
-  idQuat current;
-  idQuat center;
-  float limitAngleDot;
-  float halfLimitAngleCosine;
-  float halfLimitAngleSine;
+    idConeConstraint_Quat(const idConeConstraint_Quat& other);
+    idConeConstraint_Quat(const idQuat& center_, radians_t maxAngle_);
+
+    void RotateTo(const idVec3& dir, float lerpRate);
+
+    idQuat current;
+    idQuat center;
+    float limitAngleDot;
+    float halfLimitAngleCosine;
+    float halfLimitAngleSine;
 };
 
-// IDA Local Type ordinal 19154; PDB kind: class.
-class idConeConstraint_Vec3
-{
+class idConeConstraint_Vec3 {
 public:
-  idVec3 current;
-  idVec3 center;
-  float limitAngleDot;
-  float halfLimitAngleCosine;
-  float halfLimitAngleSine;
+    idConeConstraint_Vec3(const idConeConstraint_Vec3& other);
+    idConeConstraint_Vec3(const idVec3& center_, radians_t maxAngle_);
+
+    void RotateTo(const idVec3& dir, float lerpRate);
+
+    idVec3 current;
+    idVec3 center;
+    float limitAngleDot;
+    float halfLimitAngleCosine;
+    float halfLimitAngleSine;
 };
 
-// IDA Local Type ordinal 19160; PDB kind: class.
-class idTest_ConeConstraint : public idEntity
-{
+// The matrix form has declaration/layout evidence but no materialized methods
+// in this translation unit.
+class idConeConstraint_Mat3 {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 19161.
-  virtual idTypeInfo *GetType();
-  virtual ~idTest_ConeConstraint();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-
-  int numSegments;
-  idSegment **segments;
+    idMat3 current;
+    idMat3 center;
+    float limitAngleDot;
+    float halfLimitAngleCosine;
+    float halfLimitAngleSine;
 };
 
-// IDA Local Type ordinal 21649; PDB kind: class.
-class idConeConstraint_Mat3
-{
-public:
-  idMat3 current;
-  idMat3 center;
-  float limitAngleDot;
-  float halfLimitAngleCosine;
-  float halfLimitAngleSine;
-};
+// The fourth recovered logical type is a test entity derived from idEntity.
+// Its full base-class boundary belongs to the later game-entity recovery, so
+// retain the real owner name without inventing a substitute base class here.
+class idTest_ConeConstraint;
+
+static_assert(sizeof(idConeConstraint_Quat) == 44,
+    "Recovered idConeConstraint_Quat ABI changed");
+static_assert(sizeof(idConeConstraint_Vec3) == 36,
+    "Recovered idConeConstraint_Vec3 ABI changed");
+static_assert(sizeof(idConeConstraint_Mat3) == 84,
+    "Recovered idConeConstraint_Mat3 ABI changed");

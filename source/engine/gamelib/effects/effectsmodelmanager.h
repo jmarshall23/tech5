@@ -1,23 +1,36 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\effects\effectsmodelmanager.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/hashindex.h"
+#include "idlib/containers/staticlist.h"
 
+class idDeclParticle;
+class idRenderModelParticle;
 
-// IDA Local Type ordinal 14034; PDB kind: struct.
-struct idEffectsModelManager::fxPrtModel_t
-{
-  idRenderModelParticle *pmodel;
-  const idDeclParticle *pDecl;
-};
-
-// IDA Local Type ordinal 14037; PDB kind: class.
-class idEffectsModelManager
-{
+class idEffectsModelManager {
 public:
-  idStaticList<idEffectsModelManager::fxPrtModel_t,400> fxPrtModels;
-  idHashIndex activePrtModelHash;
-  idHashIndex inactivePrtModelHash;
+    struct fxPrtModel_t {
+        idRenderModelParticle* pmodel;
+        const idDeclParticle* pDecl;
+    };
+
+    idEffectsModelManager();
+    ~idEffectsModelManager();
+
+    void Init();
+    void Shutdown();
+    idRenderModelParticle* GetNextParticleEffectModel(
+        const idDeclParticle* particleDecl);
+    void RecycleParticleFxModel(const idDeclParticle* particleDecl,
+        idRenderModelParticle* model);
+
+    idStaticList<fxPrtModel_t, 400> fxPrtModels;
+    idHashIndex activePrtModelHash;
+    idHashIndex inactivePrtModelHash;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idEffectsModelManager::fxPrtModel_t) == 8,
+    "Recovered particle-model record ABI changed");
+static_assert(sizeof(idEffectsModelManager) == 3280,
+    "Recovered idEffectsModelManager ABI changed");
+#endif

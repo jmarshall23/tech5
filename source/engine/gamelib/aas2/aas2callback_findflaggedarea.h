@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gamelib/aas2/aas2callback_avoidlocation.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\gamelib\aas2\aas2callback_findflaggedarea.h
 // Recovered logical types: 1
@@ -10,12 +12,17 @@
 class idAAS2Callback_FindFlaggedArea : public idAAS2Callback_AvoidLocation
 {
 public:
+  idAAS2Callback_FindFlaggedArea(int areaFlag, bool set);
+
   // Recovered virtual interface; IDA vtable ordinal 23525.
-  virtual ~idAAS2Callback_FindFlaggedArea();
-  virtual bool PathValid(const idAAS2 *, const idVec3 *, const idVec3 *);
-  virtual int AdditionalTravelTimeForPath(const idAAS2 *, const idVec3 *, const idVec3 *);
-  virtual bool AreaIsGoal(const idAAS2 *, int, const idVec3 *);
+  ~idAAS2Callback_FindFlaggedArea() override;
+  bool AreaIsGoal(const idAAS2 *, int, const idVec3 *) override;
 
   int areaFlag;
   int test;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAAS2Callback_FindFlaggedArea) == 36,
+    "Recovered idAAS2Callback_FindFlaggedArea ABI changed");
+#endif

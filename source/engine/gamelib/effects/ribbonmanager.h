@@ -1,32 +1,62 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\effects\ribbonmanager.h
-// Recovered logical types: 3
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/staticlist.h"
+#include "gamelib/effects/ribbon.h"
 
-
-// IDA Local Type ordinal 14140; PDB kind: struct.
-struct idRibbonModelManager::ribbonEffects_t
-{
-  idStaticList<idRibbon *,16> ribbons;
-  int next;
-};
-
-// IDA Local Type ordinal 14143; PDB kind: class.
-class idRibbonModelManager
-{
+class idDeclRibbon;
+class idRenderModelBeam;
+class idRibbonModelManager {
 public:
-  idStaticList<idRibbonModelManager::ribbonEffects_t,4> ribbonEffects;
+    struct ribbonEffects_t {
+        // Materialized in the authoritative effects/ribbonmanager.h dump.
+        ribbonEffects_t()
+            : ribbons()
+            , next(0) {
+        }
+
+        idStaticList<idRibbon*, 16> ribbons;
+        int next;
+    };
+
+    idRibbonModelManager();
+    ~idRibbonModelManager();
+
+    void CreateRibbonEffectModelType(const idDeclRibbon* ribbonDecl);
+    idRibbon* GetNextRibbonEffectModel(const idDeclRibbon* ribbonDecl);
+    void Shutdown();
+
+    idStaticList<ribbonEffects_t, 4> ribbonEffects;
+
+private:
+    int FindRibbonEffect(const idDeclRibbon* ribbonDecl) const;
 };
 
-// IDA Local Type ordinal 14211; PDB kind: class.
-class __declspec(align(4)) idRibbonManager
-{
+class idRibbonManager {
 public:
-  idRibbon *ribbon;
-  const idDeclRibbon *ribbonDecl;
-  idRenderModelBeam *beamModel;
-  idRibbonModelManager *modelManager;
-  bool isInitialized;
+    idRibbonManager();
+    ~idRibbonManager();
+
+    void Init(const idDeclRibbon* ribbonDecl, idRenderModelBeam* beamModel,
+        idRibbonModelManager* modelManager);
+    void Shutdown();
+    void StartRibbon(int spawnTime, const idVec3& spawnOrigin);
+    void StopRibbon();
+    bool UpdateRibbon(int time, const idVec3& origin, const idMat3& axis,
+        const idVec3& velocity, const idVec4& color,
+        const idVec3& translate);
+
+    idRibbon* ribbon;
+    const idDeclRibbon* ribbonDecl;
+    idRenderModelBeam* beamModel;
+    idRibbonModelManager* modelManager;
+    bool isInitialized;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idRibbonModelManager::ribbonEffects_t) == 84,
+    "Recovered ribbonEffects_t ABI changed");
+static_assert(sizeof(idRibbonModelManager) == 352,
+    "Recovered idRibbonModelManager ABI changed");
+static_assert(sizeof(idRibbonManager) == 20,
+    "Recovered idRibbonManager ABI changed");
+#endif

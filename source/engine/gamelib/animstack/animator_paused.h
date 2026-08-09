@@ -1,48 +1,60 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\animstack\animator_paused.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "gamelib/animstack/animator_base.h"
 
+class idAnimatorParms_Pause;
 
-// IDA Local Type ordinal 18898; PDB kind: class.
-class idAnimator_Paused : public idAnimator_Base
-{
+class idAnimator_Paused : public idAnimator_Base {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 18899.
-  virtual ~idAnimator_Paused();
-  virtual idAnimator_Base::priority_t GetStackPriority();
-  virtual serializeType_t GetSerializeType();
-  virtual void SerializeSnapshot(idSerializer *);
-  virtual void PreBlendSnapshot(idAnimStack *, int, const int, float);
-  virtual void PreSerializeInit(idAnimStack *, idClip *, idGameTimeManager *);
-  virtual bool InternalInit(const idAnimatorParms_Base *);
-  virtual bool InternalPostInit(const idAnimatorParms_Base *);
-  virtual void InternalShutdown(idAnimStack *);
-  virtual void InternalPreBlendTree(const idAnimStack *, const int, const int);
-  virtual void InternalPostBlendTree(const idAnimStack *, const int);
-  virtual void InternalStart(const idAnimStack *, const int, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalEnd(const idAnimStack *, const int, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalBlend(const idAnimStack *, const int, const float, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual bool InternalIsContributing();
-  virtual const idMD6Branch *InternalGetMergeBranch();
-  virtual idMD6Branch *InternalGetMergeBranch_2();
-  virtual void InternalPause(const idAnimStack *, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalUnpause(const idAnimStack *, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual const idMD6Branch *InternalGetEndBranch();
-  virtual idMD6Branch *InternalGetEndBranch_2();
+    idAnimator_Paused();
+    ~idAnimator_Paused() override;
 
-  idMD6LeafPause *leaf;
-  idMD6Branch *mergeBranch;
-  const idMD6Anim *anim;
+    void SetAnim(const idMD6Anim* animation);
+    const idMD6Anim* GetAnim() const { return anim; }
+    void SetFrame(float frame);
+    float GetFrame() const;
+    void SetNormalizedFrame(float normalizedFrame);
+
+    bool InternalInit(const idAnimatorParms_Base& parameters) override;
+    void InternalShutdown(idAnimStack* stack) override;
+    bool InternalIsContributing() const override;
+    const idMD6Branch* InternalGetMergeBranch() const override {
+        return mergeBranch;
+    }
+    idMD6Branch* InternalGetMergeBranch() override { return mergeBranch; }
+
+    idMD6LeafPause* leaf;
+    idMD6Branch* mergeBranch;
+    const idMD6Anim* anim;
 };
 
-// IDA Local Type ordinal 18908; PDB kind: class.
-class idAnimatorParms_Pause : public idAnimatorParms_Base
-{
+class idAnimatorParms_Pause : public idAnimatorParms_Base {
 public:
-  const idMD6Anim *anim;
-  float startFrame;
-  float normalizedStartFrame;
+    idAnimatorParms_Pause(const idMD6Anim* animation, float startFrame_,
+        float normalizedStartFrame_, idAnimStack* stack, const char* name_,
+        int blendOp_, int originBlend_, md6WeightGroup_t weightGroup_,
+        md6WeightGroup_t filterGroup_, float alpha_)
+        : idAnimatorParms_Base()
+        , anim(animation)
+        , startFrame(startFrame_)
+        , normalizedStartFrame(normalizedStartFrame_) {
+        animStack = stack;
+        name = name_;
+        blendOp = blendOp_;
+        originBlend = originBlend_;
+        weightGroup = weightGroup_;
+        filterGroup = filterGroup_;
+        alpha = alpha_;
+    }
+
+    const idMD6Anim* anim;
+    float startFrame;
+    float normalizedStartFrame;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAnimator_Paused) == 52,
+    "Recovered idAnimator_Paused ABI changed");
+static_assert(sizeof(idAnimatorParms_Pause) == 68,
+    "Recovered idAnimatorParms_Pause ABI changed");
+#endif

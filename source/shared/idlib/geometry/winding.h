@@ -3,6 +3,7 @@
 #include "../bv/bounds.h"
 #include "../containers/list.h"
 #include "../math/plane.h"
+#include "../sys/sys_alloc.h"
 
 class idWinding {
 public:
@@ -41,6 +42,8 @@ public:
 class idFixedWinding : public idWinding {
 public:
     idFixedWinding();
+    idFixedWinding(const idFixedWinding& other);
+    idFixedWinding& operator=(const idFixedWinding& other);
     ~idFixedWinding() override;
     void Clear() override;
     bool ReAllocate(int numPoints, bool keep = false) override;

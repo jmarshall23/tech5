@@ -312,7 +312,7 @@ std::uint32_t CanonicalXboxAreaChecksum(
 
 } // namespace
 
-idResourceList idAAS2File::resourceList("aas");
+idTypedResourceList<idAAS2File> idAAS2File::resourceList("aas");
 
 aas2Cover_t::aas2Cover_t()
     : origin(), dir(), areaNum(0), flags(0), numTouching(0),

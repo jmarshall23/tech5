@@ -1,5 +1,8 @@
 #pragma once
 
+#include "gamelib/effectphysics/effectphysicsbroadphase.h"
+#include "idlib/math/vector.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\gamelib\effectphysics\effectphysicsproperties.h
 // Recovered logical types: 1
@@ -10,6 +13,10 @@
 class idEffectPhysicsProperties
 {
 public:
+  idEffectPhysicsProperties();
+  void Setup(idEffectPhysicsBroadPhase *broadPhase, int traceModelIndex,
+      float mass);
+
   idEffectPhysicsBroadPhase *broadPhase;
   int traceModelIndex;
   int clipMask;
@@ -32,3 +39,8 @@ public:
   float maxLinearVelocity;
   float maxAngularVelocity;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idEffectPhysicsProperties) == 160,
+    "Recovered idEffectPhysicsProperties ABI changed");
+#endif

@@ -20,7 +20,7 @@ static_assert(
 );
 
 // tungsten.exe.h type 12218. idCmdArgs and idList retain their recovered
-// Win32 layouts through the active BFG-compatible core container layer.
+// Win32 layouts through the active recovered core container layer.
 class idAutoComplete {
 public:
     idAutoComplete()

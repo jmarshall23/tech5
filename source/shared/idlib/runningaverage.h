@@ -3,7 +3,7 @@
 #include <cstdint>
 
 // Recovered layout of idList<float, 5> from tungsten.exe.h type 12501. This
-// private storage facade avoids importing the newer BFG container definition
+// private storage facade preserves the recovered container definition
 // while retaining the original Win32 field widths and offsets.
 struct idRunningAverageFloatList {
     float* list;

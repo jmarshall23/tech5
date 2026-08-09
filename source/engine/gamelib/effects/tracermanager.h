@@ -1,36 +1,49 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\effects\tracermanager.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/math/vector.h"
 
+class idMaterial;
+class idRenderModelEffects;
+class idSerializer;
 
-// IDA Local Type ordinal 15276; PDB kind: struct.
-struct idTracerManager::tracerBufferItem_t
-{
-  int startTime;
-  int lifeTime;
-  float speed;
-  idVec3 origin;
-  idVec3 dir;
-  float length;
-  float height;
-  const idMaterial *mat;
-  idVec3 maxDist;
-  bool ensureVisual;
-  float fractionInsured;
-  int playerIndex;
-};
-
-// IDA Local Type ordinal 15277; PDB kind: class.
-class idTracerManager
-{
+class idTracerManager {
 public:
-  idRenderModelEffects *effectsModel;
-  idTracerManager::tracerBufferItem_t tracerBuffer[4];
-  int tracerBufferPos;
-  int serializeTracerCount;
-  bool catchingUp;
-  int localPlayerIndex;
+    struct tracerBufferItem_t {
+        int startTime;
+        int lifeTime;
+        float speed;
+        idVec3 origin;
+        idVec3 dir;
+        float length;
+        float height;
+        const idMaterial* mat;
+        idVec3 maxDist;
+        bool ensureVisual;
+        float fractionInsured;
+        int playerIndex;
+    };
+
+    idTracerManager();
+
+    void Init(idRenderModelEffects* effectsModel, int playerIndex);
+    void AddTracer(const idMaterial* material, const idVec3& origin,
+        const idVec3& direction, const idVec3& maxDistance, float speed,
+        float length, float height, bool ensureVisual,
+        float fractionInsured, int playerIndex);
+    void Update(int time);
+    void Serialize(idSerializer& serializer);
+
+    idRenderModelEffects* effectsModel;
+    tracerBufferItem_t tracerBuffer[4];
+    int tracerBufferPos;
+    int serializeTracerCount;
+    bool catchingUp;
+    int localPlayerIndex;
 };
+
+static_assert(sizeof(idTracerManager::tracerBufferItem_t) == 72,
+    "Recovered tracer buffer ABI changed");
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idTracerManager) == 308,
+    "Recovered idTracerManager ABI changed");
+#endif

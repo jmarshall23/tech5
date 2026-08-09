@@ -166,7 +166,9 @@ protected:
         list = buffer;
         num = 0;
         size = capacity;
-        granularity = 0;
+        // Recovered idStaticList constructors consistently materialize a
+        // granularity of one for their embedded fixed-capacity storage.
+        granularity = 1;
         listStatic = 1;
     }
 
@@ -180,4 +182,3 @@ private:
 #if defined(_WIN32) && !defined(_WIN64)
 static_assert(sizeof(idList<int, 5>) == 16, "Recovered idList ABI changed");
 #endif
-

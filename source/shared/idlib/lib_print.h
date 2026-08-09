@@ -36,9 +36,8 @@ private:
     bool fatalError;
 };
 
-// PC-side extension for the listener/context facilities added after the BFG
-// idLib interface. The six common Printf/Warning/Error entry points continue
-// to be supplied by the BFG baseline until the engine-wide Lib.h is replaced.
+// Recovered listener/context side of the idLib print interface. The common
+// Printf/Warning/Error entry points share this PC implementation.
 class idLibPrint {
 public:
     using fatalErrorHandler_t = void (*)(const char*);

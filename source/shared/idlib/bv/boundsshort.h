@@ -14,10 +14,10 @@ public:
         for (int side = 0; side < 2; ++side) {
             for (int axis = 0; axis < 3; ++axis) {
                 const int integerValue = static_cast<int>(bounds[side][axis]);
-                b[side][axis] = static_cast<std::int16_t>(std::max(
-                    static_cast<int>(std::numeric_limits<std::int16_t>::min()),
-                    std::min(
-                        static_cast<int>(std::numeric_limits<std::int16_t>::max()),
+                b[side][axis] = static_cast<std::int16_t>((std::max)(
+                    static_cast<int>((std::numeric_limits<std::int16_t>::min)()),
+                    (std::min)(
+                        static_cast<int>((std::numeric_limits<std::int16_t>::max)()),
                         integerValue
                     )
                 ));

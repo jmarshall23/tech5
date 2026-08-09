@@ -1,6 +1,6 @@
 #pragma once
 
-// tungsten.exe.h type 12913. Unlike Doom 3 BFG's idScreenRect, this idTech 5
+// tungsten.exe.h type 12913. This recovered idTech 5
 // build uses four 32-bit coordinates and does not store depth bounds here.
 class idScreenRect {
 public:
@@ -18,4 +18,3 @@ public:
 };
 
 static_assert(sizeof(idScreenRect) == 16, "Recovered idScreenRect layout changed");
-

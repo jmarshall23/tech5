@@ -1,99 +1,269 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\aas2\aas2.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "aas2file/aas2file.h"
+#include "gamelib/aas2/obstacleavoidancecore.h"
+#include "idlib/bv/bounds.h"
+#include "idlib/callback.h"
+#include "idlib/containers/list.h"
+#include "idlib/index.h"
+#include "idlib/math/angles.h"
+#include "idlib/math/plane.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 14078; PDB kind: class.
-class idAAS2
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14113.
-  virtual ~idAAS2();
-  virtual bool IsDefault();
-  virtual bool Init(const char *, unsigned int);
-  virtual void Stats();
-  virtual void Test(const idVec3 *, const idVec3 *, const idMat3 *, int, int, int, int, const int, idClip *, usercmd_t *, idAngles *);
-  virtual const idAAS2Settings *GetSettings();
-  virtual idBounds *DefaultSearchBounds(idBounds *result);
-  virtual int PointAreaNum(idIndex<int,enum invalidAASTree_t>, const idVec3 *);
-  virtual int PointReachableAreaNum(idIndex<int,enum invalidAASTree_t>, const idVec3 *, const idBounds *, const int, const int);
-  virtual int BoundsReachableAreaNum(idIndex<int,enum invalidAASTree_t>, const idBounds *, const int, const int);
-  virtual int BoundsReachableAreaNum_2(idIndex<int,enum invalidAASTree_t>, const idVec3 *, const idBounds *, const int, const int);
-  virtual bool NearestPointReachable(idIndex<int,enum invalidAASTree_t>, const idVec3 *, const int, const idVec3 *, const idBounds *, const int, idAAS2NearestReachable *);
-  virtual void PushPointIntoAreaNum(int, idVec3 *);
-  virtual idVec3 *AreaCenter(idVec3 *result, int);
-  virtual bool Trace(idIndex<int,enum invalidAASTree_t>, aas2Trace_t *, const idVec3 *, const idVec3 *);
-  virtual bool TraceHeight(idIndex<int,enum invalidAASTree_t>, aas2TraceHeight_t *, const idVec3 *, const idVec3 *);
-  virtual bool TraceFloor(aas2TraceFloor_t *, const idVec3 *, int, const idVec3 *, int, bool, bool, bool);
-  virtual void GetEdgeVertexNumbers(int, int *);
-  virtual void GetEdge(int, idVec3 *, idVec3 *);
-  virtual int GetEdgeFlags(int);
-  virtual int GetAreaFlags(int);
-  virtual bool ChangeAreaTravelFlags(const idBounds *, const int, int, bool);
-  virtual bool ChangeReachabilityTravelFlags(const char *, int, bool);
-  virtual bool ChangeReachabilityTravelFlags_2(idIndex<short,enum invalidReachability_t>, int, bool);
-  virtual int TravelTimeToGoalArea(int, const idVec3 *, int, const idVec3 *, int, const idAAS2TravelSpeeds *);
-  virtual bool RouteToGoalArea(int, const idVec3 *, int, const idVec3 *, int, int *, idIndex<short,enum invalidReachability_t> *);
-  virtual bool FindNearestGoal(idAAS2Goal *, int, const idVec3 *, int, idAAS2Callback *);
-  virtual bool WalkPathToGoal(idAAS2Path *, int, const idVec3 *, int, const idVec3 *, const int, const int);
-  virtual bool ExtendHopPathToGoal(idAAS2Path *, int, const idVec3 *, int, const idVec3 *, int, int, const idAAS2HopPathParms *);
-  virtual void ShowWalkPath(const int, const idVec3 *, const int, const idVec3 *, const int, const int, const int, const int, const int);
-  virtual void ShowHopPath(int, const idVec3 *, int, const idVec3 *, int, int, const idAAS2HopPathParms *);
-  virtual void DrawEdge(const int, const bool, const bool, const bool);
-  virtual void DrawReachability(const idIndex<short,enum invalidReachability_t>, const aas2Reachability_t *, const char *);
-  virtual void DrawArea(const int, const bool, const bool, const bool, const bool, const bool, const bool);
-  virtual float GetGroundSpeedMultiplier();
-  virtual bool GetOptimizedWalkPath(int, const idVec3 *, int, const idVec3 *, int, int, idList<idVec3,5> *);
-  virtual int GetNumAreas();
-  virtual const idPlane *GetPlane(const int);
-  virtual const aas2Area_t *GetArea(const int);
-  virtual const aas2Reachability_t *GetReachability(const idIndex<short,enum invalidReachability_t>);
-  virtual bool GetPath(const idVec3 *, const idVec3 *, const int, const int, const int, idAAS2PathPoint *, const int, int *);
-  virtual void ClipGridToAreas(const idVec3 *, int, int, int, int, unsigned __int8 *);
-  virtual int GetInvalidTravelFlags();
-  virtual int GetTraversalsForReachability(const idIndex<short,enum invalidReachability_t>, idList<int,5> *);
-  virtual int GetTraversalsForInteractableEntity(const idIndex<short,enum invalidAASInteractionEntIndex_t>, idList<int,5> *);
-  virtual int FindBestTraversalForReachability(const idIndex<short,enum invalidReachability_t>, const idVec3 *, const idVec3 *, idVec3 *, idVec3 *, idIndex<short,enum invalidAASDependencyIndex_t> *, const int, bool);
-  virtual const aas2Traversal_t *GetTraversal(const int);
-  virtual bool GetAASAnim(const idIndex<short,enum invalidAASAnimIndex_t>, const aas2AnimName_t **);
-  virtual idIndex<short,enum invalidAASAnimIndex_t> *GetAASAnimIndexByName(idIndex<short,enum invalidAASAnimIndex_t> *result, const char *);
-  virtual bool GetAASDependency(const idIndex<short,enum invalidAASDependencyIndex_t>, const aas2DependencyName_t **);
-  virtual idIndex<short,enum invalidAASDependencyIndex_t> *GetAASDependencyIndexByName(idIndex<short,enum invalidAASDependencyIndex_t> *result, const char *);
-  virtual bool GetAASInteractionEntity(const idIndex<short,enum invalidAASInteractionEntIndex_t>, const aas2InteractionEntityName_t **);
-  virtual idIndex<short,enum invalidAASInteractionEntIndex_t> *GetAASInteractionEntityIndexByName(idIndex<short,enum invalidAASInteractionEntIndex_t> *result, const char *);
-  virtual bool GetAASTraversalNameIndex(const idIndex<short,enum invalidAASTraversalNameIndex_t>, const aas2TraversalEntityName_t **);
-  virtual idIndex<short,enum invalidAASTraversalNameIndex_t> *GetAASTraversalNameIndexByName(idIndex<short,enum invalidAASTraversalNameIndex_t> *result, const char *);
-  virtual int GetAASTraversalIndexByNameIndex(const idIndex<short,enum invalidAASTraversalNameIndex_t>);
-  virtual bool SetTraversalFlag(int, int);
-  virtual bool ClearTraversalFlag(int, int);
-  virtual const unsigned __int8 *GetObstaclePVS(int);
-  virtual int GetObstaclePVSWallEdges(int, int, int *, int);
-  virtual int GetObstaclePVSClipModels(int, idClipModel **, int);
-  virtual void GetObstaclePVSObstacles(const int, const int, obstacleVertex_t *, int *, obstacleEdge_t *, int *, idClipModel **, int *, obstacleRoute_t *);
-  virtual void FreeClipLinks();
-  virtual idAASClipLink *LinkClipModel(idClipModel *);
-  virtual idAASClipLink *UnLinkClipModel(idAASClipLink *);
-  virtual int GetNumCoverPoints();
-  virtual const aas2Cover_t *GetCoverPoint(const int);
-  virtual int GetNumAreaCoverPoints(const int);
-  virtual int GetAreaCoverPoints(const int, int *, const int, int *);
-  virtual int FindCoverPoints(const int, const idVec3 *, const float, const int, const int, const int, int *, const int, int *);
-  virtual int GetNumChokePoints();
-  virtual const aas2ChokePoint_t *GetChokePoint(const int);
-  virtual int GetNumHintNodes();
-  virtual const aas2HintNode_t *GetHintNode(const int);
-  virtual bool GetAreaCells(const int, const int, int *, int *);
-  virtual bool WorldPosToCellPos(const int, const int, const idVec3 *, int *, int *);
-  virtual bool CellPosToWorldPos(const int, const int, const int, const int, idVec3 *, const bool);
-  virtual void DrawCoverPoint(const aas2Cover_t *, const int);
-  virtual int GetNumTrees();
-  virtual idIndex<int,enum invalidAASTree_t> *GetTree(idIndex<int,enum invalidAASTree_t> *result, int);
-  virtual idIndex<int,enum invalidAASTree_t> *GetTreeForFloorNormal(idIndex<int,enum invalidAASTree_t> *result, const idVec3 *);
-  virtual const idVec3 *GetFloorNormalForArea(int);
-  virtual const idVec3 *GetFloorNormalForTree(idIndex<int,enum invalidAASTree_t>);
-  virtual int GetNumAreasInTree(idIndex<int,enum invalidAASTree_t>);
+class idClip;
+class idClipModel;
+class idAASClipLink;
+struct usercmd_t;
+struct obstacleVertex_t;
+struct obstacleEdge_t;
 
+struct idAAS2NearestReachable {
+    int nearestDestArea;
+    idVec3 nearestDestPos;
+    int nearestTravelTime;
+    int quickestDestArea;
+    idVec3 quickestDestPos;
+    int quickestTravelTime;
 };
+
+struct idAAS2TravelSpeeds {
+    float defaultSpeed;
+    float swimSpeed;
+    float flySpeed;
+    float crouchSpeed;
+};
+
+struct idAAS2Goal {
+    int areaNum;
+    idVec3 origin;
+};
+
+struct idAAS2HopPathParms {
+    float maxDistance;
+    float maxHeight;
+    float minHeight;
+    float maxSlope;
+};
+
+struct idAAS2PathPoint {
+    int areaNum;
+    idVec3 origin;
+    idIndex<short, invalidReachability_t> nextReachIndex;
+    int travelTime;
+};
+
+struct idAAS2Path {
+    int type;
+    idVec3 moveGoal;
+    int moveAreaNum;
+    aas2EdgeCrossed_t firstEdge;
+    idIndex<short, invalidReachability_t> reachIndex;
+    int travelTime;
+    int traversalIndex;
+    idVec3 traversalStart;
+    idVec3 traversalEnd;
+    idIndex<short, invalidAASDependencyIndex_t> dependencyIndex;
+    idVec3 obstacleGoal;
+    int obstacleAreaNum;
+    float pathMaxHeight;
+    obstacleRoute_t obstacleRoute;
+
+    idAAS2Path()
+        : type(10), moveGoal(), moveAreaNum(0), firstEdge{}, reachIndex(),
+          travelTime(-1), traversalIndex(-1), traversalStart(), traversalEnd(),
+          dependencyIndex(), obstacleGoal(), obstacleAreaNum(0),
+          pathMaxHeight(0.0f), obstacleRoute() {
+    }
+};
+
+class idAAS2 {
+public:
+    virtual ~idAAS2();
+
+    static idAAS2* Alloc();
+
+    virtual bool IsDefault() const = 0;
+    virtual bool Init(const char* mapName, unsigned int mapFileCRC) = 0;
+    virtual void Stats() const = 0;
+    virtual void Test(const idVec3& origin, const idVec3& destination,
+        const idMat3& axis, int areaNum, int travelFlags, int contentMask,
+        int debugMode, int treeNum, idClip* clip, usercmd_t* command,
+        idAngles& viewAngles) = 0;
+    virtual const idAAS2Settings* GetSettings() const = 0;
+    virtual idBounds DefaultSearchBounds() const = 0;
+    virtual int PointAreaNum(idIndex<int, invalidAASTree_t> tree,
+        const idVec3& origin) const = 0;
+    virtual int PointReachableAreaNum(idIndex<int, invalidAASTree_t> tree,
+        const idVec3& origin, const idBounds& searchBounds, int areaFlags,
+        int excludeTravelFlags) const = 0;
+    virtual int BoundsReachableAreaNum(idIndex<int, invalidAASTree_t> tree,
+        const idBounds& bounds, int areaFlags, int excludeTravelFlags) const = 0;
+    virtual int BoundsReachableAreaNum(idIndex<int, invalidAASTree_t> tree,
+        const idVec3& origin, const idBounds& bounds, int areaFlags,
+        int excludeTravelFlags) const = 0;
+    virtual bool NearestPointReachable(idIndex<int, invalidAASTree_t> tree,
+        const idVec3& origin, int areaNum, const idVec3& destination,
+        const idBounds& searchBounds, int travelFlags,
+        idAAS2NearestReachable& nearest) const = 0;
+    virtual void PushPointIntoAreaNum(int areaNum, idVec3& origin) const = 0;
+    virtual idVec3 AreaCenter(int areaNum) const = 0;
+    virtual bool Trace(idIndex<int, invalidAASTree_t> tree, aas2Trace_t& trace,
+        const idVec3& start, const idVec3& end) const = 0;
+    virtual bool TraceHeight(idIndex<int, invalidAASTree_t> tree,
+        aas2TraceHeight_t& trace, const idVec3& start,
+        const idVec3& end) const = 0;
+    virtual bool TraceFloor(aas2TraceFloor_t& trace, const idVec3& start,
+        int startAreaNum, const idVec3& end, int travelFlags,
+        bool allowFloorNormalChange, bool ignoreGravityDirectionDistance,
+        bool ignoreSameArea) const = 0;
+    virtual void GetEdgeVertexNumbers(int edgeNum, int verts[2]) const = 0;
+    virtual void GetEdge(int edgeNum, idVec3& start, idVec3& end) const = 0;
+    virtual int GetEdgeFlags(int edgeNum) const = 0;
+    virtual int GetAreaFlags(int areaNum) const = 0;
+    virtual bool ChangeAreaTravelFlags(const idBounds& bounds, int treeNum,
+        int travelFlags, bool set) = 0;
+    virtual bool ChangeReachabilityTravelFlags(const char* name,
+        int travelFlags, bool set) = 0;
+    virtual bool ChangeReachabilityTravelFlags(
+        idIndex<short, invalidReachability_t> reachability,
+        int travelFlags, bool set) = 0;
+    virtual int TravelTimeToGoalArea(int areaNum, const idVec3& origin,
+        int goalAreaNum, const idVec3& goalOrigin, int travelFlags,
+        const idAAS2TravelSpeeds* speeds = nullptr) = 0;
+    virtual bool RouteToGoalArea(int areaNum, const idVec3& origin,
+        int goalAreaNum, const idVec3& goalOrigin, int travelFlags,
+        int& travelTime,
+        idIndex<short, invalidReachability_t>& reachability) = 0;
+    virtual bool FindNearestGoal(idAAS2Goal& goal, int areaNum,
+        const idVec3& origin, int travelFlags, idAAS2Callback& callback) = 0;
+    virtual bool WalkPathToGoal(idAAS2Path& path, int areaNum,
+        const idVec3& origin, int goalAreaNum, const idVec3& goalOrigin,
+        int travelFlags, int obstacleFlags) = 0;
+    virtual bool ExtendHopPathToGoal(idAAS2Path& path, int areaNum,
+        const idVec3& origin, int goalAreaNum, const idVec3& goalOrigin,
+        int travelFlags, int obstacleFlags,
+        const idAAS2HopPathParms& parms) = 0;
+    virtual void ShowWalkPath(int areaNum, const idVec3& origin,
+        int goalAreaNum, const idVec3& goalOrigin, int travelFlags,
+        int obstacleFlags, int contentMask, int debugFlags,
+        int treeNum) const = 0;
+    virtual void ShowHopPath(int areaNum, const idVec3& origin,
+        int goalAreaNum, const idVec3& goalOrigin, int travelFlags,
+        int obstacleFlags, const idAAS2HopPathParms& parms) const = 0;
+    virtual void DrawEdge(int edgeNum, bool arrow, bool text,
+        bool highlight) const = 0;
+    virtual void DrawReachability(
+        idIndex<short, invalidReachability_t> reachability,
+        const aas2Reachability_t& reach, const char* label) const = 0;
+    virtual void DrawArea(int areaNum, bool showNumbers, bool showEdges,
+        bool showReachabilities, bool showFloor, bool showBounds,
+        bool highlight) const = 0;
+    virtual float GetGroundSpeedMultiplier() const = 0;
+    virtual bool GetOptimizedWalkPath(int areaNum, const idVec3& origin,
+        int goalAreaNum, const idVec3& goalOrigin, int travelFlags,
+        int obstacleFlags, idList<idVec3, 5>& points) = 0;
+    virtual int GetNumAreas() const = 0;
+    virtual const idPlane* GetPlane(int index) const = 0;
+    virtual const aas2Area_t* GetArea(int areaNum) const = 0;
+    virtual const aas2Reachability_t* GetReachability(
+        idIndex<short, invalidReachability_t> reachability) const = 0;
+    virtual bool GetPath(const idVec3& origin, const idVec3& goalOrigin,
+        int areaNum, int goalAreaNum, int travelFlags,
+        idAAS2PathPoint* points, int maxPoints, int& numPoints) = 0;
+    virtual void ClipGridToAreas(const idVec3& startOrigin, int startAreaNum,
+        int travelFlags, unsigned int cellSize, int dimension,
+        std::uint8_t* reachable) const = 0;
+    virtual int GetInvalidTravelFlags() const = 0;
+    virtual int GetTraversalsForReachability(
+        idIndex<short, invalidReachability_t> reachability,
+        idList<int, 5>& traversals) const = 0;
+    virtual int GetTraversalsForInteractableEntity(
+        idIndex<short, invalidAASInteractionEntIndex_t> entity,
+        idList<int, 5>& traversals) const = 0;
+    virtual int FindBestTraversalForReachability(
+        idIndex<short, invalidReachability_t> reachability,
+        const idVec3& origin, const idVec3& goalOrigin,
+        idVec3& traversalStart, idVec3& traversalEnd,
+        idIndex<short, invalidAASDependencyIndex_t>& dependency,
+        int travelFlags, bool allowDisabled) const = 0;
+    virtual const aas2Traversal_t* GetTraversal(int traversalNum) const = 0;
+    virtual bool GetAASAnim(idIndex<short, invalidAASAnimIndex_t> index,
+        const aas2AnimName_t** name) const = 0;
+    virtual idIndex<short, invalidAASAnimIndex_t> GetAASAnimIndexByName(
+        const char* name) const = 0;
+    virtual bool GetAASDependency(
+        idIndex<short, invalidAASDependencyIndex_t> index,
+        const aas2DependencyName_t** name) const = 0;
+    virtual idIndex<short, invalidAASDependencyIndex_t>
+        GetAASDependencyIndexByName(const char* name) const = 0;
+    virtual bool GetAASInteractionEntity(
+        idIndex<short, invalidAASInteractionEntIndex_t> index,
+        const aas2InteractionEntityName_t** name) const = 0;
+    virtual idIndex<short, invalidAASInteractionEntIndex_t>
+        GetAASInteractionEntityIndexByName(const char* name) const = 0;
+    virtual bool GetAASTraversalNameIndex(
+        idIndex<short, invalidAASTraversalNameIndex_t> index,
+        const aas2TraversalEntityName_t** name) const = 0;
+    virtual idIndex<short, invalidAASTraversalNameIndex_t>
+        GetAASTraversalNameIndexByName(const char* name) const = 0;
+    virtual int GetAASTraversalIndexByNameIndex(
+        idIndex<short, invalidAASTraversalNameIndex_t> index) const = 0;
+    virtual bool SetTraversalFlag(int index, int flags) = 0;
+    virtual bool ClearTraversalFlag(int index, int flags) = 0;
+    virtual const std::uint8_t* GetObstaclePVS(int areaNum) = 0;
+    virtual int GetObstaclePVSWallEdges(int areaNum, int edgeFlags,
+        int* outputEdges, int maxEdges) const = 0;
+    virtual int GetObstaclePVSClipModels(int areaNum,
+        idClipModel** models, int maxModels) = 0;
+    virtual void GetObstaclePVSObstacles(int areaNum, int obstacleFlags,
+        obstacleVertex_t* vertices, int* numVertices,
+        obstacleEdge_t* edges, int* numEdges, idClipModel** models,
+        int* numModels, obstacleRoute_t* route) = 0;
+    virtual void FreeClipLinks() = 0;
+    virtual idAASClipLink* LinkClipModel(idClipModel* model) = 0;
+    virtual idAASClipLink* UnLinkClipModel(idAASClipLink* link) = 0;
+    virtual int GetNumCoverPoints() const = 0;
+    virtual const aas2Cover_t* GetCoverPoint(int index) const = 0;
+    virtual int GetNumAreaCoverPoints(int areaNum) const = 0;
+    virtual int GetAreaCoverPoints(int areaNum, int* points, int maxPoints,
+        int* flags) const = 0;
+    virtual int FindCoverPoints(int areaNum, const idVec3& origin,
+        float radius, int coverFlags, int excludeFlags, int maxPoints,
+        int* points, int team, int* areaFlags) const = 0;
+    virtual int GetNumChokePoints() const = 0;
+    virtual const aas2ChokePoint_t* GetChokePoint(int index) const = 0;
+    virtual int GetNumHintNodes() const = 0;
+    virtual const aas2HintNode_t* GetHintNode(int index) const = 0;
+    virtual bool GetAreaCells(int areaNum, int subdivisionSize,
+        int* xCells, int* yCells) const = 0;
+    virtual bool WorldPosToCellPos(int areaNum, int subdivisionSize,
+        const idVec3& worldPos, int* xCell, int* yCell) const = 0;
+    virtual bool CellPosToWorldPos(int areaNum, int subdivisionSize,
+        int xCell, int yCell, idVec3& worldPos, bool center) const = 0;
+    virtual void DrawCoverPoint(const aas2Cover_t& cover, int index) const = 0;
+    virtual int GetNumTrees() const = 0;
+    virtual idIndex<int, invalidAASTree_t> GetTree(int index) const = 0;
+    virtual idIndex<int, invalidAASTree_t> GetTreeForFloorNormal(
+        const idVec3& floorNormal) const = 0;
+    virtual const idVec3* GetFloorNormalForArea(int areaNum) const = 0;
+    virtual const idVec3* GetFloorNormalForTree(
+        idIndex<int, invalidAASTree_t> tree) const = 0;
+    virtual int GetNumAreasInTree(
+        idIndex<int, invalidAASTree_t> tree) const = 0;
+};
+
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(idAAS2NearestReachable) == 40,
+    "Recovered idAAS2NearestReachable ABI changed");
+static_assert(sizeof(idAAS2TravelSpeeds) == 16,
+    "Recovered idAAS2TravelSpeeds ABI changed");
+static_assert(sizeof(idAAS2Goal) == 16,
+    "Recovered idAAS2Goal ABI changed");
+static_assert(sizeof(idAAS2PathPoint) == 24,
+    "Recovered idAAS2PathPoint ABI changed");
+static_assert(sizeof(idAAS2HopPathParms) == 16,
+    "Recovered idAAS2HopPathParms ABI changed");
+static_assert(sizeof(idAAS2Path) == 436,
+    "Recovered idAAS2Path ABI changed");
+#endif

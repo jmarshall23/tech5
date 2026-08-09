@@ -8,8 +8,8 @@
 #include <cstdio>
 
 // Exact tungsten idStr storage layout (tungsten.exe.h type 12142). This is a
-// deliberately small ABI facade; more recovered text methods will be added as
-// text/str.cpp replaces the BFG baseline.
+// deliberately small ABI facade; more authoritative text methods will be
+// added as text/str.cpp is reconstructed.
 class idStr {
 public:
     idStr()
@@ -81,6 +81,29 @@ public:
         }
     }
 
+    // Recovered from shared/idlib/text/str.cpp. Resource names are lowercase,
+    // use forward slashes, and discard leading slashes except for UNC names.
+    void MakeNameCanonical() {
+        for (int index = 0; index < len; ++index) {
+            if (data[index] >= 'A' && data[index] <= 'Z') {
+                data[index] = static_cast<char>(data[index] + ('a' - 'A'));
+            } else if (data[index] == '\\') {
+                data[index] = '/';
+            }
+        }
+        if (!(len >= 2 && data[0] == '/' && data[1] == '/')) {
+            int leading = 0;
+            while (leading < len && data[leading] == '/') {
+                ++leading;
+            }
+            if (leading > 0) {
+                std::memmove(data, data + leading,
+                    static_cast<std::size_t>(len - leading + 1));
+                len -= leading;
+            }
+        }
+    }
+
     void Append(const char* text) {
         if (text == nullptr || *text == '\0') {
             return;
@@ -103,6 +126,30 @@ public:
 
     void Append(const idStr& text) {
         Append(text.c_str());
+    }
+
+    idStr& StripFileExtension() {
+        for (int index = len - 1; index >= 0; --index) {
+            const char value = data[index];
+            if (value == '\\' || value == '/') {
+                break;
+            }
+            if (value == '.') {
+                data[index] = '\0';
+                len = index;
+                break;
+            }
+        }
+        return *this;
+    }
+
+    idStr& SetFileExtension(const char* extension) {
+        StripFileExtension();
+        if (extension != nullptr && extension[0] != '.') {
+            Append('.');
+        }
+        Append(extension);
+        return *this;
     }
 
     void Format(const char* format, ...) {

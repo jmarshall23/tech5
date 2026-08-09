@@ -1,72 +1,107 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\animstack\animator_base.h
-// Recovered logical types: 4
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "gamelib/animstack/animstacktypes.h"
+#include "idlib/text/str.h"
+#include "idlib/typesafenumber.h"
 
+class idSerializer;
 
-// IDA Local Type ordinal 1357; PDB kind: enum.
-enum idAnimator_Base::priority_t : __int32
-{
-  PRIORITY_WEB = 0x0,
-  PRIORITY_AFTER_WEB = 0x1,
-  PRIORITY_IK = 0x63,
-  PRIORITY_AF = 0x64,
-};
+class idAnimatorParms_Base;
 
-// IDA Local Type ordinal 14224; PDB kind: class.
-class __declspec(align(4)) idAnimator_Base
-{
+class idAnimator_Base {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 14289.
-  virtual ~idAnimator_Base();
-  virtual idAnimator_Base::priority_t GetStackPriority();
-  virtual serializeType_t GetSerializeType();
-  virtual void SerializeSnapshot(idSerializer *);
-  virtual void PreBlendSnapshot(idAnimStack *, int, const int, float);
-  virtual void PreSerializeInit(idAnimStack *, idClip *, idGameTimeManager *);
-  virtual bool InternalInit(const idAnimatorParms_Base *);
-  virtual bool InternalPostInit(const idAnimatorParms_Base *);
-  virtual void InternalShutdown(idAnimStack *);
-  virtual void InternalPreBlendTree(const idAnimStack *, const int, const int);
-  virtual void InternalPostBlendTree(const idAnimStack *, const int);
-  virtual void InternalStart(const idAnimStack *, const int, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalEnd(const idAnimStack *, const int, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalBlend(const idAnimStack *, const int, const float, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual bool InternalIsContributing();
-  virtual const idMD6Branch *InternalGetMergeBranch();
-  virtual idMD6Branch *InternalGetMergeBranch_2();
-  virtual void InternalPause(const idAnimStack *, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void InternalUnpause(const idAnimStack *, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual const idMD6Branch *InternalGetEndBranch();
-  virtual idMD6Branch *InternalGetEndBranch_2();
+    enum priority_t : int {
+        PRIORITY_WEB = 0,
+        PRIORITY_AFTER_WEB = 1,
+        PRIORITY_IK = 99,
+        PRIORITY_AF = 100
+    };
 
-  idGameTimeManagerPtr gametimeManager;
-  md6WeightGroup_t weightGroup;
-  md6WeightGroup_t filterGroup;
-  idAnimator_Base::serializeProps_t serializeProps;
-  bool initialized;
+    struct serializeProps_t {
+        idMD6Branch* serializedTrees[2];
+        idAnimStack* animStack;
+        idClip* clip;
+        bool createdThroughSerialization;
+    };
+
+    idAnimator_Base();
+    virtual ~idAnimator_Base();
+
+    bool Init(idGameTimeManager* gameTimeManager,
+        const idAnimatorParms_Base& parameters);
+    void Shutdown(idAnimStack* stack);
+    bool IsInitialized(idAnimStack* stack) const;
+    bool IsEnabled(idAnimStack* stack) const;
+    void SetEnabled(idAnimStack* stack, bool enabled);
+    void Blend(const idAnimStack* stack, int currentTime, float targetAlpha,
+        int blendDurationMS, bool reset);
+    bool IsContributing() const;
+    md6WeightGroup_t GetFilterGroup() const;
+    float GetAlpha() const;
+    void SetAlpha(float alpha);
+    void Pause(const idAnimStack* stack,
+        idTypesafeNumber<int, gameTimeUnique_t> currentTime);
+    void Unpause(const idAnimStack* stack,
+        idTypesafeNumber<int, gameTimeUnique_t> currentTime);
+    void Start(const idAnimStack* stack, int currentTime,
+        int blendDurationMS, bool reset);
+    void End(const idAnimStack* stack, int currentTime,
+        int blendDurationMS, bool reset);
+
+    virtual priority_t GetStackPriority();
+    virtual serializeType_t GetSerializeType();
+    virtual void SerializeSnapshot(idSerializer* serializer);
+    virtual void PreBlendSnapshot(idAnimStack* stack, int currentTime,
+        int ticksPerSecond, float fraction);
+    virtual void PreSerializeInit(idAnimStack* stack, idClip* clip,
+        idGameTimeManager* gameTimeManager);
+    virtual bool InternalInit(const idAnimatorParms_Base& parameters);
+    virtual bool InternalPostInit(const idAnimatorParms_Base& parameters);
+    virtual void InternalShutdown(idAnimStack* stack);
+    virtual void InternalPreBlendTree(const idAnimStack* stack,
+        int currentTime, int ticksPerSecond);
+    virtual void InternalPostBlendTree(const idAnimStack* stack,
+        int currentTime);
+    virtual void InternalStart(const idAnimStack* stack, int currentTime,
+        idTypesafeNumber<int, gameTimeUnique_t> blendTime);
+    virtual void InternalEnd(const idAnimStack* stack, int currentTime,
+        idTypesafeNumber<int, gameTimeUnique_t> blendTime);
+    virtual void InternalBlend(const idAnimStack* stack, int currentTime,
+        float targetAlpha,
+        idTypesafeNumber<int, gameTimeUnique_t> blendTime);
+    virtual bool InternalIsContributing() const;
+    virtual const idMD6Branch* InternalGetMergeBranch() const;
+    virtual idMD6Branch* InternalGetMergeBranch();
+    virtual void InternalPause(const idAnimStack* stack,
+        idTypesafeNumber<int, gameTimeUnique_t> currentTime);
+    virtual void InternalUnpause(const idAnimStack* stack,
+        idTypesafeNumber<int, gameTimeUnique_t> currentTime);
+    virtual const idMD6Branch* InternalGetEndBranch() const;
+    virtual idMD6Branch* InternalGetEndBranch();
+
+    idGameTimeManagerPtr gametimeManager;
+    md6WeightGroup_t weightGroup;
+    md6WeightGroup_t filterGroup;
+    serializeProps_t serializeProps;
+    bool initialized;
 };
 
-// IDA Local Type ordinal 14288; PDB kind: class.
-class idAnimatorParms_Base
-{
+class idAnimatorParms_Base {
 public:
-  idAnimStack *animStack;
-  idStr name;
-  idMD6Blend::blendOp_t blendOp;
-  idMD6Blend::originBlend_t originBlend;
-  md6WeightGroup_t weightGroup;
-  md6WeightGroup_t filterGroup;
-  float alpha;
+    idAnimStack* animStack;
+    idStr name;
+    int blendOp;
+    int originBlend;
+    md6WeightGroup_t weightGroup;
+    md6WeightGroup_t filterGroup;
+    float alpha;
 };
 
-// IDA Local Type ordinal 14291; PDB kind: struct.
-struct __declspec(align(4)) idAnimator_Base::serializeProps_t
-{
-  idMD6Branch *serializedTrees[2];
-  idAnimStack *animStack;
-  idClip *clip;
-  bool createdThroughSerialization;
-};
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAnimator_Base::serializeProps_t) == 20,
+    "Recovered animator serialization properties ABI changed");
+static_assert(sizeof(idAnimator_Base) == 40,
+    "Recovered idAnimator_Base ABI changed");
+static_assert(sizeof(idAnimatorParms_Base) == 56,
+    "Recovered idAnimatorParms_Base ABI changed");
+#endif
