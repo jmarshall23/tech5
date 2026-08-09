@@ -1,13 +1,15 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\aas2file\aas2debugareamodelgenerator.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include <cstdint>
 
+class idAAS2DebugAreaModelData;
 
-// IDA Local Type ordinal 23855; PDB kind: class.
-class idAAS2DebugAreaModelGenerator
-{
+class idAAS2DebugAreaModelGenerator {
 public:
+    static bool WriteToBinary(const char* uniqueIdName, const char* fileName,
+        std::uint32_t sourceTimestamp,
+        const idAAS2DebugAreaModelData& data);
 };
+
+static_assert(sizeof(idAAS2DebugAreaModelGenerator) == 1,
+    "Recovered stateless AAS2 debug generator ABI changed");

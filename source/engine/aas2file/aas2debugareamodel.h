@@ -1,24 +1,27 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\aas2file\aas2debugareamodel.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "aas2file/aas2debugareamodeldata.h"
+#include "framework/resource.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 23519; PDB kind: class.
-class idAAS2DebugAreaModel : public idResource
-{
+class idAAS2DebugAreaModel : public idResource {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 23520.
-  virtual ~idAAS2DebugAreaModel();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
+    idAAS2DebugAreaModel();
+    ~idAAS2DebugAreaModel() override;
 
-  idAAS2DebugAreaModelData data;
-  unsigned int sourceTimestamp;
+    void LoadResource() override;
+    bool ReloadIfStale() override;
+    void WriteResourceFile() override;
+    idResourceList* GetResourceList() override;
+
+    static idResourceList resourceList;
+
+    idAAS2DebugAreaModelData data;
+    std::uint32_t sourceTimestamp;
 };
+
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(idAAS2DebugAreaModel) == 72,
+    "Recovered idAAS2DebugAreaModel ABI changed");
+#endif
