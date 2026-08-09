@@ -1,27 +1,39 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\zipline\jobs\ziplinegen.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/geometry/drawvert.h"
+#include "models/zipline/jobs/nonuniformbspline.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 18807; PDB kind: struct.
-struct zipLineGenParms_t
-{
-  const idNonUniformBSpline<idVec3> *controlSpline;
-  int splineTessellationDistance;
-  int splineMaxSubdivisions;
-  int cableSubdivisions;
-  float cableDiameter;
-  const sweptPoint_t *sweptPoints;
-  float time;
-  float fractionBeforeLerp;
-  bool downDirection;
-  int maxVertices;
-  int maxIndices;
-  idDrawVert *vertices;
-  unsigned __int16 *indices;
-  int *numVertices;
-  int *numIndices;
+struct sweptPoint_t {
+    idVec3 pos;
+    idVec3 tangent;
+    float s;
 };
+
+struct zipLineGenParms_t {
+    const idNonUniformBSpline<idVec3>* controlSpline;
+    int splineTessellationDistance;
+    int splineMaxSubdivisions;
+    int cableSubdivisions;
+    float cableDiameter;
+    const sweptPoint_t* sweptPoints;
+    float time;
+    float fractionBeforeLerp;
+    bool downDirection;
+    int maxVertices;
+    int maxIndices;
+    idDrawVert* vertices;
+    std::uint16_t* indices;
+    int* numVertices;
+    int* numIndices;
+};
+
+void GenZipline(const zipLineGenParms_t* parms);
+
+static_assert(sizeof(sweptPoint_t) == 28,
+    "Recovered swept-point ABI changed");
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(zipLineGenParms_t) == 60,
+    "Recovered zip-line generation parameters ABI changed");
+#endif

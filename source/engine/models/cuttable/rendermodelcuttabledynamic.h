@@ -1,34 +1,31 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\cuttable\rendermodelcuttabledynamic.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "models/rendermodel.h"
 
-
-// IDA Local Type ordinal 2773; PDB kind: unknown.
-enum idRenderModelCuttableDynamic::<unnamed_tag> : __int32
-{
-  MAX_VERTICES = 0x80,
-  MAX_INDICES = 0x180,
-};
-
-// IDA Local Type ordinal 17359; PDB kind: class.
-class idRenderModelCuttableDynamic : public idRenderModel
-{
+class idRenderModelCuttableDynamic : public idRenderModel {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 17360.
-  virtual void Save(idFile *);
-  virtual bool Load(idFile *);
-  virtual void SerializeSnapshot(idSerializer *, bool);
-  virtual const idDeclSkins *GetSkins();
-  virtual idHandle<int,enum invalidDecalHandle_t,-1> *AddDecalFromPoint(idHandle<int,enum invalidDecalHandle_t,-1> *result, const decalParams_t *, const int, const idVec3 *, const idVec3 *, idIndex<short,enum invalidJointIndex_t>);
-  virtual bool RemoveDecal(const idHandle<int,enum invalidDecalHandle_t,-1>);
-  virtual void RemoveDecals();
-  virtual void FreeSurfaces();
-  virtual bool CommitSubclass();
-  virtual bool UpdateInView(const idRenderView *, const idRenderView *, idRenderModelUpdateTools *);
-  virtual const idList<sourceSurface_t,5> *GetSourceSurfaces();
-  virtual ~idRenderModelCuttableDynamic();
+    enum { MAX_VERTICES = 0x80, MAX_INDICES = 0x180 };
 
+    using BufferUploadCallback = void (*)(idTriangles* geometry,
+        const idDrawVert* vertices, int numVertices,
+        const std::uint16_t* indices, int numIndices,
+        idVertexBuffer* stMap, const idVec2* textureCoordinates,
+        int numTextureCoordinates);
+
+    idRenderModelCuttableDynamic();
+    ~idRenderModelCuttableDynamic() override;
+
+    static void SetBufferUploadCallback(BufferUploadCallback callback);
+    bool IsValid() const;
+    void Upload(const idMaterial* renderMaterial,
+        const idMaterial* depthMaterial,
+        const idList<idDrawVert, 5>& vertices,
+        const idList<idVec2, 5>& st,
+        const idList<std::uint16_t, 5>& indices);
+
+private:
+    void UploadRenderGeometry(const idMaterial* material,
+        const idList<idDrawVert, 5>& vertices,
+        const idList<std::uint16_t, 5>& indices);
+    static BufferUploadCallback bufferUploadCallback;
 };

@@ -1,33 +1,23 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\detail\decldetail.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decl.h"
+#include "idlib/math/vector.h"
 
-
-// IDA Local Type ordinal 13618; PDB kind: class.
-class idDeclDetail : public idDecl
-{
+class idDeclDetail : public idDecl {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 13619.
-  virtual ~idDeclDetail();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    idDeclDetail();
 
-  idAtomicString modelName;
-  idVec3 colorVariance;
+    idDeclInfo* GetDeclInfo() const override;
+    const char* DefaultDefinition() const override;
+    void Parse(idParser* parser) override;
+
+    idAtomicString modelName;
+    idVec3 colorVariance;
+
+    static idDeclInfoTemplate<idDeclDetail> resourceList;
 };
+
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(idDeclDetail) == 72,
+    "Recovered detail declaration ABI changed");
+#endif

@@ -1,83 +1,89 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\skeletalanimation\treeanimator.h
-// Recovered logical types: 4
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/array.h"
+#include "idlib/geometry/jointtransform.h"
+#include "models/rendermodel.h"
+#include "models/skeletalanimation/jobs/md6blend.h"
+#include "models/skeletalanimation/userchannelexpression.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 1527; PDB kind: unknown.
-enum idTreeAnimator::<unnamed_tag> : __int32
-{
-  JOINTS_GAME_REFERENCE = 0x0,
-  JOINTS_GAME_FINAL = 0x1,
-  JOINTS_DEFERRED_REFERENCE = 0x2,
-  JOINTS_DEFERRED_FINAL = 0x3,
-  NUM_JOINT_ARRAYS = 0x4,
-};
+class idDeclMD6;
 
-// IDA Local Type ordinal 14058; PDB kind: struct.
-struct idTreeAnimator::morphMap_t
-{
-  unsigned __int8 *map;
-  idArray<idVertexBuffer *,2> buffers;
-};
-
-// IDA Local Type ordinal 14066; PDB kind: class.
-class idTreeAnimator : public idRenderModel
-{
+class idTreeAnimator : public idRenderModel {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 14067.
-  virtual void Save(idFile *);
-  virtual bool Load(idFile *);
-  virtual void SerializeSnapshot(idSerializer *, bool);
-  virtual const idDeclSkins *GetSkins();
-  virtual idHandle<int,enum invalidDecalHandle_t,-1> *AddDecalFromPoint(idHandle<int,enum invalidDecalHandle_t,-1> *result, const decalParams_t *, const int, const idVec3 *, const idVec3 *, idIndex<short,enum invalidJointIndex_t>);
-  virtual bool RemoveDecal(const idHandle<int,enum invalidDecalHandle_t,-1>);
-  virtual void RemoveDecals();
-  virtual void FreeSurfaces();
-  virtual bool CommitSubclass();
-  virtual bool UpdateInView(const idRenderView *, const idRenderView *, idRenderModelUpdateTools *);
-  virtual const idList<sourceSurface_t,5> *GetSourceSurfaces();
-  virtual ~idTreeAnimator();
+    enum jointArray_t : int {
+        JOINTS_GAME_REFERENCE = 0,
+        JOINTS_GAME_FINAL,
+        JOINTS_DEFERRED_REFERENCE,
+        JOINTS_DEFERRED_FINAL,
+        NUM_JOINT_ARRAYS
+    };
 
-  const idDeclMD6 *decl;
-  idList<bool,17> meshVisibility;
-  __int16 morphSkin;
-  idIndex<short,enum invalidJointIndex_t> skipJointForBounds;
-  float initialMorphValue;
-  int currentDeferred;
-  md6AnimCommand_t *commands;
-  idList<idMD6Blend::jointMod_t,17> jointMods[2];
-  idMD6Blend::blendParms_t *blendParms;
-  idJointMat *joints[4];
-  idList<float,17> userChannels[2];
-  md6OriginDelta_t *originDelta[2];
-  int lastBlendTime;
-  unsigned __int8 : 1;
-  __int8 useDualQuatSkinning : 1;
-  __int8 skipSerialization : 1;
-  __int8 updateMorphBuffers : 1;
-  __int8 calcRefBoundsFromJoints : 1;
-  __int8 originDeltaLookAhead : 1;
-  __int8 clearOriginTransform : 1;
-  __int8 hasDeferredJoints : 1;
-  idBounds frameBounds;
-  idBounds normalizedBounds;
-  idBounds translatedBounds;
-  idArray<idJointBuffer,4> jointBuffers;
-  idList<float,5> userChannelBuffers[4];
-  int deferredJobJointBuffer;
-  int nextRenderThreadJointBuffer;
-  int renderThreadJointBuffer;
-  idList<idTreeAnimator::morphMap_t,16> morphMaps;
-  int currentMorphBuffer;
-  idList<idUserChannelExpression,5> wrinkleMapExpressions;
+    struct morphMap_t {
+        std::uint8_t* map;
+        idArray<idVertexBuffer*, 2> buffers;
+    };
+
+    struct meshHandle_t {
+        idList<int, 5> indices;
+        idStr name;
+    };
+
+    using UpdateCallback = bool (*)(idTreeAnimator* animator,
+        const idRenderView* currentView, const idRenderView* nextView,
+        idRenderModelUpdateTools* tools);
+    using CommitCallback = bool (*)(idTreeAnimator* animator);
+
+    explicit idTreeAnimator(const idDeclMD6* declaration = nullptr);
+    ~idTreeAnimator() override;
+
+    static void SetUpdateCallback(UpdateCallback callback);
+    static void SetCommitCallback(CommitCallback callback);
+    bool CommitSubclass() override;
+    bool UpdateInView(const idRenderView* currentView,
+        const idRenderView* nextView,
+        idRenderModelUpdateTools* tools) override;
+
+    const idDeclMD6* decl;
+    idList<bool, 17> meshVisibility;
+    std::int16_t morphSkin;
+    idIndex<short, invalidJointIndex_t> skipJointForBounds;
+    float initialMorphValue;
+    int currentDeferred;
+    md6AnimCommand_t* commands;
+    idList<idMD6Blend::jointMod_t, 17> jointMods[2];
+    idMD6Blend::blendParms_t* blendParms;
+    idJointMat* joints[NUM_JOINT_ARRAYS];
+    idList<float, 17> userChannels[2];
+    md6OriginDelta_t* originDelta[2];
+    int lastBlendTime;
+    std::uint8_t reserved : 1;
+    std::uint8_t useDualQuatSkinning : 1;
+    std::uint8_t skipSerialization : 1;
+    std::uint8_t updateMorphBuffers : 1;
+    std::uint8_t calcRefBoundsFromJoints : 1;
+    std::uint8_t originDeltaLookAhead : 1;
+    std::uint8_t clearOriginTransform : 1;
+    std::uint8_t hasDeferredJoints : 1;
+    idBounds frameBounds;
+    idBounds normalizedBounds;
+    idBounds translatedBounds;
+    idArray<idJointBuffer, NUM_JOINT_ARRAYS> jointBuffers;
+    idList<float, 5> userChannelBuffers[NUM_JOINT_ARRAYS];
+    int deferredJobJointBuffer;
+    int nextRenderThreadJointBuffer;
+    int renderThreadJointBuffer;
+    idList<morphMap_t, 16> morphMaps;
+    int currentMorphBuffer;
+    idList<idUserChannelExpression, 5> wrinkleMapExpressions;
+
+private:
+    static UpdateCallback updateCallback;
+    static CommitCallback commitCallback;
 };
 
-// IDA Local Type ordinal 21901; PDB kind: struct.
-struct idTreeAnimator::meshHandle_t
-{
-  idList<int,5> indices;
-  idStr name;
-};
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(idTreeAnimator::morphMap_t) == 12,
+    "Recovered tree-animator morph-map ABI changed");
+#endif

@@ -1,30 +1,56 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\cuttable\rendermodelcuttableresource.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "framework/resource.h"
+#include "models/cuttable/triangleinterpolator.h"
+#include "models/rendermodel.h"
 
-
-// IDA Local Type ordinal 15902; PDB kind: class.
-class __declspec(align(16)) idRenderModelCuttableResource : public idResource
-{
+class alignas(16) idRenderModelCuttableResource : public idResource {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15903.
-  virtual ~idRenderModelCuttableResource();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
+    using OpenBinaryCallback = idFile* (*)(const char* resourceName,
+        unsigned int& timestamp);
+    using CloseBinaryCallback = void (*)(idFile* file);
+    using TimestampCallback = unsigned int (*)(const char* resourceName);
+    using MaterialResolver = const idMaterial* (*)(const char* name);
+    using BufferUploadCallback = void (*)(idTriangles* triangles,
+        idVertexBuffer*& stMap, const idVec2* stData);
+    using BufferReleaseCallback = void (*)(idTriangles* triangles,
+        idVertexBuffer* stMap);
+    using DepthMaterialCallback = const idMaterial* (*)(
+        const idRenderModelCuttableResource* resource);
 
-  const idMaterial *sourceMaterial;
-  const idMaterial *material;
-  idTriangles *triangles;
-  idVec2 *stData;
-  idVertexBuffer *stMap;
-  idList<idVec3,5> contourBound;
-  idTriangleInterpolator triangleInterpolator;
-  unsigned int timestamp;
+    idRenderModelCuttableResource();
+    ~idRenderModelCuttableResource() override;
+
+    static void SetFileCallbacks(OpenBinaryCallback open,
+        CloseBinaryCallback close, TimestampCallback timestamp);
+    static void SetMaterialResolver(MaterialResolver resolver);
+    static void SetBufferCallbacks(BufferUploadCallback upload,
+        BufferReleaseCallback release);
+    static void SetDepthMaterialCallback(DepthMaterialCallback callback);
+
+    void LoadResource() override;
+    bool ReloadIfStale() override;
+    bool LoadBinary(idFile* file, unsigned int fileTimestamp = 0);
+    void BuildSurface(idRenderModel* model);
+    void FreeCPUData();
+    void FreeData();
+
+    const idMaterial* sourceMaterial;
+    const idMaterial* material;
+    idTriangles* triangles;
+    idVec2* stData;
+    idVertexBuffer* stMap;
+    idList<idVec3, 5> contourBound;
+    idTriangleInterpolator triangleInterpolator;
+    unsigned int timestamp;
+
+private:
+    void BuildDepthSurface(idRenderModelSurface* surface);
+    static OpenBinaryCallback openBinaryCallback;
+    static CloseBinaryCallback closeBinaryCallback;
+    static TimestampCallback timestampCallback;
+    static MaterialResolver materialResolver;
+    static BufferUploadCallback bufferUploadCallback;
+    static BufferReleaseCallback bufferReleaseCallback;
+    static DepthMaterialCallback depthMaterialCallback;
 };

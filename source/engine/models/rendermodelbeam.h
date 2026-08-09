@@ -1,33 +1,66 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\rendermodelbeam.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "models/rendermodel.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 14027; PDB kind: class.
-class __declspec(align(8)) idRenderModelBeam : public idRenderModel
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14028.
-  virtual void Save(idFile *);
-  virtual bool Load(idFile *);
-  virtual void SerializeSnapshot(idSerializer *, bool);
-  virtual const idDeclSkins *GetSkins();
-  virtual idHandle<int,enum invalidDecalHandle_t,-1> *AddDecalFromPoint(idHandle<int,enum invalidDecalHandle_t,-1> *result, const decalParams_t *, const int, const idVec3 *, const idVec3 *, idIndex<short,enum invalidJointIndex_t>);
-  virtual bool RemoveDecal(const idHandle<int,enum invalidDecalHandle_t,-1>);
-  virtual void RemoveDecals();
-  virtual void FreeSurfaces();
-  virtual bool CommitSubclass();
-  virtual bool UpdateInView(const idRenderView *, const idRenderView *, idRenderModelUpdateTools *);
-  virtual const idList<sourceSurface_t,5> *GetSourceSurfaces();
-  virtual ~idRenderModelBeam();
-
-  idStaticList<beam_t,64> beamBuffer[2];
-  int beamRenderBufferIndex;
-  idTriangles *triangles;
-  idVertexBuffer vertexBuffer[2];
-  idIndexBuffer indexBuffer;
-  bool usesPreAllocatedBuffer;
+enum beamOrientType_t : int {
+    BEAM_ORIENT_VIEWER = 0,
+    BEAM_ORIENT_EXPLICIT,
+    BEAM_ORIENT_EXPLICIT_BOTH_EDGES
 };
+
+struct beamNodeParms_t {
+    idVec3 startPos;
+    idVec3 endPos;
+    idVec3 startPos2;
+    idVec3 endPos2;
+    idVec3 orientVec;
+    idVec2 sMinMax;
+    idVec2 tMinMax;
+    float halfWidth;
+    std::uint8_t color[4];
+    std::uint8_t tangent[4][4];
+};
+
+struct beam_t {
+    idStaticList<beamNodeParms_t, 128> nodes;
+    const idMaterial* material;
+    beamOrientType_t orientType;
+};
+
+class alignas(16) idRenderModelBeam : public idRenderModel {
+public:
+    using UpdateCallback = bool (*)(idRenderModelBeam* model,
+        const idRenderView* currentView, const idRenderView* nextView,
+        idRenderModelUpdateTools* tools);
+
+    idRenderModelBeam();
+    ~idRenderModelBeam() override;
+    static void Init();
+    static void Shutdown();
+    static void SetUpdateCallback(UpdateCallback callback);
+    bool UpdateInView(const idRenderView* currentView,
+        const idRenderView* nextView,
+        idRenderModelUpdateTools* tools) override;
+    bool CommitSubclass() override;
+    void Update(int currentTime);
+    beam_t* DrawBeamAlloc();
+    void DrawBeam(beamNodeParms_t& node, const idMaterial* material,
+        beamOrientType_t orientType);
+    void DrawBeam(const beamNodeParms_t* nodes, int numNodes,
+        const idMaterial* material, beamOrientType_t orientType);
+
+    idStaticList<beam_t, 64> beamBuffer[2];
+    int beamRenderBufferIndex;
+    idTriangles* triangles;
+    idVertexBuffer vertexBuffer[2];
+    idIndexBuffer indexBuffer;
+    bool usesPreAllocatedBuffer;
+
+private:
+    static UpdateCallback updateCallback;
+};
+
+static_assert(sizeof(beamNodeParms_t) == 100,
+    "Recovered beam-node parameters ABI changed");

@@ -1,47 +1,54 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\foliage\declfoliage.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decl.h"
+#include "idlib/containers/list.h"
+#include "idlib/math/vector.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 13596; PDB kind: class.
-class __declspec(align(4)) idDeclFoliage : public idDecl
-{
+class idMaterial;
+
+enum foliageShape_t : int {
+    FOLIAGE_SHAPE_AUTOSPRITES = 0,
+    FOLIAGE_SHAPE_DOUBLES,
+    FOLIAGE_SHAPE_TRIPLES,
+    FOLIAGE_SHAPE_FIXEDSPRITES,
+    FOLIAGE_SHAPE_NUM
+};
+
+class alignas(4) idDeclFoliage : public idDecl {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 13597.
-  virtual ~idDeclFoliage();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    using MaterialResolver = const idMaterial* (*)(const char* name,
+        bool makeDefault);
 
-  unsigned __int16 quadWidth;
-  unsigned __int16 quadHeight;
-  float widthVariance;
-  float heightVariance;
-  idVec3 colorVariance;
-  bool rndFlipHoriz;
-  float swayMagnitude;
-  const idMaterial *material;
-  unsigned int shape;
-  idList<idMaterial const *,5> stampMaterials;
-  float stampScale;
-  float stampParms[4];
-  float stampCovers[4];
-  idAtomicString stampBlendMode;
-  bool isReferenceType;
-  bool isSinglePlacement;
+    idDeclFoliage();
+
+    idDeclInfo* GetDeclInfo() const override;
+    const char* DefaultDefinition() const override;
+    void Parse(idParser* parser) override;
+    void Clear();
+
+    static void SetMaterialResolver(MaterialResolver resolver);
+
+    std::uint16_t quadWidth;
+    std::uint16_t quadHeight;
+    float widthVariance;
+    float heightVariance;
+    idVec3 colorVariance;
+    bool rndFlipHoriz;
+    float swayMagnitude;
+    const idMaterial* material;
+    unsigned int shape;
+    idList<const idMaterial*, 5> stampMaterials;
+    float stampScale;
+    float stampParms[4];
+    float stampCovers[4];
+    idAtomicString stampBlendMode;
+    bool isReferenceType;
+    bool isSinglePlacement;
+
+    static idDeclInfoTemplate<idDeclFoliage> resourceList;
+
+private:
+    static MaterialResolver materialResolver;
 };

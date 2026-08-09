@@ -7,6 +7,7 @@
 #include "models/particles/jobs/particlestage.h"
 
 class idFile;
+class idSphere;
 
 class idDeclParticle : public idDecl {
 public:

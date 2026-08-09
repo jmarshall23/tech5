@@ -1,30 +1,43 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\skeletalanimation\userchannelexpression.h
-// Recovered logical types: 3
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/runtimeexpression.h"
 
+class idDeclMD6;
 
-// IDA Local Type ordinal 14060; PDB kind: class.
-class idUserChannelExpression::VarId
-{
+class idUserChannelExpression {
 public:
-  int index;
+    class VarId {
+    public:
+        VarId() : index(-1) {}
+        int index;
+    };
+
+    class VarContext {
+    public:
+        bool LookUpVar(const char* name, VarId& result) const;
+        float GetVar(const VarId& variable) const;
+
+        const idDeclMD6* decl;
+        const float* channels;
+        int numChannels;
+    };
+
+    using LookupCallback = bool (*)(const idDeclMD6* declaration,
+        const char* name, int& channelIndex);
+
+    static void SetLookupCallback(LookupCallback callback);
+
+    bool Parse(const char* expression, const idDeclMD6* declaration);
+    float Eval(const float* userChannels, int channelCount) const;
+    void Clear() { expr.Clear(); }
+
+    idRuntimeExpression<VarId, VarContext> expr;
+
+private:
+    static LookupCallback lookupCallback;
 };
 
-// IDA Local Type ordinal 14064; PDB kind: class.
-class idUserChannelExpression
-{
-public:
-  idRuntimeExpression<idUserChannelExpression::VarId,idUserChannelExpression::VarContext> expr;
-};
-
-// IDA Local Type ordinal 21634; PDB kind: class.
-class idUserChannelExpression::VarContext
-{
-public:
-  const idDeclMD6 *decl;
-  const float *channels;
-  int numChannels;
-};
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(idUserChannelExpression) == 20,
+    "Recovered user-channel expression ABI changed");
+#endif

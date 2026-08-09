@@ -18,6 +18,7 @@ public:
     ~idMD6BlockAlloc() override;
     idMD6Node* Alloc(idMD6Node::nodeType_t type) override;
     void Free(idMD6Node* node) override;
+    void DeferredFree();
     void Condense() override;
     unsigned int Size() override;
     int NumNodes() override;

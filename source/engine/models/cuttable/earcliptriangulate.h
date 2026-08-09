@@ -1,73 +1,100 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\cuttable\earcliptriangulate.h
-// Recovered logical types: 6
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "models/cuttable/contourinfo.h"
 
+#include "idlib/containers/hashindex.h"
+#include "idlib/containers/list.h"
+#include "idlib/math/vector.h"
+#include "idlib/math/vectori.h"
 
-// IDA Local Type ordinal 19982; PDB kind: unknown.
-union idEarClipTriangulate::Vertex_t::<unnamed_type_prevShared>
-{
-  __int16 convex;
-  __int16 reflex;
-  __int16 value;
-};
+#include <cstdint>
 
-// IDA Local Type ordinal 19983; PDB kind: unknown.
-union idEarClipTriangulate::Vertex_t::<unnamed_type_nextShared>
-{
-  __int16 convex;
-  __int16 reflex;
-  __int16 value;
-};
-
-// IDA Local Type ordinal 19984; PDB kind: struct.
-struct idEarClipTriangulate::Vertex_t
-{
-  __int16 index;
-  __int16 prevVertex;
-  __int16 nextVertex;
-  __int16 prevEar;
-  __int16 nextEar;
-  idEarClipTriangulate::Vertex_t::<unnamed_type_prevShared> prevShared;
-  idEarClipTriangulate::Vertex_t::<unnamed_type_nextShared> nextShared;
-  __int16 __free : 14;
-  __int16 isEar : 1;
-  __int16 isConvex : 1;
-};
-
-// IDA Local Type ordinal 19987; PDB kind: struct.
-struct __declspec(align(4)) idEarClipTriangulate::Contour_t
-{
-  idList<short,5> indices;
-  float valueMax;
-  __int16 indexMax;
-};
-
-// IDA Local Type ordinal 19989; PDB kind: class.
-class idEarClipTriangulate::IndexMap
-{
+class idEarClipTriangulate {
 public:
-  idHashIndex hashIndex;
-  idList<short,5> indices;
+    struct Vertex_t {
+        std::int16_t index;
+        std::int16_t prevVertex;
+        std::int16_t nextVertex;
+        std::int16_t prevEar;
+        std::int16_t nextEar;
+        union SharedIndex {
+            std::int16_t convex;
+            std::int16_t reflex;
+            std::int16_t value;
+        } prevShared;
+        SharedIndex nextShared;
+        std::uint16_t freeBits : 14;
+        std::uint16_t isEar : 1;
+        std::uint16_t isConvex : 1;
+    };
+
+    struct alignas(4) Contour_t {
+        idList<std::int16_t, 5> indices;
+        float valueMax;
+        std::int16_t indexMax;
+
+        Contour_t() : indices(), valueMax(0.0f), indexMax(-1) {}
+    };
+
+    class IndexMap {
+    public:
+        idHashIndex hashIndex;
+        idList<std::int16_t, 5> indices;
+    };
+
+    idEarClipTriangulate();
+    ~idEarClipTriangulate();
+
+    void SetOuterFromPoints(const idList<idVec2, 5>& points);
+    void SetOuterFromPoints(const idList<idVec2i, 5>& points);
+    void SetOuterFromContour(const Contour* contour);
+    void AddInnerFromPoints(const idList<idVec2, 5>& points);
+    void AddInnerFromPoints(const idList<idVec2i, 5>& points);
+    void AddInnerFromContour(const Contour* contour);
+    void Triangulate();
+    void BuildGeometry(const idVec3& normal, idList<idVec2, 5>& outputPositions,
+        idList<std::uint16_t, 5>& outputIndices) const;
+
+    static bool IsClockwise(const idList<idVec2, 5>& points);
+
+    idList<idVec2, 5> positions;
+    idList<Vertex_t, 5> vertices;
+    idList<Contour_t*, 5> contours;
+    idList<std::int16_t, 5> indices;
+    idList<std::int16_t, 5> triangles;
+    IndexMap indexMap;
+    int headConvex;
+    int tailConvex;
+    int headReflex;
+    int tailReflex;
+    int headEar;
+    int tailEar;
+    int maxIndex;
+
+private:
+    void ClearContours();
+    void SetContour(const idList<idVec2, 5>& points, bool outer);
+    void Process();
+    void RemapIndices();
+    void RemoveZeroAreas();
+    void CreateVertices();
+    void CreateSimplePolygon();
+    void CombineContours(const Contour_t* contour,
+        const idList<std::int16_t, 5>& source,
+        idList<std::int16_t, 5>& destination);
+    void RemoveReflex(int index);
+    bool UpdateEar(int vertexIndex);
+    int TriangleQuery(const idVec2& point, const idVec2& v0,
+        const idVec2& v1, const idVec2& v2) const;
+    static int LineTest(const idVec2& point, const idVec2& v0,
+        const idVec2& v1);
 };
 
-// IDA Local Type ordinal 19990; PDB kind: class.
-class idEarClipTriangulate
-{
-public:
-  idList<idVec2,5> positions;
-  idList<idEarClipTriangulate::Vertex_t,5> vertices;
-  idList<idEarClipTriangulate::Contour_t *,5> contours;
-  idList<short,5> indices;
-  idList<short,5> triangles;
-  idEarClipTriangulate::IndexMap indexMap;
-  int headConvex;
-  int tailConvex;
-  int headReflex;
-  int tailReflex;
-  int headEar;
-  int tailEar;
-  int maxIndex;
-};
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(idEarClipTriangulate::Vertex_t) == 16,
+    "Recovered ear-clip vertex ABI changed");
+static_assert(sizeof(idEarClipTriangulate::Contour_t) == 24,
+    "Recovered ear-clip contour ABI changed");
+static_assert(sizeof(idEarClipTriangulate) == 156,
+    "Recovered idEarClipTriangulate ABI changed");
+#endif

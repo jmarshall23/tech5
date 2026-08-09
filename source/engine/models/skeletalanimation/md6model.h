@@ -1,77 +1,88 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\skeletalanimation\md6model.h
-// Recovered logical types: 5
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "framework/resource.h"
+#include "framework/resourcelist.h"
+#include "models/rendermodel.h"
+#include "models/skeletalanimation/md6mesh.h"
+#include "models/skeletalanimation/md6skel.h"
 
+class idMD6Anim;
 
-// IDA Local Type ordinal 2180; PDB kind: enum.
-enum idMD6Node::nodeType_t : __int32
-{
-  NODE_BRANCH = 0x0,
-  NODE_LEAF_PAUSE = 0x1,
-  NODE_LEAF_PLAY = 0x2,
-  NODE_BLEND_BRANCH = 0x3,
-  NODE_BLENDA_BRANCH = 0x4,
-  NODE_FUSION_BRANCH = 0x5,
-  NODE_BEST_LEAF = 0x6,
-  NODE_TAG_FILTER = 0x7,
-  NODE_NONE = 0xFF,
-};
-
-// IDA Local Type ordinal 13362; PDB kind: class.
-class idMD6Model : public idResource
-{
+class idMD6Model : public idResource {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 13363.
-  virtual ~idMD6Model();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
+    using SkeletonResolver = const idMD6Skel* (*)(const char* name);
+    using SkeletonNameCallback = const char* (*)(const idMD6Skel* skeleton);
+    using MaterialResolver = const idMaterial* (*)(const char* name);
+    using MaterialNameCallback = const char* (*)(const idMaterial* material);
+    using ChecksumCallback = unsigned int (*)(const void* declaration);
+    using SourceSurfaceRemapCallback = void (*)(idMD6Model* model);
+    using GenerateCallback = bool (*)(idMD6Model* model,
+        const char* sourceFileName);
+    using UserChannelNameCallback = const char* (*)(
+        md6UserChannelHandle_t handle);
 
-  idStr filename;
-  unsigned int timestamp;
-  unsigned int skelTimestamp;
-  idBounds defaultBounds;
-  bool remapForSkinning;
-  unsigned int skinChecksum;
-  idStr morphSkinName;
-  int morphSkin;
-  int numMeshesBeforeSplitting;
-  idList<idMD6Mesh *,19> meshes;
-  idList<unsigned char,19> jointRemap;
-  idList<sourceSurface_t,5> sourceSurfaces;
-  idList<idMaterial const *,5> materials;
-  const idMD6Skel *skeleton;
-  idVec3 minBoundsExpansion;
-  idVec3 maxBoundsExpansion;
+    idMD6Model();
+    ~idMD6Model() override;
+
+    void LoadResource() override;
+    bool ReloadIfStale() override;
+    void WriteResourceFile() override;
+    idResourceList* GetResourceList() override;
+    void Print() override;
+    void PrintDetailed() const;
+    void List() override;
+
+    bool GetJointsForAnimFrame(idJointMat* joints, const idMD6Anim* animation,
+        int frame, const idVec3& offset, bool removeOriginOffset) const;
+    bool GetJointsForAnimTime(idJointMat* joints, const idMD6Anim* animation,
+        int timeMS, const idVec3& offset, bool removeOriginOffset) const;
+    bool GetUserChannelsForAnimFrame(float* channels,
+        unsigned int channelsSize, const idMD6Anim* animation,
+        float frame) const;
+    const char* GetUserChannelName(md6UserChannelIndex_t index) const;
+
+    bool LoadBinary(const char* fileName, bool explicitFile = false);
+    bool WriteBinary(const char* fileName) const;
+    bool LoadFileNoRemap(const char* fileName);
+    void RemapSourceSurfaces();
+    void FreeData();
+    unsigned int Memory() const;
+    bool Equals(const idMD6Model& other) const;
+
+    static void SetResourceCallbacks(SkeletonResolver skeletonResolver,
+        SkeletonNameCallback skeletonName, MaterialResolver materialResolver,
+        MaterialNameCallback materialName, ChecksumCallback checksum,
+        SourceSurfaceRemapCallback remap, GenerateCallback generator,
+        UserChannelNameCallback userChannelName);
+
+    idStr filename;
+    unsigned int timestamp;
+    unsigned int skelTimestamp;
+    idBounds defaultBounds;
+    bool remapForSkinning;
+    unsigned int skinChecksum;
+    idStr morphSkinName;
+    int morphSkin;
+    int numMeshesBeforeSplitting;
+    idList<idMD6Mesh*, 19> meshes;
+    idList<unsigned char, 19> jointRemap;
+    idList<sourceSurface_t, 5> sourceSurfaces;
+    idList<const idMaterial*, 5> materials;
+    const idMD6Skel* skeleton;
+    idVec3 minBoundsExpansion;
+    idVec3 maxBoundsExpansion;
+
+    static idTypedResourceList<idMD6Model> resourceList;
+
+private:
+    static SkeletonResolver skeletonResolverCallback;
+    static SkeletonNameCallback skeletonNameCallback;
+    static MaterialResolver materialResolverCallback;
+    static MaterialNameCallback materialNameCallback;
+    static ChecksumCallback checksumCallback;
+    static SourceSurfaceRemapCallback sourceSurfaceRemapCallback;
+    static GenerateCallback generateCallback;
+    static UserChannelNameCallback userChannelNameCallback;
 };
 
-// IDA Local Type ordinal 13595; PDB kind: struct.
-struct fm_model_t
-{
-  int numTreeNodes;
-  int numSubTrees;
-  fm_treeNode_t *treeNodes;
-  fm_subTree_t *subTrees;
-};
-
-// IDA Local Type ordinal 13617; PDB kind: struct.
-struct dm_model_t
-{
-  int numTreeNodes;
-  int numSubTrees;
-  dm_treeNode_t *treeNodes;
-  dm_subTree_t *subTrees;
-};
-
-// IDA Local Type ordinal 14228; PDB kind: class.
-class idMD6Node
-{
-public:
-  unsigned __int8 type;
-};
+bool TrianglesAreEqual(const idTriangles& first, const idTriangles& second);

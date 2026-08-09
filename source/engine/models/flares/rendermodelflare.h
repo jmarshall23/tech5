@@ -1,30 +1,32 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\flares\rendermodelflare.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "models/rendermodel.h"
 
+class idDeclFlare;
 
-// IDA Local Type ordinal 14206; PDB kind: class.
-class __declspec(align(8)) idRenderModelFlare : public idRenderModel
-{
+class alignas(16) idRenderModelFlare : public idRenderModel {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 14207.
-  virtual void Save(idFile *);
-  virtual bool Load(idFile *);
-  virtual void SerializeSnapshot(idSerializer *, bool);
-  virtual const idDeclSkins *GetSkins();
-  virtual idHandle<int,enum invalidDecalHandle_t,-1> *AddDecalFromPoint(idHandle<int,enum invalidDecalHandle_t,-1> *result, const decalParams_t *, const int, const idVec3 *, const idVec3 *, idIndex<short,enum invalidJointIndex_t>);
-  virtual bool RemoveDecal(const idHandle<int,enum invalidDecalHandle_t,-1>);
-  virtual void RemoveDecals();
-  virtual void FreeSurfaces();
-  virtual bool CommitSubclass();
-  virtual bool UpdateInView(const idRenderView *, const idRenderView *, idRenderModelUpdateTools *);
-  virtual const idList<sourceSurface_t,5> *GetSourceSurfaces();
-  virtual ~idRenderModelFlare();
+    using UpdateCallback = bool (*)(idRenderModelFlare* model,
+        const idRenderView* currentView, const idRenderView* nextView,
+        idRenderModelUpdateTools* tools);
 
-  const idDeclFlare *flareDecl;
-  int quadModelIndex;
-  bool isSunFlare;
+    explicit idRenderModelFlare(const idDeclFlare* declaration = nullptr);
+    ~idRenderModelFlare() override = default;
+
+    static void SetUpdateCallback(UpdateCallback callback);
+
+    bool UpdateInView(const idRenderView* currentView,
+        const idRenderView* nextView,
+        idRenderModelUpdateTools* tools) override;
+    void SetFlareDeclaration(const idDeclFlare* declaration) {
+        flareDecl = declaration;
+    }
+    void SetSunFlare(bool enabled);
+
+    const idDeclFlare* flareDecl;
+    int quadModelIndex;
+    bool isSunFlare;
+
+private:
+    static UpdateCallback updateCallback;
 };

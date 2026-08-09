@@ -1,10 +1,28 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\transparency\jobs\influencespheredata.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/math/vector.h"
 
+#include <cstddef>
+#include <cstdint>
 
-// IDA Local Type ordinal 27582; PDB kind: typedef.
-typedef __int16 influenceSphereIndex_t;
+using influenceSphereIndex_t = std::int16_t;
+
+struct influenceSphere_t {
+    idVec3 center;
+    float innerRadius;
+    float outerRadius;
+    float angle;
+};
+
+struct alignas(16) visibleInfluenceSpheres_t {
+    static constexpr int MAX_SPHERES = 256;
+
+    int numSpheres;
+    int padding[3];
+    influenceSphere_t spheres[MAX_SPHERES];
+};
+
+static_assert(sizeof(influenceSphere_t) == 24,
+    "Recovered influence-sphere ABI changed");
+static_assert(offsetof(visibleInfluenceSpheres_t, spheres) == 16,
+    "Recovered visible influence-sphere alignment changed");

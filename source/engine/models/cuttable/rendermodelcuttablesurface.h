@@ -1,30 +1,44 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\cuttable\rendermodelcuttablesurface.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "models/cuttable/rendermodelcuttableresource.h"
+#include "models/rendermodel.h"
 
+class Contour;
 
-// IDA Local Type ordinal 15904; PDB kind: class.
-class __declspec(align(8)) idRenderModelCuttableSurface : public idRenderModel
-{
+class alignas(16) idRenderModelCuttableSurface : public idRenderModel {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15905.
-  virtual void Save(idFile *);
-  virtual bool Load(idFile *);
-  virtual void SerializeSnapshot(idSerializer *, bool);
-  virtual const idDeclSkins *GetSkins();
-  virtual idHandle<int,enum invalidDecalHandle_t,-1> *AddDecalFromPoint(idHandle<int,enum invalidDecalHandle_t,-1> *result, const decalParams_t *, const int, const idVec3 *, const idVec3 *, idIndex<short,enum invalidJointIndex_t>);
-  virtual bool RemoveDecal(const idHandle<int,enum invalidDecalHandle_t,-1>);
-  virtual void RemoveDecals();
-  virtual void FreeSurfaces();
-  virtual bool CommitSubclass();
-  virtual bool UpdateInView(const idRenderView *, const idRenderView *, idRenderModelUpdateTools *);
-  virtual const idList<sourceSurface_t,5> *GetSourceSurfaces();
-  virtual ~idRenderModelCuttableSurface();
+    using UpdateCallback = bool (*)(idRenderModelCuttableSurface* model,
+        const idRenderView* currentView, const idRenderView* nextView,
+        idRenderModelUpdateTools* tools);
+    using ResourceResolver = idRenderModelCuttableResource* (*)(
+        const char* modelName);
 
-  idRenderModelCuttableResource *modelResource;
-  const idTriangleInterpolator *triangleInterpolator;
-  int bufferIndex;
+    idRenderModelCuttableSurface();
+    explicit idRenderModelCuttableSurface(const char* modelName);
+    ~idRenderModelCuttableSurface() override = default;
+    static void SetUpdateCallback(UpdateCallback callback);
+    static void SetResourceResolver(ResourceResolver resolver);
+    void Save(idFile* file) override;
+    bool Load(idFile* file) override;
+    bool LoadModel(const char* modelName);
+    int UpdateGeometry(int bufferIndex_,
+        const idVertexBuffer& vertexBuffer,
+        const idVertexBuffer& stBuffer,
+        const idIndexBuffer& indexBuffer,
+        int numVertices, int numIndices);
+    void BuildGeometry(const Contour* outer, const Contour* inner,
+        idList<idDrawVert, 5>& vertices,
+        idList<idVec2, 5>& originalST,
+        idList<std::uint16_t, 5>& indices) const;
+    bool UpdateInView(const idRenderView* currentView,
+        const idRenderView* nextView,
+        idRenderModelUpdateTools* tools) override;
+
+    idRenderModelCuttableResource* modelResource;
+    const idTriangleInterpolator* triangleInterpolator;
+    int bufferIndex;
+
+private:
+    static UpdateCallback updateCallback;
+    static ResourceResolver resourceResolver;
 };

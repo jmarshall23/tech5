@@ -1,31 +1,33 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\static\rendermodelstatic.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "models/rendermodel.h"
+#include "models/static/jobs/statictransparencygen.h"
 
+class idStaticModel;
 
-// IDA Local Type ordinal 14746; PDB kind: class.
-class __declspec(align(8)) idRenderModelStatic : public idRenderModel
-{
+class alignas(16) idRenderModelStatic : public idRenderModel {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 14747.
-  virtual void Save(idFile *);
-  virtual bool Load(idFile *);
-  virtual void SerializeSnapshot(idSerializer *, bool);
-  virtual const idDeclSkins *GetSkins();
-  virtual idHandle<int,enum invalidDecalHandle_t,-1> *AddDecalFromPoint(idHandle<int,enum invalidDecalHandle_t,-1> *result, const decalParams_t *, const int, const idVec3 *, const idVec3 *, idIndex<short,enum invalidJointIndex_t>);
-  virtual bool RemoveDecal(const idHandle<int,enum invalidDecalHandle_t,-1>);
-  virtual void RemoveDecals();
-  virtual void FreeSurfaces();
-  virtual bool CommitSubclass();
-  virtual bool UpdateInView(const idRenderView *, const idRenderView *, idRenderModelUpdateTools *);
-  virtual const idList<sourceSurface_t,5> *GetSourceSurfaces();
-  virtual ~idRenderModelStatic();
+    using TransparencyUpdateCallback = bool (*)(idRenderModelStatic* model,
+        const idRenderView* currentView, const idRenderView* nextView,
+        idRenderModelUpdateTools* tools);
 
-  const idStaticModel *staticModel;
-  int skin;
-  int reloadCount;
-  idList<staticTransparencyGenParms_t *,5> transparencyGenParms;
+    explicit idRenderModelStatic(const idStaticModel* staticModel = nullptr);
+    ~idRenderModelStatic() override = default;
+
+    static void SetTransparencyUpdateCallback(
+        TransparencyUpdateCallback callback);
+
+    bool CommitSubclass() override;
+    bool UpdateInView(const idRenderView* currentView,
+        const idRenderView* nextView,
+        idRenderModelUpdateTools* tools) override;
+    const idList<sourceSurface_t, 5>* GetSourceSurfaces() const override;
+
+    const idStaticModel* staticModel;
+    int skin;
+    int reloadCount;
+    idList<staticTransparencyGenParms_t*, 5> transparencyGenParms;
+
+private:
+    static TransparencyUpdateCallback transparencyUpdateCallback;
 };

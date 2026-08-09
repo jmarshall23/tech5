@@ -1,129 +1,147 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\skeletalanimation\declmd6.h
-// Recovered logical types: 7
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decl.h"
+#include "idlib/bv/bounds.h"
+#include "idlib/containers/pair.h"
+#include "idlib/handle.h"
+#include "idlib/index.h"
+#include "idlib/varargs.h"
+#include "models/morphskingen.h"
+#include "models/skeletalanimation/animation.h"
+#include "models/skeletalanimation/animevents.h"
+#include "models/skeletalanimation/eyeinfocollection.h"
+#include "models/skeletalanimation/jobs/md6blend.h"
+#include "models/skeletalanimation/jointgroup.h"
+#include "models/skeletalanimation/md6alias.h"
+#include "models/skeletalanimation/taginfo.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 1999; PDB kind: enum.
-enum idDeclMD6::modelCaps_t : __int32
-{
-  MODELCAP_LIPSYNC = 0x1,
-  MODELCAP_FACESETUP = 0x2,
-  MODELCAP_MOODS = 0x4,
-  MODELCAP_GESTURES = 0x8,
-};
+class idFile_String;
+class idMD6Anim;
+class idMD6Model;
+enum invalidUserChannelIndex_t : int;
 
-// IDA Local Type ordinal 2934; PDB kind: enum.
-enum idDeclMD6::userPropEx_t : __int32
-{
-  USERPROPEX_NONE = 0x0,
-  USERPROPEX_DECL_START = 0x1,
-  USERPROPEX_DECL_RENDERPROG = 0x1,
-  USERPROPEX_DECL_AF = 0x2,
-  USERPROPEX_DECL_ENTITYDEF = 0x3,
-  USERPROPEX_DECL_MATERIAL = 0x4,
-  USERPROPEX_DECL_PARTICLES = 0x5,
-  USERPROPEX_DECL_CLOTH = 0x6,
-  USERPROPEX_DECL_SOUNDSHADER = 0x7,
-  USERPROPEX_DECL_MD6DEF = 0x8,
-  USERPROPEX_DECL_SKIN = 0x9,
-  USERPROPEX_DECL_TABLE = 0xA,
-  USERPROPEX_DECL_ENV = 0xB,
-  USERPROPEX_DECL_FX = 0xC,
-  USERPROPEX_DECL_VOICEOVER = 0xD,
-  USERPROPEX_DECL_ANIMWEB = 0xE,
-  USERPROPEX_DECL_VISEMESET = 0xF,
-  USERPROPEX_DECL_BREAKABLE = 0x10,
-  USERPROPEX_DECL_RIBBON = 0x11,
-  USERPROPEX_DECL_FLARE = 0x12,
-  USERPROPEX_DECL_END = 0x13,
-};
-
-// IDA Local Type ordinal 13313; PDB kind: class.
-class idDeclMD6 : public idDecl
-{
+class idDeclMD6 : public idDecl {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 13422.
-  virtual ~idDeclMD6();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
-  virtual void Write(idFile_String *, const char *);
+    enum modelCaps_t : int {
+        MODELCAP_LIPSYNC = 0x1,
+        MODELCAP_FACESETUP = 0x2,
+        MODELCAP_MOODS = 0x4,
+        MODELCAP_GESTURES = 0x8
+    };
 
-  idMD6Blend::configInfo_t *config;
-  const idMD6Model *model;
-  idStr parent;
-  const idDeclMD6 *parentDecl;
-  idList<idDeclMD6::includeDecl_t,5> declsToIncludeAnimDataFrom;
-  idBounds referenceBounds;
-  int numLoadErrors;
-  idJointGroupCollection jointGroupCollection;
-  idPropsCollection props;
-  idAnimEvents animEvents;
-  idEyeInfoCollection eyeInfoCollection;
-  idList<idVarArgs<6>,19> userProps;
-  idList<idMD6Alias,19> aliases;
-  idHashIndex aliasHash;
-  unsigned __int16 curAliasHandle;
-  idList<idDeclMD6::idHeadTrackGroup,5> headTrackGroups;
-  idList<idPair<idStr,idList<int,19> >,19> meshKitGroups[3];
-  idStr meshKitDefault[3];
-  idMorphVertices *morphVertices;
-  idList<idMorphDef,115> morphDefList;
-  bool calcRefBoundsFromJoints;
-  idList<idStr,5> wrinkleMapRegionExpressions;
-  float attachmentOverrideScale;
-  int modelCaps;
-  int userChannelWeightGroupOverride;
-  idHandle<unsigned short,enum invalidAliasHandle_t,65535> baseUserChannelAlias;
-  idList<idHandle<unsigned short,enum invalidAliasHandle_t,65535>,19> userChannelToAnimationAliasMap;
-  idList<idPair<idIndex<short,enum invalidUserChannelIndex_t>,idHandle<unsigned short,enum invalidAliasHandle_t,65535> >,19> userChannelToAnimationAliasOverrides;
+    enum userPropEx_t : int {
+        USERPROPEX_NONE = 0,
+        USERPROPEX_DECL_START = 1,
+        USERPROPEX_DECL_RENDERPROG = 1,
+        USERPROPEX_DECL_AF,
+        USERPROPEX_DECL_ENTITYDEF,
+        USERPROPEX_DECL_MATERIAL,
+        USERPROPEX_DECL_PARTICLES,
+        USERPROPEX_DECL_CLOTH,
+        USERPROPEX_DECL_SOUNDSHADER,
+        USERPROPEX_DECL_MD6DEF,
+        USERPROPEX_DECL_SKIN,
+        USERPROPEX_DECL_TABLE,
+        USERPROPEX_DECL_ENV,
+        USERPROPEX_DECL_FX,
+        USERPROPEX_DECL_VOICEOVER,
+        USERPROPEX_DECL_ANIMWEB,
+        USERPROPEX_DECL_VISEMESET,
+        USERPROPEX_DECL_BREAKABLE,
+        USERPROPEX_DECL_RIBBON,
+        USERPROPEX_DECL_FLARE,
+        USERPROPEX_DECL_END
+    };
+
+    struct alignas(4) includeDecl_t {
+        const idDeclMD6* includeDecl;
+        bool isOriginalInclude;
+    };
+
+    class idHeadTrackJoint {
+    public:
+        idIndex<short, invalidJointIndex_t> jointIdx;
+        float pitchScale;
+        float yawScale;
+    };
+
+    class idHeadTrackGroup {
+    public:
+        idAtomicString name;
+        idList<idHeadTrackJoint, 5> trackJoints;
+        idIndex<short, invalidJointIndex_t> focusJointIdx;
+        idIndex<short, invalidJointIndex_t> orientationJointIdx;
+        int blendTime;
+    };
+
+    struct animEventData_t {
+        const idDeclMD6* definingDecl;
+        const idAnimEvents::animEventInfo_t* info;
+    };
+
+    idDeclMD6();
+    ~idDeclMD6() override;
+
+    unsigned int GetDeclTimestamp() const override;
+    idDeclInfo* GetDeclInfo() const override;
+    bool RebuildTextSource() override;
+    const char* DefaultDefinition() const override;
+    void LogMissingDecl() const override;
+    void Parse(idParser* parser) override;
+    void FreeData() override;
+    unsigned int Size() const override;
+    void Write(idFile_String* file, const char* indent) const;
+    bool FindAnimEvents(const idMD6Anim* animation, int startFrame,
+        int endFrame,
+        idStaticList<const idMD6AnimEvent*, 16>& events) const;
+    bool FindAnimEvents(const idMD6Anim* animation, int startFrame,
+        int endFrame, int eventNum,
+        idStaticList<const idMD6AnimEvent*, 16>& events) const;
+
+    idMD6Blend::configInfo_t* config;
+    const idMD6Model* model;
+    idStr parent;
+    const idDeclMD6* parentDecl;
+    idList<includeDecl_t, 5> declsToIncludeAnimDataFrom;
+    idBounds referenceBounds;
+    int numLoadErrors;
+    idJointGroupCollection jointGroupCollection;
+    idPropsCollection props;
+    idAnimEvents animEvents;
+    idEyeInfoCollection eyeInfoCollection;
+    idList<idVarArgs<6>, 19> userProps;
+    idList<idMD6Alias, 19> aliases;
+    idHashIndex aliasHash;
+    std::uint16_t curAliasHandle;
+    idList<idHeadTrackGroup, 5> headTrackGroups;
+    idList<idPair<idStr, idList<int, 19>>, 19> meshKitGroups[3];
+    idStr meshKitDefault[3];
+    idMorphVertices* morphVertices;
+    idList<idMorphDef, 115> morphDefList;
+    bool calcRefBoundsFromJoints;
+    idList<idStr, 5> wrinkleMapRegionExpressions;
+    float attachmentOverrideScale;
+    int modelCaps;
+    int userChannelWeightGroupOverride;
+    aliasHandle_t baseUserChannelAlias;
+    idList<aliasHandle_t, 19> userChannelToAnimationAliasMap;
+    idList<idPair<idIndex<short, invalidUserChannelIndex_t>,
+        aliasHandle_t>, 19> userChannelToAnimationAliasOverrides;
+
+    static idDeclInfoTemplate<idDeclMD6> resourceList;
 };
 
-// IDA Local Type ordinal 13364; PDB kind: struct.
-struct __declspec(align(4)) idDeclMD6::includeDecl_t
-{
-  const idDeclMD6 *includeDecl;
-  bool isOriginalInclude;
-};
-
-// IDA Local Type ordinal 13403; PDB kind: class.
-class idDeclMD6::idHeadTrackJoint
-{
-public:
-  idIndex<short,enum invalidJointIndex_t> jointIdx;
-  float pitchScale;
-  float yawScale;
-};
-
-// IDA Local Type ordinal 13405; PDB kind: class.
-class idDeclMD6::idHeadTrackGroup
-{
-public:
-  idAtomicString name;
-  idList<idDeclMD6::idHeadTrackJoint,5> trackJoints;
-  idIndex<short,enum invalidJointIndex_t> focusJointIdx;
-  idIndex<short,enum invalidJointIndex_t> orientationJointIdx;
-  int blendTime;
-};
-
-// IDA Local Type ordinal 22460; PDB kind: struct.
-struct idDeclMD6::animEventData_t
-{
-  const idDeclMD6 *definingDecl;
-  const idAnimEvents::animEventInfo_t *info;
-};
+static_assert(sizeof(idDeclMD6::includeDecl_t) == 8,
+    "Recovered MD6 include-declaration ABI changed");
+static_assert(sizeof(idDeclMD6::idHeadTrackJoint) == 12,
+    "Recovered head-track joint ABI changed");
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(idDeclMD6::idHeadTrackGroup) == 28,
+    "Recovered head-track group ABI changed");
+static_assert(sizeof(idDeclMD6::animEventData_t) == 8,
+    "Recovered animation-event data ABI changed");
+static_assert(sizeof(idDeclMD6) == 756,
+    "Recovered MD6 declaration ABI changed");
+#endif

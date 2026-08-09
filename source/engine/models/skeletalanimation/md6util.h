@@ -1,46 +1,90 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\skeletalanimation\md6util.h
-// Recovered logical types: 5
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/geometry/jointtransform.h"
+#include "idlib/index.h"
+#include "idlib/math/matrix.h"
+#include "idlib/math/vector.h"
+#include "gamelib/animstack/animstacktypes.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 1870; PDB kind: unknown.
-enum idMD6Util::<unnamed_tag> : __int32
-{
-  FRAME_FIRST = 0x0,
-  FRAME_LAST = 0xFFFFFFFF,
-};
+class idDeclAnimWeb;
+class idDeclMD6;
+class idMD6Anim;
+class idAnimWebPath;
 
-// IDA Local Type ordinal 19708; PDB kind: class.
-class __declspec(align(16)) idMD6Util::idJointCache
-{
+class idMD6Util {
 public:
-  idJointMat jointMatrices[256];
-  const idDeclAnimWeb *webRef;
-  const idDeclMD6 *md6Decl;
-  const idMD6Anim *md6anim;
-  int frameNum;
-  bool validJointCache;
+    struct animDelta_t;
+
+    using WebResolverCallback = const idDeclAnimWeb* (*)(const char* webName);
+    using AnimResolverCallback = const idMD6Anim* (*)(
+        const idDeclAnimWeb* web, const idAnimWebPath& path,
+        const idDeclMD6* declaration, idAnimWebModelIndex modelIndex,
+        bool loadAnimation);
+    using JointIndexCallback = int (*)(const idDeclMD6* declaration,
+        const char* jointName);
+    using PoseDecodeCallback = bool (*)(const idDeclMD6* declaration,
+        const idMD6Anim* animation, int frame, idJointMat* joints,
+        int maxJoints);
+    enum frame_t : int {
+        FRAME_FIRST = 0,
+        FRAME_LAST = -1
+    };
+
+    class alignas(16) idJointCache {
+    public:
+        idJointCache(const idDeclMD6* declaration = nullptr,
+            const idMD6Anim* animation = nullptr, int frame = FRAME_FIRST);
+        idJointCache(const idAnimWebPath& webPath, int frame = FRAME_FIRST);
+
+        bool GetDelta(animDelta_t& delta, const char* jointName,
+            const char* refJointName) const;
+        void Set(const idDeclAnimWeb* web, const idAnimWebPath& webPath,
+            int frame);
+
+        idJointMat jointMatrices[256];
+        const idDeclAnimWeb* webRef;
+        const idDeclMD6* md6Decl;
+        const idMD6Anim* md6anim;
+        int frameNum;
+        bool validJointCache;
+
+    private:
+        void UpdateCache();
+    };
+
+    struct animDelta_t {
+        idVec3 deltaTranslation;
+        idMat3 deltaAxis;
+    };
+
+    struct idAnimWebBlendInfo {
+        std::int16_t startBlendFrame;
+        std::int16_t endBlendFrame;
+    };
+
+    static const idMD6Anim* FindMD6Anim(const idDeclAnimWeb* web,
+        const idAnimWebPath& webPath, const idDeclMD6* declaration,
+        idAnimWebModelIndex modelIndex, bool loadAnimation);
+    static bool GetAnimDelta(const idMD6Anim* animation,
+        idVec3* deltaOrigin, idMat3* deltaAxis);
+    static void SetCallbacks(WebResolverCallback webResolver,
+        AnimResolverCallback animResolver, JointIndexCallback jointIndex,
+        PoseDecodeCallback poseDecoder);
+
+private:
+    static WebResolverCallback webResolverCallback;
+    static AnimResolverCallback animResolverCallback;
+    static JointIndexCallback jointIndexCallback;
+    static PoseDecodeCallback poseDecodeCallback;
 };
 
-// IDA Local Type ordinal 19709; PDB kind: struct.
-struct idMD6Util::animDelta_t
-{
-  idVec3 deltaTranslation;
-  idMat3 deltaAxis;
-};
-
-// IDA Local Type ordinal 21890; PDB kind: struct.
-struct idMD6Util::idAnimWebBlendInfo
-{
-  __int16 startBlendFrame;
-  __int16 endBlendFrame;
-};
-
-// IDA Local Type ordinal 21891; PDB kind: class.
-class idMD6Util
-{
-public:
-};
+static_assert(sizeof(idMD6Util::animDelta_t) == 48,
+    "Recovered MD6 animation-delta ABI changed");
+static_assert(sizeof(idMD6Util::idAnimWebBlendInfo) == 4,
+    "Recovered animation-web blend information ABI changed");
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(idMD6Util::idJointCache) == 12320,
+    "Recovered MD6 joint-cache ABI changed");
+#endif

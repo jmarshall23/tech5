@@ -1,227 +1,297 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\cuttable\cutterclip.h
-// Recovered logical types: 16
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/list.h"
+#include "idlib/math/vector.h"
+#include "idlib/math/vectori.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 2768; PDB kind: unknown.
-enum idCutterClip::<unnamed_tag> : __int32
-{
-  EDGESIDE_LEFT = 0x0,
-  EDGESIDE_RIGHT = 0x1,
+class Contour;
+
+enum polygonType_t : int {
+    POLYTYPE_CLIP = 0,
+    POLYTYPE_SUBJECT = 1
 };
 
-// IDA Local Type ordinal 2769; PDB kind: enum.
-enum idCutterClip::horizontalDirection_t : __int32
-{
-  HORIZONTALDIRECTION_NONE = 0x0,
-  HORIZONTALDIRECTION_LEFTTORIGHT = 0x1,
-  HORIZONTALDIRECTION_RIGHTTOLEFT = 0x2,
+enum clipMode_t : int {
+    CLIPMODE_INTERSECT = 0,
+    CLIPMODE_UNION,
+    CLIPMODE_DIFFERENCE,
+    CLIPMODE_XOR
 };
 
-// IDA Local Type ordinal 2770; PDB kind: enum.
-enum idCutterClip::intersectProtects_t : __int32
-{
-  INTERSECTPROTECTS_NONE = 0x0,
-  INTERSECTPROTECTS_LEFT = 0x1,
-  INTERSECTPROTECTS_RIGHT = 0x2,
-  INTERSECTPROTECTS_BOTH = 0x3,
+enum fillType_t : int {
+    FILLTYPE_EVEN_ODD = 0,
+    FILLTYPE_NON_ZERO
 };
 
-// IDA Local Type ordinal 2771; PDB kind: enum.
-enum idCutterClip::addEdge_t : __int32
-{
-  ADDEDGE_NONE = 0x0,
-  ADDEDGE_LEFT = 0x1,
-  ADDEDGE_RIGHT = 0x2,
-  ADDEDGE_BOTH = 0x3,
-};
-
-// IDA Local Type ordinal 2772; PDB kind: enum.
-enum idCutterClip::memPool_t : __int32
-{
-  NUM_POOLSCANBEAMS = 0x100,
-  NUM_POOLLOCALMINIMAS = 0x100,
-  NUM_POOLEDGES = 0x400,
-  NUM_POOLPOLYGONS = 0x20,
-  NUM_POOLPOLYGONPOINTS = 0x400,
-  NUM_POOLINTERSECTPOINTS = 0x80,
-  NUM_POOLJOINRECORDS = 0x80,
-  NUM_POOLHORIZONTALJOINRECORDS = 0x80,
-  NUM_POOLNESTEDPOLYGONS = 0x20,
-  NUM_POOLCONTOURS = 0x20,
-  NUM_POOLCONTOUREDGES = 0x400,
-  NUM_POOLCONTOURNODES = 0x400,
-};
-
-// IDA Local Type ordinal 17335; PDB kind: struct.
-struct idCutterClip::Edge_t
-{
-  idCutterClip::Edge_t *prev;
-  idCutterClip::Edge_t *next;
-  idCutterClip::Edge_t *prevLML;
-  idCutterClip::Edge_t *nextLML;
-  idCutterClip::Edge_t *prevAEL;
-  idCutterClip::Edge_t *nextAEL;
-  idCutterClip::Edge_t *prevSEL;
-  idCutterClip::Edge_t *nextSEL;
-  idVec2i top;
-  idVec2i bottom;
-  idVec2i current;
-  float deltaX;
-  int tmpX;
-  __int16 windingCount;
-  __int16 windingCount2;
-  __int16 outIndex;
-  __int16 windingDelta;
-  unsigned __int16 : 1;
-  unsigned __int16 __free : 12;
-  unsigned __int16 horizontal : 1;
-  unsigned __int16 polyType : 1;
-  unsigned __int16 side : 1;
-  int ID;
-};
-
-// IDA Local Type ordinal 17336; PDB kind: struct.
-struct idCutterClip::Scanbeam_t
-{
-  idCutterClip::Scanbeam_t *next;
-  int y;
-};
-
-// IDA Local Type ordinal 17337; PDB kind: struct.
-struct __declspec(align(4)) idCutterClip::Polygon_t
-{
-  idCutterClip::Polygon_t *next;
-  idCutterClip::Polygon_t *firstLeft;
-  idCutterClip::Polygon_t *appendLink;
-  idCutterClip::PolygonPoint_t *points;
-  idCutterClip::PolygonPoint_t *bottomPoint;
-  idCutterClip::Edge_t *bottomEdge1;
-  idCutterClip::Edge_t *bottomEdge2;
-  int index;
-  bool connected;
-  bool hole;
-};
-
-// IDA Local Type ordinal 17338; PDB kind: struct.
-struct idCutterClip::PolygonPoint_t
-{
-  idCutterClip::PolygonPoint_t *next;
-  idCutterClip::PolygonPoint_t *prev;
-  idVec2i pos;
-  int index;
-};
-
-// IDA Local Type ordinal 17339; PDB kind: struct.
-struct idCutterClip::NestedPolygon_t
-{
-  idCutterClip::NestedPolygon_t *next;
-  idCutterClip::Polygon_t *outer;
-  idCutterClip::Polygon_t *inner;
-};
-
-// IDA Local Type ordinal 17340; PDB kind: struct.
-struct idCutterClip::LocalMinima_t
-{
-  idCutterClip::LocalMinima_t *next;
-  idCutterClip::Edge_t *leftBound;
-  idCutterClip::Edge_t *rightBound;
-  int y;
-};
-
-// IDA Local Type ordinal 17341; PDB kind: struct.
-struct idCutterClip::IntersectNode_t
-{
-  idCutterClip::IntersectNode_t *next;
-  idCutterClip::Edge_t *edge1;
-  idCutterClip::Edge_t *edge2;
-  idVec2i pos;
-};
-
-// IDA Local Type ordinal 17342; PDB kind: struct.
-struct idCutterClip::JoinRecord_t
-{
-  idCutterClip::JoinRecord_t *next;
-  idVec2i point1a;
-  idVec2i point1b;
-  idVec2i point2a;
-  idVec2i point2b;
-  __int16 polyIndex1;
-  __int16 polyIndex2;
-};
-
-// IDA Local Type ordinal 17343; PDB kind: struct.
-struct __declspec(align(4)) idCutterClip::HorizontalJoinRecord_t
-{
-  idCutterClip::HorizontalJoinRecord_t *next;
-  idCutterClip::Edge_t *edge;
-  __int16 savedIndex;
-};
-
-// IDA Local Type ordinal 17351; PDB kind: class.
-class __declspec(align(4)) idCutterClip
-{
+class alignas(4) idCutterClip {
 public:
-  int memoryPeek;
-  int memoryCurrent;
-  int numEdges;
-  int maxEdges;
-  int numLocalMinima;
-  int maxLocalMinima;
-  int numScanbeams;
-  int maxScanbeams;
-  int numPolygons;
-  int maxPolygons;
-  int numPolygonPoints;
-  int maxPolygonPoints;
-  int numNestedPolygons;
-  int maxNestedPolygons;
-  int numJoinRecords;
-  int maxJoinRecords;
-  int numHorizontalJoinRecords;
-  int maxHorizontalJoinRecords;
-  int numIntersectNode;
-  int maxIntersectNode;
-  idCutterClip::Edge_t *edgesPool;
-  idCutterClip::Scanbeam_t *scanbeamsPool;
-  idCutterClip::Polygon_t *polygonsPool;
-  idCutterClip::PolygonPoint_t *polygonPointsPool;
-  idCutterClip::NestedPolygon_t *nestedPolygonsPool;
-  idCutterClip::LocalMinima_t *localMinimasPool;
-  idCutterClip::IntersectNode_t *intersectNodesPool;
-  idCutterClip::JoinRecord_t *joinRecordsPool;
-  idCutterClip::HorizontalJoinRecord_t *horizontalJoinRecordsPool;
-  idCutterClip::LocalMinima_t *currentLocalMinima;
-  idCutterClip::LocalMinima_t *localMinimaList;
-  idCutterClip::Scanbeam_t *scanbeams;
-  idCutterClip::Edge_t *activeEdges;
-  idCutterClip::Edge_t *sortedEdges;
-  idCutterClip::IntersectNode_t *intersectNodes;
-  idCutterClip::NestedPolygon_t *currentNestedPolygon;
-  idCutterClip::Polygon_t *currentInnerPolygon;
-  idList<idCutterClip::Edge_t *,5> edges;
-  idList<idCutterClip::PolygonPoint_t *,5> polygonPoints;
-  idList<idCutterClip::Polygon_t *,5> polygons;
-  idList<idCutterClip::NestedPolygon_t *,5> nestedPolygons;
-  idList<idCutterClip::JoinRecord_t *,5> joins;
-  idList<idCutterClip::HorizontalJoinRecord_t *,5> horizontalJoins;
-  idList<void *,5> poolAllocations;
-  fillType_t fillTypeSubject;
-  fillType_t fillTypeClip;
-  clipMode_t clipMode;
-  unsigned __int8 : 7;
-  __int8 running : 1;
-};
+    enum edgeSide_t { EDGESIDE_LEFT = 0, EDGESIDE_RIGHT = 1 };
+    enum horizontalDirection_t {
+        HORIZONTALDIRECTION_NONE = 0,
+        HORIZONTALDIRECTION_LEFTTORIGHT,
+        HORIZONTALDIRECTION_RIGHTTOLEFT
+    };
+    enum intersectProtects_t {
+        INTERSECTPROTECTS_NONE = 0,
+        INTERSECTPROTECTS_LEFT,
+        INTERSECTPROTECTS_RIGHT,
+        INTERSECTPROTECTS_BOTH
+    };
+    enum addEdge_t {
+        ADDEDGE_NONE = 0,
+        ADDEDGE_LEFT,
+        ADDEDGE_RIGHT,
+        ADDEDGE_BOTH
+    };
+    enum memPool_t {
+        NUM_POOLSCANBEAMS = 0x100,
+        NUM_POOLLOCALMINIMAS = 0x100,
+        NUM_POOLEDGES = 0x400,
+        NUM_POOLPOLYGONS = 0x20,
+        NUM_POOLPOLYGONPOINTS = 0x400,
+        NUM_POOLINTERSECTPOINTS = 0x80,
+        NUM_POOLJOINRECORDS = 0x80,
+        NUM_POOLHORIZONTALJOINRECORDS = 0x80,
+        NUM_POOLNESTEDPOLYGONS = 0x20,
+        NUM_POOLCONTOURS = 0x20,
+        NUM_POOLCONTOUREDGES = 0x400,
+        NUM_POOLCONTOURNODES = 0x400
+    };
 
-// IDA Local Type ordinal 22052; PDB kind: class.
-class idCutterClip::idSort_Polygons : public idSort_Quick<idCutterClip::Polygon_t *,idCutterClip::idSort_Polygons>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 22053.
-  virtual ~idSort_Polygons();
-  virtual void Sort(idCutterClip::Polygon_t **, unsigned int);
+    struct Edge_t;
+    struct PolygonPoint_t;
+    struct Polygon_t;
 
+    struct Edge_t {
+        Edge_t* prev;
+        Edge_t* next;
+        Edge_t* prevLML;
+        Edge_t* nextLML;
+        Edge_t* prevAEL;
+        Edge_t* nextAEL;
+        Edge_t* prevSEL;
+        Edge_t* nextSEL;
+        idVec2i top;
+        idVec2i bottom;
+        idVec2i current;
+        float deltaX;
+        int tmpX;
+        std::int16_t windingCount;
+        std::int16_t windingCount2;
+        std::int16_t outIndex;
+        std::int16_t windingDelta;
+        std::uint16_t reserved0 : 1;
+        std::uint16_t freeBits : 12;
+        std::uint16_t horizontal : 1;
+        std::uint16_t polyType : 1;
+        std::uint16_t side : 1;
+        int ID;
+    };
+
+    struct Scanbeam_t {
+        Scanbeam_t* next;
+        int y;
+    };
+
+    struct alignas(4) Polygon_t {
+        Polygon_t* next;
+        Polygon_t* firstLeft;
+        Polygon_t* appendLink;
+        PolygonPoint_t* points;
+        PolygonPoint_t* bottomPoint;
+        Edge_t* bottomEdge1;
+        Edge_t* bottomEdge2;
+        int index;
+        bool connected;
+        bool hole;
+    };
+
+    struct PolygonPoint_t {
+        PolygonPoint_t* next;
+        PolygonPoint_t* prev;
+        idVec2i pos;
+        int index;
+    };
+
+    struct NestedPolygon_t {
+        NestedPolygon_t* next;
+        Polygon_t* outer;
+        Polygon_t* inner;
+    };
+
+    struct LocalMinima_t {
+        LocalMinima_t* next;
+        Edge_t* leftBound;
+        Edge_t* rightBound;
+        int y;
+    };
+
+    struct IntersectNode_t {
+        IntersectNode_t* next;
+        Edge_t* edge1;
+        Edge_t* edge2;
+        idVec2i pos;
+    };
+
+    struct JoinRecord_t {
+        JoinRecord_t* next;
+        idVec2i point1a;
+        idVec2i point1b;
+        idVec2i point2a;
+        idVec2i point2b;
+        std::int16_t polyIndex1;
+        std::int16_t polyIndex2;
+    };
+
+    struct alignas(4) HorizontalJoinRecord_t {
+        HorizontalJoinRecord_t* next;
+        Edge_t* edge;
+        std::int16_t savedIndex;
+    };
+
+    class idSort_Polygons {
+    public:
+        int Compare(const Polygon_t* a, const Polygon_t* b) const;
+    };
+
+    idCutterClip();
+    ~idCutterClip();
+
+    void Prepare();
+    void PreAllocate();
+    void AddContour(const Contour* contours, polygonType_t polyType);
+    bool Clip(clipMode_t clipMode_, fillType_t fillType);
+    int GetNumPolygons() const;
+    int GetConnectedPolygons() const;
+    void GetPolygon(int id, idList<idVec2i, 5>& list);
+    void GetInnerPolygon(idList<idVec2i, 5>& list);
+    void GetConnectedPolygon(int index,
+        idList<idVec2i, 5>& list) const;
+
+    int memoryPeek;
+    int memoryCurrent;
+    int numEdges;
+    int maxEdges;
+    int numLocalMinima;
+    int maxLocalMinima;
+    int numScanbeams;
+    int maxScanbeams;
+    int numPolygons;
+    int maxPolygons;
+    int numPolygonPoints;
+    int maxPolygonPoints;
+    int numNestedPolygons;
+    int maxNestedPolygons;
+    int numJoinRecords;
+    int maxJoinRecords;
+    int numHorizontalJoinRecords;
+    int maxHorizontalJoinRecords;
+    int numIntersectNode;
+    int maxIntersectNode;
+    Edge_t* edgesPool;
+    Scanbeam_t* scanbeamsPool;
+    Polygon_t* polygonsPool;
+    PolygonPoint_t* polygonPointsPool;
+    NestedPolygon_t* nestedPolygonsPool;
+    LocalMinima_t* localMinimasPool;
+    IntersectNode_t* intersectNodesPool;
+    JoinRecord_t* joinRecordsPool;
+    HorizontalJoinRecord_t* horizontalJoinRecordsPool;
+    LocalMinima_t* currentLocalMinima;
+    LocalMinima_t* localMinimaList;
+    Scanbeam_t* scanbeams;
+    Edge_t* activeEdges;
+    Edge_t* sortedEdges;
+    IntersectNode_t* intersectNodes;
+    NestedPolygon_t* currentNestedPolygon;
+    Polygon_t* currentInnerPolygon;
+    idList<Edge_t*, 5> edges;
+    idList<PolygonPoint_t*, 5> polygonPoints;
+    idList<Polygon_t*, 5> polygons;
+    idList<NestedPolygon_t*, 5> nestedPolygons;
+    idList<JoinRecord_t*, 5> joins;
+    idList<HorizontalJoinRecord_t*, 5> horizontalJoins;
+    idList<void*, 5> poolAllocations;
+    fillType_t fillTypeSubject;
+    fillType_t fillTypeClip;
+    clipMode_t clipMode;
+    std::uint8_t reserved : 7;
+    std::uint8_t running : 1;
+
+private:
+    void SwapEdgeInAEL(Edge_t* edge1, Edge_t* edge2);
+    void SwapEdgeInSEL(Edge_t* edge1, Edge_t* edge2);
+    void AddEdgeToAEL(Edge_t* edge);
+    void RemoveEdgeFromAEL(Edge_t* edge);
+    static PolygonPoint_t* FindBottom(PolygonPoint_t* point);
+    static bool IsClockwise(const PolygonPoint_t* points);
+    bool IsTopHorizontal(int x) const;
+    bool FixupIntersections();
+    static bool PointInPolygon(const idVec2i& pos,
+        const PolygonPoint_t* point);
+    static int CalculateTopX(const Edge_t* edge, int y);
+    void FixHoleLinkage_r(Polygon_t* polygon);
+    static bool IsPolygonPoint(const idVec2i& pos,
+        const PolygonPoint_t* point);
+    static bool IsContributing(clipMode_t mode, Edge_t* edge);
+    static bool SlopesEqual(Edge_t* edge1, Edge_t* edge2);
+    static bool IsSegmentOverlapping(const idVec2i& p1a,
+        const idVec2i& p1b, const idVec2i& p2a, const idVec2i& p2b,
+        idVec2i& overlap1, idVec2i& overlap2);
+    void SetHoleState(const Edge_t* edge, Polygon_t* polygon);
+    static const Polygon_t* FindBottomPolygon(const Polygon_t* polygon1,
+        const Polygon_t* polygon2);
+    void AppendPolygon(Edge_t* edge1, Edge_t* edge2);
+    void SetWindingCount(Edge_t* edge);
+    void ClearHorizontalJoinRecords();
+    void ClearJoinRecords();
+    void ClearNestedPolygons();
+    void ClearPolygons();
+    void ClearPolygonPoints();
+    static bool EdgeEdgeIntersection(Edge_t* edge1, Edge_t* edge2,
+        idVec2i& pos);
+    void FixupPolygon(Polygon_t* polygon);
+    static bool FindSegment(PolygonPoint_t*& point, idVec2i& p1,
+        idVec2i& p2);
+    Edge_t* AllocEdge();
+    LocalMinima_t* AllocLocalMinima();
+    Scanbeam_t* AllocScanbeam();
+    Polygon_t* AllocPolygon();
+    PolygonPoint_t* AllocPolygonPoint();
+    NestedPolygon_t* AllocNestedPolygon();
+    JoinRecord_t* AllocJoinRecord();
+    HorizontalJoinRecord_t* AllocHorizontalJoinRecord();
+    IntersectNode_t* AllocIntersectNode();
+    void BuildResult();
+    Edge_t* AddBoundToLML(Edge_t* edge);
+    void AddScanbeam(int y);
+    void AddJoinRecord(Edge_t* edge1, Edge_t* edge2,
+        std::int16_t outIndexEdge1, std::int16_t outIndexEdge2);
+    void AddIntersectNode(Edge_t* edge1, Edge_t* edge2,
+        const idVec2i& pos);
+    PolygonPoint_t* AddPolygonPoint(Edge_t* edge1, Edge_t* edge2,
+        const idVec2i& pos);
+    PolygonPoint_t* AddPolygonPoint(Polygon_t* polygon,
+        PolygonPoint_t* before, PolygonPoint_t* after,
+        const idVec2i& pos);
+    void AddLocalMinPolygon(Edge_t* edge1, Edge_t* edge2,
+        const idVec2i& pos);
+    void AddLocalMaxPolygon(Edge_t* edge1, Edge_t* edge2,
+        const idVec2i& pos);
+    void IntersectEdges(Edge_t* edge1, Edge_t* edge2,
+        const idVec2i& pos, intersectProtects_t protects);
+    void Reset();
+    Edge_t* UpdateEdgeInAEL(Edge_t* edge);
+    void ProcessIntersectList();
+    void BuildIntersectList(int yBottom, int yTop);
+    static void GetPolygon(const Polygon_t* polygon,
+        idList<idVec2i, 5>& list);
+    void DoMaxima(Edge_t* edge, Edge_t* maximaPair, int y);
+    void AddLocalMinimaToAEL(int yBottom);
+    void ProcessHorizontal(Edge_t* edge);
+    void JoinEdges();
+    void ProcessHorizontals();
+    void ProcessEdgesAtTopOfScanbeam(int y);
 };

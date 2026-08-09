@@ -1,13 +1,10 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\skeletalanimation\modelhandle.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/handle.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 32575; PDB kind: typedef.
-typedef idHandle<int,enum invalidDecalHandle_t,-1> decalHandle_t;
+enum invalidDecalHandle_t : int;
 
-// IDA Local Type ordinal 33683; PDB kind: typedef.
-typedef unsigned __int16 modelHandleType_t;
+using decalHandle_t = idHandle<int, invalidDecalHandle_t, -1>;
+using modelHandleType_t = std::uint16_t;

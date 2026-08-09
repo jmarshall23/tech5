@@ -1,46 +1,44 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\static\staticmodelmanager.h
-// Recovered logical types: 3
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "models/static/staticmodel.h"
 
-
-// IDA Local Type ordinal 18729; PDB kind: class.
-class idStaticModelManager
-{
+class idStaticModelManager {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 18731.
-  virtual ~idStaticModelManager();
-  virtual void Init();
-  virtual const idStaticModel *FindStaticModel(const char *, bool);
-  virtual void AddStaticModel(idStaticModel *);
-  virtual void ReloadModels();
-  virtual void CalculateStats(idStaticModelManager::idStats *);
+    struct idStats {
+        int totalCPUMem;
+        int totalGPUMem;
+        int inUse;
+        int totalVerts;
+        int totalTriangles;
+        int totalSurfaces;
+    };
 
+    virtual ~idStaticModelManager() = default;
+    virtual void Init() {}
+    virtual const idStaticModel* FindStaticModel(const char*, bool) {
+        return nullptr;
+    }
+    virtual void AddStaticModel(idStaticModel*) {}
+    virtual void ReloadModels() {}
+    virtual void CalculateStats(idStats* stats) {
+        if (stats != nullptr) {
+            *stats = {};
+        }
+    }
 };
 
-// IDA Local Type ordinal 18730; PDB kind: struct.
-struct idStaticModelManager::idStats
-{
-  int totalCPUMem;
-  int totalGPUMem;
-  int inUse;
-  int totalVerts;
-  int totalTriangles;
-  int totalSurfaces;
-};
-
-// IDA Local Type ordinal 23184; PDB kind: class.
-class idStaticModelManagerLocal : public idStaticModelManager
-{
+class idStaticModelManagerLocal : public idStaticModelManager {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 23185.
-  virtual ~idStaticModelManagerLocal();
-  virtual void Init();
-  virtual const idStaticModel *FindStaticModel(const char *, bool);
-  virtual void AddStaticModel(idStaticModel *);
-  virtual void ReloadModels();
-  virtual void CalculateStats(idStaticModelManager::idStats *);
-
+    void Init() override;
+    const idStaticModel* FindStaticModel(const char* name,
+        bool makeDefault) override;
+    void AddStaticModel(idStaticModel* model) override;
+    void ReloadModels() override;
+    void CalculateStats(idStats* stats) override;
 };
+
+extern idStaticModelManagerLocal localModelManager;
+extern idStaticModelManager* staticModelManager;
+
+static_assert(sizeof(idStaticModelManager::idStats) == 24,
+    "Recovered static-model statistics ABI changed");

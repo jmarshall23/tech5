@@ -1,51 +1,74 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\rendermodelchain.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/geometry/jointtransform.h"
+#include "idlib/math/curve.h"
+#include "models/rendermodel.h"
 
-
-// IDA Local Type ordinal 21864; PDB kind: struct.
-struct idRenderModelChain::splinePoint_t
-{
-  idVec3 value;
-  float time;
+template<class type_t>
+class idCurve_NURBS : public idCurve_Spline<type_t> {
 };
 
-// IDA Local Type ordinal 21866; PDB kind: class.
-class __declspec(align(16)) idRenderModelChain : public idRenderModel
-{
+struct chainGenerateInfo_t {
+    bool rotateRandom;
+    bool smoothSkinning;
+    float startRotation;
+};
+
+class alignas(16) idRenderModelChain : public idRenderModel {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21867.
-  virtual void Save(idFile *);
-  virtual bool Load(idFile *);
-  virtual void SerializeSnapshot(idSerializer *, bool);
-  virtual const idDeclSkins *GetSkins();
-  virtual idHandle<int,enum invalidDecalHandle_t,-1> *AddDecalFromPoint(idHandle<int,enum invalidDecalHandle_t,-1> *result, const decalParams_t *, const int, const idVec3 *, const idVec3 *, idIndex<short,enum invalidJointIndex_t>);
-  virtual bool RemoveDecal(const idHandle<int,enum invalidDecalHandle_t,-1>);
-  virtual void RemoveDecals();
-  virtual void FreeSurfaces();
-  virtual bool CommitSubclass();
-  virtual bool UpdateInView(const idRenderView *, const idRenderView *, idRenderModelUpdateTools *);
-  virtual const idList<sourceSurface_t,5> *GetSourceSurfaces();
-  virtual ~idRenderModelChain();
+    struct splinePoint_t {
+        idVec3 value;
+        float time;
+    };
 
-  idJointBuffer jointBuffers[2];
-  idVertexBuffer morphBuffers[2];
-  int currentJointBuffer;
-  int currentMorphBuffer;
-  int numMorphVertices;
-  int numMorphLinkVertices;
-  int numLinks;
-  float linkSize;
-  idList<idJointMat,85> transforms;
-  idList<unsigned char,85> morphMap;
-  idList<idRenderModelChain::splinePoint_t,85> splineSettings;
-  idStr chainLinkModel;
-  const idMaterial *morphMaterial;
-  unsigned __int8 : 6;
-  __int8 updateJointBuffers : 1;
-  __int8 updateMorphBuffers : 1;
-  chainGenerateInfo_t genInfo;
+    using UpdateCallback = bool (*)(idRenderModelChain* model,
+        const idRenderView* currentView, const idRenderView* nextView,
+        idRenderModelUpdateTools* tools);
+
+    idRenderModelChain();
+    ~idRenderModelChain() override = default;
+    static void SetUpdateCallback(UpdateCallback callback);
+    bool UpdateInView(const idRenderView* currentView,
+        const idRenderView* nextView,
+        idRenderModelUpdateTools* tools) override;
+    bool CommitSubclass() override;
+    void Save(idFile* file) override;
+    bool Load(idFile* file) override;
+
+    int GetNumLinks() const;
+    const idJointMat& GetLinkPosition(int link) const;
+    void SetLinkPosition(int link, const idVec3& origin,
+        const idMat3& axis);
+    void SetLinkMorphAmount(int link, float amount);
+    void RemoveSmoothSkinning(int link);
+    void Build(const chainGenerateInfo_t& generateInfo,
+        const idStr& linkModel, const idMaterial* material,
+        const idCurve_NURBS<idVec3>& spline);
+
+    idJointBuffer jointBuffers[2];
+    idVertexBuffer morphBuffers[2];
+    int currentJointBuffer;
+    int currentMorphBuffer;
+    int numMorphVertices;
+    int numMorphLinkVertices;
+    int numLinks;
+    float linkSize;
+    idList<idJointMat, 85> transforms;
+    idList<unsigned char, 85> morphMap;
+    idList<splinePoint_t, 85> splineSettings;
+    idStr chainLinkModel;
+    const idMaterial* morphMaterial;
+    std::uint8_t reserved : 6;
+    std::uint8_t updateJointBuffers : 1;
+    std::uint8_t updateMorphBuffers : 1;
+    chainGenerateInfo_t genInfo;
+
+private:
+    void BuildModel(const idCurve_NURBS<idVec3>& spline);
+    static UpdateCallback updateCallback;
 };
+
+static_assert(sizeof(idRenderModelChain::splinePoint_t) == 16,
+    "Recovered chain spline-point ABI changed");
+static_assert(sizeof(chainGenerateInfo_t) == 8,
+    "Recovered chain generation-info ABI changed");

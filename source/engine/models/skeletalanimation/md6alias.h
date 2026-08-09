@@ -1,25 +1,49 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\skeletalanimation\md6alias.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/list.h"
+#include "idlib/handle.h"
+#include "idlib/text/atomicstring.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 2835; PDB kind: enum.
-enum idMD6Alias::flags_t : __int32
-{
-  ALIASFLAG_FORCE_LOAD = 0x1,
-  ALIASFLAG_IS_LOADED = 0x2,
-  ALIASFLAG_WRITABLE_FLAGS = 0x1,
+enum invalidAliasHandle_t : int;
+enum md6AnimAtomicString_t : int;
+class idDecl;
+class idDeclMD6;
+class idFile_String;
+class idParser;
+
+// The tag is compile-time type separation; storage is the same single atomic
+// string pointer recovered for idAtomicString.
+template<class tag_t>
+class idAtomicStringT : public idAtomicString {
+public:
+    using idAtomicString::idAtomicString;
 };
 
-// IDA Local Type ordinal 13401; PDB kind: class.
-class idMD6Alias
-{
+class idMD6Alias {
 public:
-  idAtomicString name;
-  idHandle<unsigned short,enum invalidAliasHandle_t,65535> aliasHandle;
-  unsigned __int16 flags;
-  idList<idAtomicStringT<enum md6AnimAtomicString_t>,19> animRefs;
+    using AnimLoadCallback = bool (*)(const char* animationName);
+    enum flags_t : std::uint16_t {
+        ALIASFLAG_FORCE_LOAD = 0x1,
+        ALIASFLAG_IS_LOADED = 0x2,
+        ALIASFLAG_WRITABLE_FLAGS = ALIASFLAG_FORCE_LOAD
+    };
+
+    idMD6Alias();
+
+    void Write(const idDecl* decl, idFile_String& file,
+        const char* indent) const;
+    bool IsInherited(const idMD6Alias& other) const;
+    void LoadAnims(const idDeclMD6* decl) const;
+    void Parse(const idDecl* decl, idParser& parser, int& loadErrors);
+    static void SetAnimLoadCallback(AnimLoadCallback callback);
+
+    idAtomicString name;
+    idHandle<unsigned short, invalidAliasHandle_t, 65535> aliasHandle;
+    std::uint16_t flags;
+    idList<idAtomicStringT<md6AnimAtomicString_t>, 19> animRefs;
+
+private:
+    static AnimLoadCallback animLoadCallback;
 };

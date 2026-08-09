@@ -1,49 +1,81 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\models\skeletalanimation\jointgroup.h
-// Recovered logical types: 4
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/list.h"
+#include "idlib/handle.h"
+#include "idlib/index.h"
+#include "idlib/math/vector.h"
+#include "idlib/text/atomicstring.h"
 
+enum invalidJointGroupHandle : int;
+enum invalidJointIndex_t : int;
 
-// IDA Local Type ordinal 1632; PDB kind: enum.
-enum idJointGroup::jointGroup_t : __int32
-{
-  JOINTGROUP_DAMAGE = 0x0,
-  JOINTGROUP_PAIN = 0x1,
-  JOINTGROUP_TWITCH = 0x2,
-  JOINTGROUP_DEATH = 0x3,
-  JOINTGROUP_LIMBLOSS = 0x4,
-  JOINTGROUP_HEADTRACKING = 0x5,
-  JOINTGROUP_FOCUS = 0x6,
-  JOINTGROUP_ORIENTATION = 0x7,
-  JOINTGROUP_HITTEST = 0x8,
-  JOINTGROUP_EYES = 0x9,
-  JOINTGROUP_FEET = 0xA,
-  JOINTGROUP_BOUNDS = 0xB,
-  JOINTGROUP_MAX = 0xC,
-};
+using jointGroupHandle_t = idHandle<int, invalidJointGroupHandle, 0>;
 
-// IDA Local Type ordinal 13370; PDB kind: struct.
-struct __declspec(align(4)) idJointGroup::jointGroupArgs_t
-{
-  int surfType;
-  bool active;
-};
-
-// IDA Local Type ordinal 13372; PDB kind: class.
-class idJointGroup
-{
+class idJointGroup {
 public:
-  idJointGroup::jointGroup_t type;
-  idAtomicString groupName;
-  idList<idIndex<short,enum invalidJointIndex_t>,30> joints;
-  idList<idVec3,30> jointOffsets;
-  idList<float,30> jointScalars;
-  idJointGroup::jointGroupArgs_t args;
-  idVec3 groupOffset;
-  idHandle<int,enum invalidJointGroupHandle,0> handle;
+    enum jointGroup_t : int {
+        JOINTGROUP_DAMAGE = 0,
+        JOINTGROUP_PAIN,
+        JOINTGROUP_TWITCH,
+        JOINTGROUP_DEATH,
+        JOINTGROUP_LIMBLOSS,
+        JOINTGROUP_HEADTRACKING,
+        JOINTGROUP_FOCUS,
+        JOINTGROUP_ORIENTATION,
+        JOINTGROUP_HITTEST,
+        JOINTGROUP_EYES,
+        JOINTGROUP_FEET,
+        JOINTGROUP_BOUNDS,
+        JOINTGROUP_MAX
+    };
+
+    struct jointGroupArgs_t {
+        int surfType;
+        bool active;
+    };
+
+    jointGroup_t type;
+    idAtomicString groupName;
+    idList<idIndex<short, invalidJointIndex_t>, 30> joints;
+    idList<idVec3, 30> jointOffsets;
+    idList<float, 30> jointScalars;
+    jointGroupArgs_t args;
+    idVec3 groupOffset;
+    jointGroupHandle_t handle;
 };
 
-// IDA Local Type ordinal 31142; PDB kind: typedef.
-typedef idHandle<int,enum invalidJointGroupHandle,0> jointGroupHandle_t;
+class idJointGroupCollection {
+public:
+    idJointGroupCollection();
+
+    void Free();
+    const idJointGroup* GetJointGroup(jointGroupHandle_t handle) const;
+    idJointGroup* GetJointGroupForName(idJointGroup::jointGroup_t type,
+        const char* name);
+    const idJointGroup* GetJointGroupForName(
+        idJointGroup::jointGroup_t type, const char* name) const;
+    int GetJointGroupIndex(idJointGroup::jointGroup_t type,
+        const char* name) const;
+    int NumJointGroupsForType(idJointGroup::jointGroup_t type) const;
+    const idJointGroup* GetJointGroupForIndex(
+        idJointGroup::jointGroup_t type, int index) const;
+    const idJointGroup* GetJointGroupForJoint(
+        idJointGroup::jointGroup_t type,
+        idIndex<short, invalidJointIndex_t> joint) const;
+    jointGroupHandle_t GetJointGroupHandle(idJointGroup::jointGroup_t type,
+        idIndex<short, invalidJointIndex_t> joint) const;
+    idJointGroup* AddJointGroup(const char* name,
+        idJointGroup::jointGroup_t type);
+    void Condense();
+
+    idList<idJointGroup, 30> jointGroups;
+    idList<idJointGroup*, 30>
+        jointGroupsByType[idJointGroup::JOINTGROUP_MAX];
+};
+
+static_assert(sizeof(idJointGroup::jointGroupArgs_t) == 8,
+    "Recovered joint-group arguments ABI changed");
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(idJointGroupCollection) == 208,
+    "Recovered joint-group collection ABI changed");
+#endif
