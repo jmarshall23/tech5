@@ -1,17 +1,32 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\physics\aftree.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/list.h"
+#include "idlib/math/vector.h"
 
+class idAFBody;
+class idAFConstraint;
 
-// IDA Local Type ordinal 14606; PDB kind: class.
-class idAFTree
-{
+class idAFTree {
 public:
-  idList<idAFBody *,71> sortedBodies;
+    idAFTree();
+
+    void SortBodies();
+    void SetMaxSubTreeAuxiliaryIndex();
+    void Factor() const;
+    void Solve(int auxiliaryIndex) const;
+    void Response(const idAFConstraint* constraint, int row,
+        int auxiliaryIndex) const;
+    void CalculateForces(float timeStep) const;
+    void DebugDraw(const idVec4& color) const;
+
+    idList<idAFBody*, 71> sortedBodies;
+
+private:
+    void SortBodies_r(idList<idAFBody*, 71>& sortedList,
+        idAFBody* body);
 };
 
-// IDA Local Type ordinal 33695; PDB kind: typedef.
-typedef void (__fastcall *Free_t)(void *);
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAFTree) == 16,
+    "Recovered idAFTree ABI changed");
+#endif

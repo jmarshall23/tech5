@@ -1,24 +1,44 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\gamelib\effects\gamelibeffects.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "gamelib/effects/deferreddecalmanager.h"
+#include "gamelib/effects/effectsmodelmanager.h"
+#include "gamelib/effects/fxmanager.h"
+#include "gamelib/effects/impactmanager.h"
+#include "gamelib/effects/ribbonmanager.h"
+#include "gamelib/effects/weapontracemanager.h"
 
+class idClip;
+class idRenderModelBeam;
+class idRenderModelDecal;
+class idRenderModelEffects;
+class idRenderWorld;
 
-// IDA Local Type ordinal 14163; PDB kind: class.
-class __declspec(align(4)) idGameLibEffects
-{
+class alignas(8) idGameLibEffects {
 public:
-  idRenderModelEffects *effectsModel;
-  idRenderModelDecal *decalModel;
-  idRenderModelBeam *beamModel;
-  idEffectsModelManager effectsModelManager;
-  idDeferredDecalManager deferredDecalManager;
-  idRibbonModelManager ribbonModelManager;
-  idWeaponTraceManager weaponTraceManager;
-  idFXModelRecycler fxModelRecycler;
-  idImpactManager weaponImpactManager;
-  idImpactManager impactManager;
-  bool initialized;
+    idGameLibEffects();
+    ~idGameLibEffects();
+
+    void Init(idRenderWorld* renderWorld, idClip* clip, float diversity,
+        int localPlayerIndex);
+    void Shutdown();
+    bool Update(int currentTime, int gameMsPerFrame, int serverCurrentTime);
+
+    idRenderModelEffects* effectsModel;
+    idRenderModelDecal* decalModel;
+    idRenderModelBeam* beamModel;
+    idEffectsModelManager effectsModelManager;
+    idDeferredDecalManager deferredDecalManager;
+    idRibbonModelManager ribbonModelManager;
+    idWeaponTraceManager weaponTraceManager;
+    idFXModelRecycler fxModelRecycler;
+    idImpactManager weaponImpactManager;
+    idImpactManager impactManager;
+    bool initialized;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idFXModelRecycler) == 2720,
+    "Recovered idFXModelRecycler ABI changed");
+static_assert(sizeof(idGameLibEffects) == 10432,
+    "Recovered idGameLibEffects ABI changed");
+#endif

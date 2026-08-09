@@ -148,6 +148,35 @@ private:
     float* p;
 };
 
+// Fixed six-component spatial vector embedded by articulated-figure bodies
+// and constraints.  Tungsten keeps an eight-float, 16-byte-aligned backing
+// slab so VMX loads can safely read both halves of the six-vector.
+class alignas(16) idStaticSpatialVec : public idSpatialVec {
+public:
+    idStaticSpatialVec()
+        : idSpatialVec()
+        , data{} {
+        SetData(6, data);
+    }
+
+    idStaticSpatialVec(const idStaticSpatialVec& other)
+        : idStaticSpatialVec() {
+        for (int index = 0; index < 6; ++index) data[index] = other.data[index];
+    }
+
+    idStaticSpatialVec& operator=(const idStaticSpatialVec& other) {
+        if (this != &other) {
+            for (int index = 0; index < 6; ++index)
+                data[index] = other.data[index];
+        }
+        return *this;
+    }
+
+    alignas(16) float data[8];
+};
+
 #if INTPTR_MAX == INT32_MAX
 static_assert(sizeof(idSpatialVec) == 8, "Recovered idSpatialVec ABI changed");
+static_assert(sizeof(idStaticSpatialVec) == 48,
+    "Recovered idStaticSpatialVec ABI changed");
 #endif

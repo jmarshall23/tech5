@@ -159,6 +159,8 @@ private:
     static idPhysics* hash[1024];
     static int currentPhysicsId;
 
+protected:
+
     alignas(8) physicsType_t type;
     int physicsId;
     int entityNumber;
