@@ -1,0 +1,51 @@
+
+#ifndef __SCRIPT_DEFS__
+#define __SCRIPT_DEFS__
+
+/*
+===============================================================================
+
+  Defines some common values and expressions used in script.
+	
+===============================================================================
+*/
+
+
+#define BIT( num )			( 1 << ( num ) )
+#define eachFrame			for( 0; 1; waitFrame() )
+#define waitUntil( x )		while( !( x ) ) { waitFrame(); }
+
+#define GAME_FPS			60			// number of game frames per second.  rendering framerate is independent of game frames.
+#define GAME_FRAMETIME		0.016		// 16 milliseconds
+
+#define NULL				0
+
+#define TRUE				1
+#define FALSE				0
+#define true				1
+#define false				0
+
+#define EAST				0
+#define NORTH				90
+#define WEST				180
+#define SOUTH				270
+
+#define X_AXIS				0
+#define Y_AXIS				1
+#define Z_AXIS				2
+						
+#define YAW					0
+#define PITCH				1
+#define ROLL				2
+
+#define M_PI				3.14159265358979323846
+#define DEG2RAD( a )		( (a) * (M_PI / 180.0f ) )
+#define RAD2DEG( a )		( (a) * (180.0f / M_PI ) )
+
+#define ALL_PARTICLES		-1		// used with setSmokeVisibility
+
+#define JOBRESULT_OK			0
+#define JOBRESULT_PLAYER_LEFT	1
+#define JOBRESULT_ERROR			2
+
+#endif

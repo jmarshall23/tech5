@@ -1,0 +1,54 @@
+{
+	inherit outside
+	parms {
+		stageSort	sortCoverage+1
+	}
+	state {
+		depthfunc	GL_LEQUAL
+		twosided
+	}
+	hlsl_fp {
+		#include "includes/vmtr.inc"
+
+		half4 sampleSpecular;
+		half4 sampleYCoCg;
+		half4 sampleNormal;
+		half2 feedbackTexCoord;
+		float4 feedback;
+		half3 surfaceDiffuse;
+		half3 surfaceSpecular;
+		half3 fromViewerN;
+		half3 globalNormal;
+		half4 globalReflection;
+		half4 color;
+
+		FETCH_VMTR_BLEND( sampleSpecular, sampleYCoCg, sampleNormal, feedbackTexCoord, fragment.texcoord1.w );
+		clip( sampleSpecular.w - 0.5 );
+		CALC_VMTR_FEEDBACK( feedback, feedbackTexCoord );
+		CALC_DIFFUSE_RGB( surfaceDiffuse, sampleYCoCg );
+		CALC_SPECULAR_RGB( surfaceSpecular, sampleSpecular, sampleNormal.z );
+		CALC_FROM_VIEWER( fromViewerN, fragment.texcoord4.xyz );
+		CALC_GLOBAL_NORMAL( globalNormal, sampleNormal, fragment.texcoord1.xyz, fragment.texcoord2.xyz, fragment.texcoord3.xyz );
+		CALC_GLOBAL_REFLECTION( globalReflection, globalNormal, fromViewerN );
+
+		half3 diffuse = surfaceDiffuse;
+		half3 specular = surfaceSpecular;
+
+        BRANCH if ( $lightingModel.x > 0 ) {
+			float3 fragmentXYZ;
+			CALC_FRAGMENT_POS( fragmentXYZ, fragment.texcoord4.xyz );
+		    APPLY_LIGHTING_LOCAL( color, diffuse, specular, sampleNormal.x, globalNormal, fragmentXYZ, globalReflection );
+        } else {
+			APPLY_GRAZING( diffuse, specular, globalNormal, fromViewerN );
+			APPLY_SPECULAR_REFLECTION( specular, sampleNormal.x, globalReflection );
+			APPLY_SCALING( diffuse, specular );
+			APPLY_LIGHTING( color, diffuse, specular, globalNormal );
+		}
+		APPLY_HIGHLIGHT( color, fromViewerN, fragment.texcoord1, fragment.texcoord2, fragment.texcoord3 );
+
+		result.color0 = color;
+		result.color1 = feedback;
+
+		OUTPUT_SURFACE_ATTRIBUTES( surfaceDiffuse, surfaceSpecular, sampleNormal.x, globalNormal );
+	}
+}

@@ -1,0 +1,26 @@
+{
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		blend		GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+	}
+	hlsl_vp {
+		float3 normal  = vertex.normal.xyz * 2.0 - 1.0;
+		float4 tangent = vertex.tangent * 2.0 - 1.0;
+		float3 bitangent = cross( normal, tangent.xyz ) * tangent.w;
+
+		float3 r0 = ( normal * $color.x ) + ( tangent.xyz * $color.y ) + ( bitangent * $color.z );
+		result.color.xyz = r0 + 0.5;
+		result.color.w = 0.5;
+
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+	}
+	hlsl_fp {
+		result.color = fragment.color;
+	}
+}

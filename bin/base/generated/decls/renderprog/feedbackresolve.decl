@@ -1,0 +1,25 @@
+{
+	parms {
+	}
+	state {
+		depthfunc	GL_ALWAYS
+		depthmask
+		twosided
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+#if defined( PC ) && !defined( PC_D3D )
+		result.texcoord0 = vertex.texcoord0.xyxy;
+#endif
+	}
+	hlsl_fp {
+#if defined( PC ) && !defined( PC_D3D )
+		// texelFetch requires unnormalized texcoords
+		float2 texcoord = fragment.texcoord0.xy * float2( 1.0 / $positionToViewTexture.z, 1.0 / $positionToViewTexture.w );
+		ivec2 texcoordi = ivec2( texcoord.x, texcoord.y );
+		result.hcolor = texelFetch( $feedbackColorMap, texcoordi.xy, 0 );
+#else
+		result.hcolor = _half4( 0.0 );
+#endif
+	}
+}

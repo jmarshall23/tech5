@@ -1,0 +1,27 @@
+{
+	parms {
+	}
+	state {
+		colormask
+		alphamask
+	}
+	hlsl_vp {
+		#include "includes/vertex.inc"
+		#include "includes/gore.inc"
+
+		float4 texcoord0;
+
+		CALC_TEXCOORDS( texcoord0 );
+		result.texcoord7 = texcoord0 * float4( $woundTexTile.xy, 1.0, 1.0 );
+		CALC_SKINNED_POSITION( result.position );
+		CALC_GORE_CLIP_SPHERES( result.texcoord6 );
+	}
+	hlsl_fp {
+		#include "includes/gore.inc"
+		// look up wound texture with arbitrary tiling value, will need to be a parameter
+		half4 woundMap3 = tex2D( $woundTexture, fragment.texcoord7.xy );
+
+		APPLY_GORE_CLIP_SPHERES( fragment.texcoord6.w, woundMap3 );
+		result.color = _float4( 1.0 );
+	}
+}

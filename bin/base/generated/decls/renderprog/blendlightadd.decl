@@ -1,0 +1,25 @@
+{
+	//inherit blendLight
+	parms {
+		lightColor	lightColor * exposure
+	}
+	state {
+		blend		GL_ONE GL_ONE
+		alphaMask
+		depthMask
+		depthFunc	GL_GREATER
+		stencilFunc	EQUAL 1 255		// only draw on stencil = 1
+		stencilOp	KEEP KEEP KEEP
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+	}
+	hlsl_fp {
+		#include "blendLight_fragment.inc"
+
+		result.color = color * color.w;
+	}
+}

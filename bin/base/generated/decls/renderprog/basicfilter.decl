@@ -1,0 +1,10 @@
+{
+	inherit basicBlend
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		blend	GL_DST_COLOR GL_ZERO
+		depthmask
+	}
+}

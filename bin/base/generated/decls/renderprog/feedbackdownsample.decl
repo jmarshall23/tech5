@@ -1,0 +1,16 @@
+{
+	parms {
+	}
+	state {
+		depthfunc	GL_ALWAYS
+		depthmask
+		twosided
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+	}
+	hlsl_fp {
+		float2 texcoord = screenPosToTexcoord( fragment.position.xy, $positionToViewTexture );
+		result.hcolor = h4tex2D( $viewColorMap, texcoord.xy );
+	}
+}

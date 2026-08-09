@@ -1,0 +1,25 @@
+{
+	parms {
+		stageSort			sortTrans
+	}
+	state {
+		blend		GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		depthmask
+		alphamask
+		depthfunc	GL_ALWAYS
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		float2 tc = vertex.texcoord0.xy * $particleStScaleBias.x + $particleStScaleBias.y;
+		result.texcoord0 = tc.xyxy;
+
+		result.color = swizzleColor( vertex.color ) * $color;
+	}
+	hlsl_fp {
+		result.color = tex2D( $transMap, fragment.texcoord0.xy ) * fragment.color;
+	}
+}

@@ -1,0 +1,53 @@
+{
+	inherit basicSoftBlend
+	parms {
+		stageSort		sortTrans
+		alphaScale.y	1.0 / alphaScale.x
+	}
+	state {
+		blend	GL_ZERO GL_ONE_MINUS_SRC_COLOR
+		depthmask
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		result.texcoord0.x = dot4( vertex.texcoord0, $sMatrix );
+		result.texcoord0.y = dot4( vertex.texcoord0, $tMatrix );
+		result.texcoord0.zw = _float2( 0.0 );
+		// result.texcoord0.w = -( clamp( result.position.w - $fogStart.x, 0.0, $fogEnd.x ) * $fogScale.x );
+
+	   	// Fade particle based on distance to near clip
+		float fade = saturate( abs( result.position.w ) * $particleFade.x );
+		result.color = $color;
+		result.color.w *= fade;
+
+#ifdef XBOX
+		result.texcoord1 = result.position;
+#endif
+	}
+	hlsl_fp {
+		// Blend in edge fading and shadow contribution from vertex color
+		float4 r0 = tex2D( $transMap, fragment.texcoord0.xy ) * fragment.color;
+		result.color = r0 * r0.w;
+	}
+   hlsl_fp {
+#ifdef XBOX
+		float interpolatedZOverW = fragment.texcoord1.z / fragment.texcoord1.w;
+#else
+		float interpolatedZOverW = fragment.position.z;
+#endif
+		float2 tc = screenPosToTexcoord( fragment.position.xy, $renderPositionToViewTexture );
+		float scale = ComputeSoftParticleScale( $viewDepthMap, tc, interpolatedZOverW, $alphaScale.y );
+		half4 final = tex2D( $transMap, fragment.texcoord0.xy ) * fragment.color;
+		final *= fragment.color.w;
+
+		// Apply global fog
+		//half fog = saturate( exp2( fragment.texcoord0.w ) );
+		//final.xyz = lerp( $fogColor.xyz, final.xyz, fog );
+		result.color = final;
+		result.color *= scale;
+	}
+}

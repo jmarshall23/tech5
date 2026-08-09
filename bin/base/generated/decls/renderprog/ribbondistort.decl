@@ -1,0 +1,52 @@
+{
+	parms {
+		stageSort	sortPerturber
+	}
+	state {
+		depthMask
+		depthfunc	GL_LEQUAL
+		blend		GL_ONE_MINUS_DST_ALPHA GL_DST_ALPHA
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		float4 worldPosition;
+		worldPosition.x = dot4( vertex.position, $modelMatrixX );
+		worldPosition.y = dot4( vertex.position, $modelMatrixY );
+		worldPosition.z = dot4( vertex.position, $modelMatrixZ );
+		worldPosition.w = dot4( vertex.position, $modelMatrixW );
+		
+		float eyeDistance = abs( dot4( worldPosition, $viewMatrixZ ) );
+		float nearFade = saturate( ( eyeDistance - $distortionFade.x ) / ( $distortionFade.y - $distortionFade.x ) );
+		float farFade = saturate( ( eyeDistance - $distortionFade.z ) / ( $distortionFade.w - $distortionFade.z ) );
+		float fade = nearFade * ( 1.0 - farFade );
+		
+		result.texcoord0.x = dot4( vertex.texcoord0, $sMatrix );
+		result.texcoord0.y = dot4( vertex.texcoord0, $tMatrix );
+		result.texcoord0.z = fade;
+		result.texcoord0.w = -( clamp( result.position.w - $fogStart.x, 0.0, $fogEnd.x ) * $fogScale.x );
+
+		float4 color = swizzleColor( vertex.color ) * $color;
+
+		result.color = color;
+	}
+	hlsl_fp {
+		// Sample normal map
+		float4 texel = tex2D( $distortionMap, fragment.texcoord0.xy );
+		
+		float blur = texel.z * fragment.color.w * fragment.texcoord0.z;
+		float mask = texel.w * fragment.color.w * fragment.texcoord0.z;
+
+		// Convert from [0,1] to [-1,1]
+		float2  distortion = ( texel.xy * _float2( 2.0 ) ) - _float2( 1.0 );
+
+		// Scale normals by globals multiplied with color
+		distortion *= $distortionScale.xy * fragment.color.xy * _float2( mask );
+		
+		// Compute and store distortion normals
+		result.color = ComputeDistortion( distortion, blur );
+	}
+}

@@ -1,0 +1,9 @@
+{
+	inherit softParticleBlend
+	hlsl_vp {
+		#include "softparticle_vp.inc"
+		
+		result.color.xyz = vertColor.xyz * $color.xyz * $exposure.xyz;
+		result.color.w = ( vertColor.w * $color.w * 4.0 ) * fade;
+	}
+}

@@ -1,0 +1,23 @@
+{
+	state {
+		depthFunc GL_ALWAYS
+		twosided
+	}
+	hlsl_vp {
+		float4 pos = vertex.position;
+		float3 normal = vertex.normal.xyz * 2.0 - 1.0;
+		if ( dot3( normal, $dimShadowExtrude ) > 0.0 ) {
+			float dist = dot4( pos, $dimShadowClipPlane );
+			float closing = dot3( $dimShadowExtrude.xyz, $dimShadowClipPlane.xyz );
+			pos.xyz -= $dimShadowExtrude.xyz * ( dist / closing );
+		}
+
+		result.position.x = dot4( pos, $mvpMatrixX );
+		result.position.y = dot4( pos, $mvpMatrixY );
+		result.position.z = dot4( pos, $mvpMatrixZ );
+		result.position.w = dot4( pos, $mvpMatrixW );
+	}
+	hlsl_fp {
+		result.color = float4( 0.8, 0.1, 0.8, 0.0 );
+	}
+}

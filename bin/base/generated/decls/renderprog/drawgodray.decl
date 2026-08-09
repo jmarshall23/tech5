@@ -1,0 +1,23 @@
+{
+	state {
+		blend		GL_ONE GL_ONE
+		depthfunc	GL_ALWAYS
+		depthmask
+		twosided
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+		result.texcoord0.xy = vertex.texcoord0.xy;
+
+#ifdef XBOX
+		result.texcoord0.y = 1 - result.texcoord0.y;
+#endif
+	}
+	hlsl_fp {
+#ifdef PS3
+		result.hcolor = float4( 0, 0, 0, 0 );
+#else
+		result.hcolor = h4tex2D( $postDistortionMap, fragment.texcoord0.xy );
+#endif
+	}
+}

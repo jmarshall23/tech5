@@ -1,0 +1,32 @@
+{
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		depthmask
+		blend GL_ZERO GL_ONE_MINUS_SRC_COLOR
+		depthfunc GL_ALWAYS
+		twosided
+		alphamask
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+		result.texcoord0 = float4( vertex.texcoord0.x, vertex.texcoord0.y, 0, 0 );
+		result.color = swizzleColor( vertex.color );
+	}
+	hlsl_fp {
+		float alphaRamp = clamp( $alphaScale.x * fragment.color.w, 0.0f, 1.0f );
+		
+		float overlayMap = tex2D( $transMap, fragment.texcoord0.xy ).w;
+		float overlayColor = overlayMap * alphaRamp;
+
+		// clip pixels
+		clip( overlayColor < 0.005f ? -1:1 );
+
+		result.color.xyz = _float3( overlayColor );
+		result.color.w = 1.0;
+	}
+}

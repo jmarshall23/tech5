@@ -1,0 +1,22 @@
+{
+	parms {
+		stageSort	sortCoverage
+	}
+	hlsl_vp {
+		// Convert back from 16 bit vertex elements.
+		float4 position = vertex.position * $vertexXYZScale + $vertexXYZBias;
+
+		result.position.x = dot4( position, $mvpMatrixX );
+		result.position.y = dot4( position, $mvpMatrixY );
+		result.position.z = dot4( position, $mvpMatrixZ );
+		result.position.w = dot4( position, $mvpMatrixW );
+
+		// Convert back from 16 bit vertex elements.
+		result.texcoord0.xy = vertex.texcoord0 * $vertexStScaleBias.xy + $vertexStScaleBias.zw;
+		result.texcoord0.zw = _float2( 0.0 );
+	}
+	hlsl_fp {
+		result.color0 = tex2D( $textureMap, fragment.texcoord0.xy );
+		result.color1 = _float4( 0.0 );
+	}
+}

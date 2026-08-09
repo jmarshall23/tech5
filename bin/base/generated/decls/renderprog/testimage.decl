@@ -1,0 +1,41 @@
+{
+	parms {
+		stageSort	sortCoverage
+	}
+	state {
+		depthfunc	GL_ALWAYS
+		depthmask
+		blend		GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX ) * $testImageFlip.x;
+		result.position.y = dot4( vertex.position, $mvpMatrixY ) * $testImageFlip.y;
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		result.texcoord0.xy = vertex.texcoord0.xy;
+		result.texcoord0.zw = _float2( 0.0 );
+	}
+	hlsl_fp {
+		float4 tc;
+		tc.xyz = fragment.texcoord0.xyz;
+		tc.w = $testImageLOD.x;
+
+		result.color = tex2Dlod( $textureMap, tc );
+		result.color.w = $testImageAlpha.x;
+/*
+		result.color = _float4( tex2Ddepth_fast( $textureMap, fragment.texcoord0.xy ) );
+		result.color.w = 1.0;
+*/
+/*
+		half4 YCoCg = tex2Dlod( $textureMap, tc );
+		YCoCg.z = ( YCoCg.z * 31.875 ) + 1.0;			//YCoCg.z = z * 255.0/8.0 + 1.0
+		YCoCg.z = 1.0 / YCoCg.z;
+		YCoCg.xy *= YCoCg.z;
+		result.color.x = dot4( YCoCg, matrixCoCg1YtoRGB1X );
+		result.color.y = dot4( YCoCg, matrixCoCg1YtoRGB1Y );
+		result.color.z = dot4( YCoCg, matrixCoCg1YtoRGB1Z );
+		result.color.w = 1.0;
+*/
+	}
+}

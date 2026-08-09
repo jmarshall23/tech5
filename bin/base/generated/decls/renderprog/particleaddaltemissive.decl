@@ -1,0 +1,22 @@
+{
+	inherit particleAddAlt
+	parms {
+		stageSort	sortEmitOnly
+		exposure	exposure * glarePreScale
+	}
+	state {
+		blend		GL_ONE GL_ONE
+		depthmask
+	}
+
+	hlsl_fp {
+		#define PARTICLE_FP_ALT
+		#include "particle_fp.inc"
+
+		// additive, so the fog is just a modulate instead of a blend
+		color.xyz *= fogVal;
+
+		result.color.xyz = ( color.xyz * fragment.color.xyz ) * fragment.color.w;
+		result.color.w = 1.0;
+	}
+}

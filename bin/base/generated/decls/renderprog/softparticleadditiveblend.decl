@@ -1,0 +1,26 @@
+{
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		blend		GL_SRC_ALPHA GL_ONE
+		depthmask
+	}
+	hlsl_vp {
+		#include "softparticle_vp.inc"
+
+		result.color = vertColor * $exposure;
+		result.color.w *= fade;
+	}
+	hlsl_fp {
+		#include "softparticle_fp.inc"
+
+		color *= fragment.color;
+
+		// additive, so the global fog is just a modulate instead of a blend
+		color.xyz *= fogVal;
+
+		result.color.xyz = color.xyz;
+		result.color.w = color.w * scale;
+	}
+}

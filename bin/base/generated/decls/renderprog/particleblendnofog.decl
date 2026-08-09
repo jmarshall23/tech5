@@ -1,0 +1,7 @@
+{
+	inherit particleBlend
+	hlsl_fp {
+		#include "particle_fp.inc"
+		result.color = color * fragment.color;
+	}
+}

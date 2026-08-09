@@ -1,0 +1,33 @@
+{
+	parms {
+#ifdef PS3
+		projectionMatrixZ.z		projectionMatrixZ.z * 0.5 - 0.5
+#endif
+	}
+	state {
+		depthfunc	GL_ALWAYS
+		depthmask
+		alphamask
+		twosided
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+	}
+	hlsl_fp {
+		float2 tc = screenPosToTexcoord( fragment.position.xy, $renderPositionToViewTexture );
+
+		float depth = tex2Ddepth( $spare1Map, tc );
+
+#if defined( PS3 )
+		float clipZ = ( depth - 0.5 ) * $projectionMatrixZ.w / ( depth + $projectionMatrixZ.z );
+#elif defined( XBOX )
+		float clipZ = -( $projectionMatrixZ.w / ( -depth - $projectionMatrixZ.z ) ) * depth;
+#else
+		depth = depth * 2.0 - 1.0;
+		float clipZ = -( $projectionMatrixZ.w / ( -depth - $projectionMatrixZ.z ) ) * depth;
+#endif
+
+		result.color = _float4( clipZ / 1000.0 );
+		//result.color = depth;
+	}
+}

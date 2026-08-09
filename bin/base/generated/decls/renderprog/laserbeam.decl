@@ -1,0 +1,34 @@
+{
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		blend	GL_ONE GL_ONE
+		depthmask
+		depthfunc GL_LEQUAL
+	}
+	hlsl_vp {
+		#include "skinning.inc"
+		result.position.x = dot4( position, $mvpMatrixX );
+		result.position.y = dot4( position, $mvpMatrixY );
+		result.position.z = dot4( position, $mvpMatrixZ );
+		result.position.w = dot4( position, $mvpMatrixW );
+
+		result.texcoord0.x = dot4( vertex.texcoord0, $sMatrix );
+		result.texcoord0.y = dot4( vertex.texcoord0, $tMatrix );
+		result.texcoord0.zw = _float2( 0.0 );
+
+		result.texcoord1.xyz = vertex.position.xyz;
+	}
+	hlsl_fp {
+
+		float2 tc = screenPosToTexcoord( fragment.position.xy, $positionToViewTexture );
+		float worldNoiseMap = tex2D( $transmap2, fragment.texcoord1.xy * 0.002 + ( $time.x * 0.025 ) + ( fragment.texcoord1.z * 0.002 )  ).x;
+
+		float2 rampCoords = tex2D( $transMap, fragment.texcoord0.xy ).xy;
+		float3 finalColor = tex2D( $transMap1, rampCoords *  saturate((worldNoiseMap + 0.1 )) ).xyz;
+
+		result.color.xyz = finalColor;
+		result.color.w = 1.0;
+	}
+}

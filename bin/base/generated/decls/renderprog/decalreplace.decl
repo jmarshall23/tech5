@@ -1,0 +1,24 @@
+{
+	inherit decalBlend
+	parms {
+		stageSort	sortDecal
+	}
+	state {
+		blend		GL_ONE GL_ZERO
+		depthfunc	GL_GREATER
+		alphamask
+		depthmask
+		backSided
+	}
+	hlsl_fp {
+		#include "decalMerged_fragment.inc"
+
+		half4 final = tex2D( $transMap, texcoord );
+		final.w *= fragment.color.w;			// fade based on time
+		final.w *= edgefade;					// apply edge fade
+
+		final.xyz = lerp( $fogColor.xyz, final.xyz, fog );
+		result.color.xyz = final.xyz * final.w;
+		result.color.w = final.w;
+	}
+}

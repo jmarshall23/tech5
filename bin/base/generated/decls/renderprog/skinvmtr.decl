@@ -1,0 +1,90 @@
+{
+	parms {
+		stageSort	sortCoverage
+	}
+	state {
+		depthfunc	GL_LEQUAL
+	}
+	hlsl_vp {
+		#include "includes/vertex.inc"
+
+		// pw-note: We must frac final texture coordinates in vertex program before applying skin offset in case we have any wrapping coordinates.
+		//			In the fragment program we then do custom vmtr fetch where we skip the default fractioning of the texture coordinates since we can
+		//			garuantee we don't wrap over into any unmapped space and still get virtual mapped non-generic materials to work properly with skin blending.
+		//CALC_TEXCOORDS_BLEND( result.texcoord0 );
+		result.texcoord0 = frac( vertex.texcoord0.xyxy * $vertexStScaleBias.xyxy + $vertexStScaleBias.zwzw ) + skinOffsets.xyzw;
+		
+		float4 position;
+		float4 normal;
+		float4 tangent;
+		float3 worldPosition;
+		CALC_PNT( position, normal, tangent );
+		CALC_SKINNED_POSITION_NORMALS( result.position, result.texcoord1, result.texcoord2, result.texcoord3, result.texcoord4, position, normal, tangent, worldPosition );
+		
+		result.texcoord5.xy = vertex.texcoord0.xy * $vertexStScaleBias.xy + $vertexStScaleBias.zw;
+	}
+	hlsl_fp {
+		#define VMTR_TEXCOORD_SKIP_FRAC
+		#include "includes/vmtr.inc"
+		
+		half4 sampleSpecular;
+		half4 sampleYCoCg;
+		half4 sampleSpecularNormal;
+		half2 feedbackTexCoord;
+		half3 surfaceDiffuse;		
+		half3 surfaceSpecular;
+		half3 globalDiffuseNormal;
+		half3 globalSpecularNormal;
+		half3 fromViewerN;
+		half4 globalReflection;
+		half4 color;
+		float4 feedback;
+		
+		//FETCH_VMTR( sampleSpecular, sampleYCoCg, sampleSpecularNormal, feedbackTexCoord );
+		FETCH_VMTR_BLEND( sampleSpecular, sampleYCoCg, sampleSpecularNormal, feedbackTexCoord, fragment.htexcoord1.w );
+		
+		// ------- custom textures -------
+		
+		// Fetch none virtual material texture coordinate
+		float2 texCoord2 = fragment.texcoord5.xy;
+		
+		// Sample diffuse normal and ambient occlusion from none virtual materials
+		half4 sampleDiffuseNormal = tex2D( $spareBumpMap, texCoord2 );
+		half sampleAmbientOcclusion = tex2D( $transMap, texCoord2 ).g;
+		
+		// -------------------------------
+		
+		CALC_VMTR_FEEDBACK( feedback, feedbackTexCoord );
+		CALC_DIFFUSE_RGB( surfaceDiffuse, sampleYCoCg );
+		CALC_SPECULAR_RGB( surfaceSpecular, sampleSpecular, sampleSpecularNormal.z );
+		CALC_GLOBAL_NORMAL( globalDiffuseNormal, sampleDiffuseNormal, fragment.htexcoord1.xyz, fragment.htexcoord2.xyz, fragment.htexcoord3.xyz );
+		CALC_FROM_VIEWER( fromViewerN, fragment.htexcoord4.xyz );
+		CALC_GLOBAL_NORMAL( globalSpecularNormal, sampleSpecularNormal, fragment.htexcoord1.xyz, fragment.htexcoord2.xyz, fragment.htexcoord3.xyz );
+		CALC_GLOBAL_REFLECTION( globalReflection, globalSpecularNormal, fromViewerN );
+		
+		half3 diffuse = surfaceDiffuse;
+		half3 specular = surfaceSpecular;
+		
+        BRANCH if ( $lightingModel.x > 0 ) {
+			float3 fragmentXYZ;
+			CALC_FRAGMENT_POS( fragmentXYZ, fragment.htexcoord4.xyz );
+		    APPLY_LIGHTING_LOCAL( color, diffuse, specular, sampleSpecularNormal.x, globalSpecularNormal, fragmentXYZ, globalReflection );
+		} else {
+			APPLY_GRAZINGS( diffuse, globalDiffuseNormal, specular, globalSpecularNormal, fromViewerN );
+			APPLY_SPECULAR_REFLECTION( specular, sampleSpecularNormal.x, globalReflection );
+			APPLY_SCALING( diffuse, specular );
+		
+			APPLY_LIGHTING_SKIN( color, diffuse, specular, sampleAmbientOcclusion, globalDiffuseNormal, globalReflection);
+		}
+		APPLY_HIGHLIGHT( color, fromViewerN, fragment.htexcoord1, fragment.htexcoord2, fragment.htexcoord3 );
+		
+		//color.xyz *= _half3( 0.00001 );
+		//color.xyz += _half3( fragment.htexcoord1.w );
+		
+		// Output
+		result.color0 = color;
+		result.color1 = feedback;
+		
+		OUTPUT_SURFACE_ATTRIBUTES( surfaceDiffuse, surfaceSpecular, sampleSpecularNormal.x, globalSpecularNormal );
+	}
+}

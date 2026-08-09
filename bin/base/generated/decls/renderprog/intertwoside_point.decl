@@ -1,0 +1,9 @@
+{
+   inherit interBasic_point
+	state {
+		twosided
+		depthfunc	GL_EQUAL
+		depthMask
+		blend		GL_ONE GL_ONE
+	}
+}

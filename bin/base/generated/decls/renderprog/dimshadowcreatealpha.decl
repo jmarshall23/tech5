@@ -1,0 +1,29 @@
+{
+	parms {
+	}
+	state {
+		colormask
+		alphamask
+	}
+	hlsl_vp {
+		#include "includes/vertex.inc"
+
+		CALC_TEXCOORDS( result.texcoord0 );
+		CALC_SKINNED_POSITION( result.position );
+	}
+	hlsl_fp {
+		float2 texcoord = fragment.texcoord0.xy;
+		BRANCH if ( $useVirtualMapping.x > 0.0 ) {
+			// this is basically only for non pre-lit levels, and shouldn't be used often.
+			// this doesn't attempt to get the derivative correct at the frac crossing point
+			texcoord = frac( texcoord ) * $virtualMapping.xy + $virtualMapping.zw;
+		}
+
+		float3 physCoord = VmtrVirtualToPhysical( texcoord );
+
+		// coverMap is stored in specularPages.w
+		float cover = texPhys( $physicalVmtrPagesMap0, physCoord.xy ).w;
+		clip( cover - 0.5 );
+		result.color = _float4( 1.0 );
+	}
+}

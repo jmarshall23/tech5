@@ -1,0 +1,35 @@
+{
+	parms {
+		stageSort	sortTrans
+		autoSpriteType	2
+		discrete		1
+
+		localViewOrigin.x	dot4( globalViewOrigin, inverseModelMatrixX )
+		localViewOrigin.y	dot4( globalViewOrigin, inverseModelMatrixY )
+		localViewOrigin.z	dot4( globalViewOrigin, inverseModelMatrixZ )
+		localViewOrigin.w	dot4( globalViewOrigin, inverseModelMatrixW )
+	}
+	state {
+		depthmask
+		alphamask
+		twosided
+	}
+	hlsl_vp {
+		#include "includes/autosprite.inc"
+
+		half4 col = swizzleColor( vertex.color );
+
+		float4 position;
+		CALC_POSITION_AUTOSPRITE2( position.xyz, $localViewOrigin.xyz, vertex.position.xyz, vertex.normal.xyz, vertex.normal.w, col.x );
+		position.w = vertex.position.w;
+
+		result.position.x = dot4( position, $mvpMatrixX );
+		result.position.y = dot4( position, $mvpMatrixY );
+		result.position.z = dot4( position, $mvpMatrixZ );
+		result.position.w = dot4( position, $mvpMatrixW );
+		result.color = $color;
+	}
+	hlsl_fp {
+		result.color = fragment.color;
+	}
+}

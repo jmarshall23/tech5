@@ -1,0 +1,12 @@
+{
+	inherit particleAdd
+	parms {
+		stageSort	sortEmitOnly
+		exposure	exposure * glarePreScale
+	}
+	state {
+		blend		GL_ONE GL_ONE
+		twosided
+		depthmask
+	}
+}

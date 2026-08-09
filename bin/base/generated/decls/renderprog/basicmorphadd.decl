@@ -1,0 +1,28 @@
+{
+	inherit basicBlend
+	parms {
+		stageSort	sortEmit
+	}
+	state {
+		blend	GL_ONE GL_ONE
+		depthmask
+	}
+	hlsl_vp {
+		#include "includes/vertex.inc"
+		
+		float4 localPosition;
+		float4 texcoord;
+
+		CALC_SKINNED_POSITIONS( localPosition, result.position );
+		CALC_TEXCOORDS( texcoord );
+		
+		// Multiply with texture matrix
+		result.texcoord0.x = dot4( texcoord.xy, $sMatrix );
+		result.texcoord0.y = dot4( texcoord.xy, $tMatrix );
+		result.texcoord0.zw = _float2( 0.0 );
+		
+		// Multiply color with morph scale
+		result.color = $color;
+		result.color.xyz *= vertex.morph.w;
+	}
+}

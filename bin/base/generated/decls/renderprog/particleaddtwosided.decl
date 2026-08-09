@@ -1,0 +1,11 @@
+{
+	inherit particleAdd
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		blend		GL_ONE GL_ONE
+				twosided
+		depthmask
+	}
+}

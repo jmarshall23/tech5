@@ -1,0 +1,36 @@
+{
+	parms {
+		stageSort			sortTrans
+		//*x Specular Scale
+		//*z Step Threshold
+		//*w Step Value			
+	}
+	state {
+		blend	GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		depthmask
+		twosided
+	}
+	hlsl_vp {
+		#include "particle_vp.inc"
+
+		result.color = vertColor;
+		result.color.xyz *= $exposure.xyz;
+
+		result.texcoord3 = vertex.normal;
+	}
+	hlsl_fp {
+		#include "particle_fp.inc"
+
+		half3 final = color.x * fragment.color.xyz;
+
+		final += color.z * fragment.texcoord3.x * 2; //add spec to base color;
+
+		// apply global fog
+		final.xyz = lerp( $fogColor.xyz, final.xyz, fogVal );
+
+		float alphaStep = smoothstep( fragment.texcoord3.w, fragment.texcoord3.w + fragment.texcoord3.z, color.w );
+
+		result.color.xyz = final;
+		result.color.w = alphaStep * fragment.color.w;
+	}
+}

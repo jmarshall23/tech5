@@ -1,0 +1,11 @@
+{
+	inherit interSkin
+	hlsl_fp {
+		#include "includes/interaction.inc"
+		#include "includes/wrinklemap.inc"
+		
+		#define INTERWRINKLE
+		float shadow = 1.0;
+		INTERACTION_FRAGMENT_SKIN( shadow );
+	}
+}

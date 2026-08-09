@@ -1,0 +1,45 @@
+{
+	parms {
+		stageSort	sortDecal
+	}
+	state {
+		blend		GL_SRC_ALPHA	GL_ONE_MINUS_SRC_ALPHA
+		depthfunc	GL_LEQUAL
+		alphamask
+		depthmask
+		twosided
+	}
+	hlsl_vp {
+
+		float4 temp = swizzleColor( vertex.color );
+
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		float2 scaleBiasX;
+		scaleBiasX.x = floor( vertex.texcoord0.x / $transSortAtlasDim.x );
+		scaleBiasX.y = vertex.texcoord0.x - ( scaleBiasX.x * $transSortAtlasDim.x );
+
+		float2 scaleBiasY;
+		scaleBiasY.x = floor( vertex.texcoord0.y / $transSortAtlasDim.y );
+		scaleBiasY.y = vertex.texcoord0.y - ( scaleBiasY.x * $transSortAtlasDim.y );
+
+		result.texcoord0.xy = scaleBiasX / $transSortAtlasDim.x;
+		result.texcoord0.zw = scaleBiasY / $transSortAtlasDim.y;
+
+		result.texcoord1.xy = temp.xy;
+		result.texcoord1.z = 0.0;
+		result.texcoord1.w = -( clamp( result.position.w - $fogStart.x, 0.0, $fogEnd.x ) * $fogScale.x );
+
+		result.color = float4( 1.0, 1.0, 1.0, temp.w );
+	}
+	hlsl_fp {
+		#include "decalQuadMerged_fragment.inc"
+
+		final.xyz = lerp( $fogColor.xyz, final.xyz, fog );
+		result.color.xyz = final.xyz * final.w;
+		result.color.w = final.w;
+	}
+}

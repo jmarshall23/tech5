@@ -1,0 +1,57 @@
+{
+	parms {
+		stageSort				sortCoverage
+	}
+	state {
+		depthfunc GL_LEQUAL
+		depthmask
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		// texture 0 takes the base coordinates
+		result.texcoord0.xy = vertex.texcoord0.xy;
+		result.texcoord0.z = -( clamp( result.position.w - $fogStart.x, 0.0, $fogEnd.x ) * $fogScale.x );
+		result.texcoord0.w = 0.0;
+
+		result.color = swizzleColor( vertex.color );
+	}
+	hlsl_fp {
+		#include "includes/vmtr.inc"
+
+		half4 sampleSpecular;
+		half4 sampleYCoCg;
+		half4 sampleNormal;
+		half2 feedbackTexCoord;
+		float4 feedback;
+		half3 surfaceDiffuse;
+
+		FETCH_VMTR( sampleSpecular, sampleYCoCg, sampleNormal, feedbackTexCoord );
+		CALC_VMTR_FEEDBACK( feedback, feedbackTexCoord );
+		CALC_DIFFUSE_RGB( surfaceDiffuse, sampleYCoCg );
+
+		// FIXME: dimshadow contribution
+		float shadow = 1.0;
+
+		//---------------------------------------------------------------
+		// sum everything up
+		//---------------------------------------------------------------
+
+		// automatically scale newDiffuseScale by 2.0 to match the baked-in behavior
+
+		half3 color = ( surfaceDiffuse * $newDiffuseScale.xyz * 2.0 ) * fragment.color.xyz;
+
+		// calculate fog term
+		float fog = saturate( exp2( fragment.texcoord0.z ) );
+
+		// lerp towards the fog color by the fog factor
+		result.color0.xyz = lerp( $fogColor.xyz, color.xyz, fog );
+		result.color0.w = sampleSpecular.w;
+		result.color1 = feedback;
+
+		OUTPUT_SURFACE_ATTRIBUTES( surfaceDiffuse, _float3( 0.0 ), 0.0, _float3( 0.0 ) );
+	}
+}

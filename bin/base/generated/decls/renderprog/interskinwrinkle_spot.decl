@@ -1,0 +1,21 @@
+{
+	inherit interSkin_spot
+	hlsl_fp {
+		#include "includes/interaction.inc"
+		#include "includes/wrinklemap.inc"
+		
+		#define INTERWRINKLE
+				
+		#ifdef PC
+			#include "includes/shadow.inc"
+	
+			float shadow;
+			SAMPLE_SPOT_LIGHT_SHADOW( shadow, fragment.texcoord5 );
+
+		#else
+			float shadow = 1.0;
+		#endif
+		
+		INTERACTION_FRAGMENT_SKIN( shadow );
+	}
+}

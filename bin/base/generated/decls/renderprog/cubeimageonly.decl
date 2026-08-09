@@ -1,0 +1,19 @@
+{
+	parms {
+		stageSort	sortCoverage
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+		result.texcoord0 = vertex.normal * 2.0 - 1.0;
+	}
+	hlsl_fp {
+		float4 tc;
+		tc.xyz = fragment.texcoord0.xyz;
+		tc.w = $testEnvLOD.x;
+
+		result.color = texCUBElod( $envMap, tc );
+	}
+}

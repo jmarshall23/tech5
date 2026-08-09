@@ -1,0 +1,17 @@
+{
+	parms {
+		stageSort	sortCoverage
+	}
+	state {
+		alphamask
+		colormask
+	}
+	hlsl_vp {
+		#include "includes/vertex.inc"
+
+		CALC_POSITION( result.position );
+	}
+	hlsl_fp {
+		result.color = _float4( 0.0 );
+	}
+}

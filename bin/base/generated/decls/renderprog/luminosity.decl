@@ -1,0 +1,40 @@
+{
+	parms {
+	}
+	state {
+		depthfunc	GL_ALWAYS
+		depthmask		
+		twosided
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+	}
+	hlsl_fp {
+		#include "includes/luminance.inc"
+
+		float4 tc = float4( 0.5, -0.5, 0.0, 10.0 );
+
+		half3 total;
+		total  = tex2Dlod( $viewColorMap, tc - float4( 0.5, 0.0, 0.0, 0.0 ) ).xyz;
+		total += tex2Dlod( $viewColorMap, tc + float4( 0.0, 0.0, 0.0, 0.0 ) ).xyz;
+		total += tex2Dlod( $viewColorMap, tc + float4( 0.5, 0.0, 0.0, 0.0 ) ).xyz;
+		tc.y += 0.5;
+		total += tex2Dlod( $viewColorMap, tc - float4( 0.5, 0.0, 0.0, 0.0 ) ).xyz;
+		total += tex2Dlod( $viewColorMap, tc + float4( 0.0, 0.0, 0.0, 0.0 ) ).xyz;
+		total += tex2Dlod( $viewColorMap, tc + float4( 0.5, 0.0, 0.0, 0.0 ) ).xyz;
+		tc.y += 0.5;
+		total += tex2Dlod( $viewColorMap, tc - float4( 0.5, 0.0, 0.0, 0.0 ) ).xyz;
+		total += tex2Dlod( $viewColorMap, tc + float4( 0.0, 0.0, 0.0, 0.0 ) ).xyz;
+		total += tex2Dlod( $viewColorMap, tc + float4( 0.5, 0.0, 0.0, 0.0 ) ).xyz;
+
+		total *= ( 1.0 / 9.0 );
+
+		float newLuminance;
+		Luminance_BT601( newLuminance, total );
+		float oldLuminance = tex2D( $adaptiveLuminance, float2( 0.5, 0.5 ) ).x;
+
+		const float decay = $adaptiveGlareParms.w;
+		result.color.xyz = _float3( oldLuminance + ( newLuminance - oldLuminance ) * decay );
+		result.color.w = 1.0;
+	}
+}

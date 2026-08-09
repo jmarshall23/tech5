@@ -1,0 +1,88 @@
+{
+	parms {
+		stageSort	sortEmitOnly
+		exposure	exposure * glarePreScale
+	}
+	state {
+		blend		GL_SRC_ALPHA GL_ONE
+		depthmask
+		alphamask
+		twosided
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		const float eyeDist = result.position.w;
+		const float frameFrac = vertex.tangent.z;
+		const float alphascale = vertex.tangent.w;
+
+		const float fogTerm = -( clamp( eyeDist - $fogStart.x, 0.0, $fogEnd.x ) * $fogScale.x );
+		// moving the fogVal calculation to the vert shader for particles/foliage does not appear to cause any artifacts
+		const float fogVal = saturate( exp2( fogTerm ) );
+
+		// create thickness based on alpha scale
+		float thickness = ( ( 1.0 - alphascale ) * 127.0 ) / eyeDist;
+
+		// Convert back from 16 bit vertex elements.
+		result.texcoord0.xy = vertex.texcoord0.xy * $particleStScaleBias.x + $particleStScaleBias.y;
+		result.texcoord0.z = fogVal;
+		result.texcoord0.w = alphascale;
+
+		// Anim Cross-fade information
+		// Convert back from 16 bit vertex elements.
+		result.texcoord1.xy = vertex.texcoord1.xy * $particleStScaleBias.x + $particleStScaleBias.y;
+		result.texcoord1.z = frameFrac;
+		result.texcoord1.w = 0.0;
+
+		result.texcoord2.x = vertex.normal.x * 10.0 + 1.0;
+		result.texcoord2.y = vertex.normal.y * 10.0 + 1.0;
+		result.texcoord2.z = 1.0 - vertex.normal.z;
+		result.texcoord2.w = vertex.normal.w;
+
+		// adding half of the alpha scale to create a fake thickness to the particle
+		// makes particles that are flat against surfaces show up much better, result: need fewer particles.
+		result.position.z -= thickness;
+
+#ifdef XBOX
+		result.texcoord3 = result.position;
+#endif
+
+		// foliage fading based on distance to viewer is stored in vertex.color.w
+
+		// fade particles based on distance to near clip and thickness
+		float particleFade = saturate( abs( eyeDist ) / ( ( 1.0 - alphascale ) * 127.0 ) );
+
+		float f = vertex.tangent.x;			// foliage or static model flag (ie, don't apply particle fading)
+		float fade = f + ( 1.0 - f ) * particleFade;
+		result.color = swizzleColor( vertex.color ) * fade;
+	}
+	hlsl_fp {
+#ifdef XBOX
+		float interpolatedZOverW = fragment.texcoord3.z / fragment.texcoord3.w;
+#else
+		float interpolatedZOverW = fragment.position.z;
+#endif
+		float2 tc = screenPosToTexcoord( fragment.position.xy, $renderPositionToViewTexture );
+		float scale = ComputeSoftParticleScale( $viewDepthMap, tc, interpolatedZOverW, fragment.texcoord0.w );
+		half4 final = ComputeAnimCrossFadeColor( $transMap, fragment.texcoord0.xy, fragment.texcoord1.xy, fragment.texcoord1.z );
+
+		final.xyz = _float3( 1.0 ) - ( _float3( 1.0 ) - final.xyz ) * _float3( fragment.texcoord2.z );
+		final.xyz *= _float3( fragment.texcoord2.x );
+		final.w = saturate( final.w - ( 1.0 - scale ) );
+		//final.w *= scale;
+		final.w *= fragment.texcoord2.y;
+		final *= fragment.color;
+		final.xyz -= _float3( 1.0 );
+
+		// apply global fog
+		half fogVal = fragment.texcoord0.z;
+		final.xyz *= fogVal;
+
+		result.color = final;
+
+		//result.color = float4(1,0,1,1);
+	}
+}

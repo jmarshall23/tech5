@@ -1,0 +1,24 @@
+{
+	parms {
+		stageSort	sortCoverage
+	}
+	state {
+		blend	GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		depthmask
+		polygonOffset
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		float3 normal = vertex.normal.xyz * 2.0 - _float3( 1.0 );
+		float r0 = dot3( normal, float3( 0.42, 0.57, 0.71 ) );
+		result.color.xyz = _float3( r0 * 0.4 + 0.5 );
+		result.color.w   = 1.0;
+	}
+	hlsl_fp {
+		result.color = fragment.color * $color;
+	}
+}

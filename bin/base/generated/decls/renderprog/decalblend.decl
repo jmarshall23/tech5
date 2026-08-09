@@ -1,0 +1,84 @@
+{
+	parms {
+		stageSort	sortDecal
+	}
+	state {
+		blend		GL_SRC_ALPHA	GL_ONE_MINUS_SRC_ALPHA
+		depthfunc	GL_GREATER
+		alphamask
+		depthmask
+		backSided
+	}
+	hlsl_vp {
+		float4 snormal = vertex.normal * 2.0 - 1.0;
+		float4 stangent = vertex.tangent * 2.0 - 1.0;
+		float3 normal = normalize( snormal.xyz );
+		float3 tangent = normalize( stangent.xyz - normal * dot( normal, stangent.xyz ) );
+		float3 bitangent = cross( normal, tangent );// * stangent.w;
+
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		float2 scaleBiasX;
+		scaleBiasX.x = floor( vertex.texcoord0.x / $transSortAtlasDim.x );
+		scaleBiasX.y = vertex.texcoord0.x - ( scaleBiasX.x * $transSortAtlasDim.x );
+
+		float2 scaleBiasY;
+		scaleBiasY.x = floor( vertex.texcoord0.y / $transSortAtlasDim.y );
+		scaleBiasY.y = vertex.texcoord0.y - ( scaleBiasY.x * $transSortAtlasDim.y );
+
+		result.texcoord0.xy = scaleBiasX / $transSortAtlasDim.x;
+		result.texcoord0.zw = scaleBiasY / $transSortAtlasDim.y;
+
+		result.texcoord1.xyz = tangent;
+		result.texcoord1.w = 0.0;
+
+		result.texcoord2.xyz = bitangent;
+		result.texcoord2.w = 0.0;
+
+		result.texcoord3.xyz = normal;
+		result.texcoord3.w = 0.0;
+
+		// Extract the sign flags
+		float s = vertex.normal.w * 255.1;	// compensate for rounding issues
+		float3 signs;
+		signs.z = floor( s / 4 );
+		signs.y = floor( s / 2 ) - ( signs.z * 2 );
+		signs.x = s - ( signs.y * 2 ) - ( signs.z * 4 );
+		signs = signs * 2.0 - 1.0;
+
+		float4 col = swizzleColor( vertex.color );
+		float3 sizes = col.xyz * 255.0f;
+		sizes *= signs;
+
+		// Pass through the origin of the cube
+		float3 origin = vertex.position.xyz - sizes;
+
+		result.texcoord4.x = origin.x;
+		result.texcoord4.y = origin.y;
+		result.texcoord4.z = origin.z;
+		result.texcoord4.w = saturate( exp2( -( clamp( result.position.w - $fogStart.x, 0.0, $fogEnd.x ) * $fogScale.x ) ) );
+
+		float3 pos = vertex.position.xyz - origin;
+		float3 localPos;
+		localPos.x = dot3( pos, tangent );
+		localPos.y = dot3( pos, bitangent );
+		localPos.z = dot3( pos, normal );
+
+		col.xyz = 1.0 / abs( localPos );
+		result.color = col;
+	}
+	hlsl_fp {
+		#include "decalMerged_fragment.inc"
+
+		half4 final = tex2D( $transMap, texcoord );
+		final.w *= fragment.color.w;			// fade based on time
+		final.w *= edgefade;					// apply edge fade
+
+		final.xyz = lerp( $fogColor.xyz, final.xyz, fog );
+		result.color.xyz = final.xyz * final.w;
+		result.color.w = final.w;
+	}
+}

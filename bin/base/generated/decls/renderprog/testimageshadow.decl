@@ -1,0 +1,23 @@
+{
+	parms {
+		stageSort	sortCoverage
+	}
+	state {
+		depthfunc	GL_ALWAYS
+		depthmask
+		blend		GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX ) * $testImageFlip.x;
+		result.position.y = dot4( vertex.position, $mvpMatrixY ) * $testImageFlip.y;
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		result.texcoord0.xy = vertex.texcoord0.xy;
+		result.texcoord0.zw = _float2( 0.0 );
+	}
+	hlsl_fp {
+		result.color = _float4( tex2Ddepth_fast( $textureMapShadow, fragment.texcoord0.xy ) );
+		result.color.w = 1.0;
+	}
+}

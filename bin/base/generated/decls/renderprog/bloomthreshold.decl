@@ -1,0 +1,38 @@
+{
+	parms {
+	}
+	state {
+		depthfunc	GL_ALWAYS
+		depthmask		
+		twosided
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+	}
+	hlsl_fp {
+		// On the PC, fragment.position.xy will always have a 0.5,
+		// like 0.5, 1.5, 2.5 ... 1279.5
+		// On the 360, it will always be an integer.
+
+		float2 texcoord = screenPosToTexcoord( fragment.position.xy, $positionToViewTexture );
+		float2 translate = $positionToViewTexture.zw;
+
+		float4 luminance = tex2D( $adaptiveLuminance, texcoord.xy );
+		float3 glare = tex2D( $glareMap, texcoord.xy ).xyz;
+		float3 total = tex2D( $viewColorMap, texcoord.xy ).xyz;
+
+		// add our emissive glare objects
+		total = total * 0.5;
+
+		const float minThreshold = $adaptiveGlareParms.x;
+		const float maxThreshold = $adaptiveGlareParms.y;
+		const float avgSceneBrightness = $adaptiveGlareParms.z;
+
+		float threshold = lerp( minThreshold, maxThreshold, luminance.x );
+		total *= ( avgSceneBrightness / threshold );
+		float3 finalColor = saturate( total - _float3( threshold ) - _float3( $adaptiveGlareThreshold.x ) );
+
+		result.color.xyz = finalColor.xyz * $adaptiveGlareColor.xyz + glare * 4.0;
+		result.color.w = 1.0;
+	}
+}

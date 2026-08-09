@@ -1,0 +1,156 @@
+{
+	parms {
+		stageSort			sortCoverage
+	}
+	state {
+		depthfunc GL_LEQUAL
+		depthmask
+#ifdef PS3
+		alphamask					// the ps3 does not make a copy of the alpha buffer
+#endif
+	}
+	hlsl_vp {
+		#include "skinning_normals.inc"
+
+		// vertex position
+		result.position.x = dot4( position, $mvpMatrixX );
+		result.position.y = dot4( position, $mvpMatrixY );
+		result.position.z = dot4( position, $mvpMatrixZ );
+		result.position.w = dot4( position, $mvpMatrixW );
+
+		// Convert back from 16 bit vertex elements.
+		float2 texcoord0 = vertex.texcoord0 * $vertexStScaleBias.xy + $vertexStScaleBias.zw;
+
+		// texture 0 takes the base and offseted coordinates
+		result.texcoord0.x = dot4( texcoord0, $sMatrix );
+		result.texcoord0.y = dot4( texcoord0, $tMatrix );
+		result.texcoord0.z = dot4( texcoord0, $rMatrix );
+		result.texcoord0.w = dot4( texcoord0, $qMatrix );
+
+		// transform the local space vectors to world space
+		result.texcoord1.x = dot3( tangent,   $modelMatrixX );
+		result.texcoord1.y = dot3( bitangent, $modelMatrixX );
+		result.texcoord1.z = dot3( normal,    $modelMatrixX );
+		result.texcoord1.w = morphScale;
+
+		result.texcoord2.x = dot3( tangent,   $modelMatrixY );
+		result.texcoord2.y = dot3( bitangent, $modelMatrixY );
+		result.texcoord2.z = dot3( normal,    $modelMatrixY );
+		result.texcoord2.w = 0.0;
+
+		result.texcoord3.x = dot3( tangent,   $modelMatrixZ );
+		result.texcoord3.y = dot3( bitangent, $modelMatrixZ );
+		result.texcoord3.z = dot3( normal,    $modelMatrixZ );
+		result.texcoord3.w = 0.0;
+
+ 		// texture 4 takes the dir to the viewer and the fog value
+		result.texcoord4.x = dot4( position, $modelMatrixX );
+		result.texcoord4.y = dot4( position, $modelMatrixY );
+		result.texcoord4.z = dot4( position, $modelMatrixZ );
+		result.texcoord4.xyz -= $globalViewOrigin.xyz;
+		result.texcoord4.w = -( clamp( result.position.w - $fogStart.x, 0.0, $fogEnd.x ) * $fogScale.x );
+	}
+	hlsl_fp {
+		float2 texcoord = fragment.texcoord0.xy;
+
+		float4 diffuse = tex2D( $spare1Map, texcoord );
+		float4 specular = tex2D( $spareSpecularMap, texcoord );
+		float4 bump = tex2D( $spareBumpMap, texcoord );
+
+		// blend in another texture based on the morph map
+		BRANCH if ( $useSkinBlending.x > 0.0 ) {	// fragment.htexcoord1.w > 0.0
+			float4 diffuse2 = tex2D( $spare2Map, texcoord );
+			float4 specular2 = tex2D( $spareSpecularMap2, texcoord );
+			float4 bump2 = tex2D( $spareBumpMap2, texcoord );
+
+			float morphScale = fragment.htexcoord1.w;
+			diffuse = lerp( diffuse, diffuse2, morphScale );
+			specular = lerp( specular, specular2, morphScale );
+			bump = lerp( bump, bump2, morphScale );
+		}
+
+		//--------- environment mapping ----------
+
+		// Note that the optimized derivation of the localNormal below results in a vector that is half-unit length!
+		half3 localNormal = bump.wyz - 0.5;
+		localNormal.z = sqrt( abs( dot( localNormal.xy, localNormal.xy ) - 0.25 ) );
+
+		// transform into global space
+		half3 globalNormal;
+		globalNormal.x = dot3( localNormal, fragment.htexcoord1.xyz );
+		globalNormal.y = dot3( localNormal, fragment.htexcoord2.xyz );
+		globalNormal.z = dot3( localNormal, fragment.htexcoord3.xyz );
+		globalNormal = normalize( globalNormal );
+
+		// normalize the direction from the viewer
+		half3 fromViewer = normalize( fragment.htexcoord4.xyz );
+
+		// reflection vector
+		half4 reflection;
+		reflection.xyz = fromViewer - ( globalNormal * dot3( fromViewer, globalNormal ) * 2.0 );
+
+		// power factor is stored in bumpPage.x as 0.0 - 1.0, we want a 0 | 1 | 2 | 3 mip value
+		// we could probably skip the floor, but I am wary of hardware / api rounding
+		// the artists really prefer white to be shiny instead of dull, so invert it here
+		// reflection.w = floor( ( 1.0 - powerFactor ) * 4.0 + $newPowerScale.x );
+		reflection.w = 0.0;
+
+		half3 envColor = texCUBElod( $dynamicEnvMap, reflection ).xyz;
+
+		//--------- read the dimshadow factor ----------
+
+		// this is normalized window space, not strict openGL window space
+		// that uses integer viewport values.
+		float4 window;
+		window.xy = screenPosToTexcoord( fragment.position.xy, $renderPositionToViewTexture );
+		window.z = 0.0;
+		window.w = 0.0;	// blur factor
+
+		float shadow = tex2Dlod( $viewColorMap, window ).w;	// from alpha channel
+
+		// only use half the dimshadow value, since we can't separate the
+		// contribution along the shadow from the remainder
+		shadow = saturate( shadow + $primeLightMin.x );
+
+		//---------------------------------------------------------------
+		// calculate direct lighting, applying the shadow factor to the first
+		// light, which should be in the same direction as the dimshadow projection.
+		//---------------------------------------------------------------
+		float3 primeLight = shadow * $primeLightColor.xyz *
+			 saturate( dot3( $primeLightDir, globalNormal ) - 0.2 );
+		float3 light = primeLight
+			+ max(  globalNormal.x * $channelLight0.xyz, 0 )
+			+ max( -globalNormal.x * $channelLight1.xyz, 0 )
+			+ max(  globalNormal.y * $channelLight2.xyz, 0 )
+			+ max( -globalNormal.y * $channelLight3.xyz, 0 )
+			+ max(  globalNormal.z * $channelLight4.xyz, 0 )
+			+ max( -globalNormal.z * $channelLight5.xyz, 0 );
+
+		//---------------------------------------------------------------
+		// calculate the view grazing fraction
+		//---------------------------------------------------------------
+		half graze = saturate( dot3( -fromViewer, globalNormal ) );
+		graze = saturate( ( $viewGraze.x - max( graze, -graze ) ) / max( $viewGraze.x, 0.0001 ) );
+		diffuse.xyz = lerp( diffuse.xyz, $grazingDiffuseColor.xyz, graze );
+		specular.xyz = lerp( specular.xyz, $grazingSpecularColor.xyz, graze );
+
+		//---------------------------------------------------------------
+		// sum everything up
+		//---------------------------------------------------------------
+
+		// automatically scale diffuseScale by 2.0 to match the baked-in behavior
+
+		// only have specular with primeLight to avoid shiny ambient guys
+		half3 color = light * ( envColor * specular.xyz * $newSpecularScale.xyz )
+			 + light * ( diffuse.xyz * $newDiffuseScale.xyz * 2.0 );
+
+		// calculate fog term
+		half fog = saturate( exp2( fragment.htexcoord4.w ) );
+
+		// lerp towards the fog color by the fog factor
+		result.color.xyz = lerp( $fogColor.xyz, color.xyz, fog );
+#ifndef PS3
+		result.color.w = specular.w;
+#endif
+	}
+}

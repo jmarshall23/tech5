@@ -1,0 +1,24 @@
+{
+	parms {
+	}
+	state {
+		depthfunc	GL_ALWAYS
+		depthmask
+		alphamask
+		twosided
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+	}
+	hlsl_fp {
+		float2 tc = screenPosToTexcoord( fragment.position.xy, $positionToViewTexture );
+
+		float4 color  = tex2D( $spare1Map, tc );
+		float maxComp = max( max( color.r, color.g ), color.b );
+
+		result.color.rgb = ( maxComp < 0.5 ) ?
+			half3( 2.0 * ( 0.5 - maxComp ), 2.0 * maxComp, 0.0 ) :
+			half3( 0.0, 2.0 * ( 1.0 - maxComp ), 2.0 * ( maxComp - 0.5 ));
+		result.color.a = 1.0;
+	}
+}

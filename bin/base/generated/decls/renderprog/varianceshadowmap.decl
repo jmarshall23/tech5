@@ -1,0 +1,46 @@
+{
+	parms {
+	}
+	state {
+		depthfunc	GL_ALWAYS
+		alphamask
+		depthmask
+		twosided
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+	}
+	hlsl_fp {
+		float2 texCoord = screenPosToTexcoord( fragment.position.xy, $renderPositionToViewTexture );
+
+		// Fetch the depth.
+		float depth = tex2Ddepth_fast( $lightDepthMap, texCoord );
+
+		// Compute partial derivatives of depth.
+		float dx = ddx( depth );
+		float dy = ddy( depth );
+
+		float moment1 = depth;
+		float moment2 = depth * depth;
+
+		float s = $renderPositionToViewTexture.z;
+
+		float d0 = tex2Ddepth_fast( $lightDepthMap, texCoord + s * 2.0 * float2( -0.375, -0.125 ) );
+		float d1 = tex2Ddepth_fast( $lightDepthMap, texCoord + s * 2.0 * float2( -0.125,  0.375 ) );
+		float d2 = tex2Ddepth_fast( $lightDepthMap, texCoord + s * 2.0 * float2(  0.125, -0.375 ) );
+		float d3 = tex2Ddepth_fast( $lightDepthMap, texCoord + s * 2.0 * float2(  0.375,  0.125 ) );
+
+		float d4 = tex2Ddepth_fast( $lightDepthMap, texCoord + s * 2.5 * float2( -0.125, -0.375 ) );
+		float d5 = tex2Ddepth_fast( $lightDepthMap, texCoord + s * 2.5 * float2(  0.375, -0.125 ) );
+		float d6 = tex2Ddepth_fast( $lightDepthMap, texCoord + s * 2.5 * float2( -0.375,  0.125 ) );
+		float d7 = tex2Ddepth_fast( $lightDepthMap, texCoord + s * 2.5 * float2(  0.125,  0.375 ) );
+
+		moment1 = ( moment1 * 0.5 ) + ( d0 + d1 + d2 + d3 ) * 0.25 * 0.25 + ( d4 + d5 + d6 + d7 ) * 0.25 * 0.25;
+		moment2 = ( moment2 * 0.5 ) + ( d0 * d0 + d1 * d1 + d2 * d2 + d3 * d3 ) * 0.25 * 0.25 + ( d4 * d4 + d5 * d5 + d6 * d6 + d7 * d7 ) * 0.25 * 0.25;
+
+		result.color.x = moment1;
+		result.color.y = moment2 + 100 * ( dx * dx + dy * dy );
+		result.color.z = 0.0;
+		result.color.a = 1.0;
+	}
+}

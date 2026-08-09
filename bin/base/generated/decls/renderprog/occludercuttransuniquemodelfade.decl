@@ -1,0 +1,45 @@
+{
+	parms {
+		fadePerturbProgram = modelFadePerturb;
+	}
+	state {
+		alphamask
+		colormask
+		twosided
+	}
+	hlsl_vp {
+		#include "includes/vertex.inc"
+
+		CALC_TEXCOORDS( result.texcoord0 );
+		CALC_POSITION( result.position );
+	}
+	hlsl_fp {
+		float2 screenTexcoord = fragment.position.xy * ( 1.0 / 128.0 );
+		float dither = tex2D( $dither256Map, screenTexcoord ).x;
+
+		// 1 - fully opaque - 0.8 - stippling - 0.2 - fully transparent - 0
+		clip( $modelFade.x - 0.2 - dither * 0.6 );
+
+		float2 texcoord = fragment.texcoord0.xy;
+		BRANCH if ( $useVirtualMapping.x > 0 ) {
+			// this is basically only for non pre-lit levels, and shouldn't be used often.
+			// this doesn't attempt to get the derivative correct at the frac crossing point
+			texcoord = frac( texcoord ) * $virtualMapping.xy + $virtualMapping.zw;
+		}
+
+		float3 physCoord = VmtrVirtualToPhysical( texcoord );
+
+#ifdef USE_VIRTUAL_ANISO_FOOTPRINT
+		float2 dx = ddx( texcoord.xy ) * physCoord.z;
+		float2 dy = ddy( texcoord.xy ) * physCoord.z;
+
+		float4 specular = texPhys( $physicalVmtrPagesMap0, physCoord.xy, dx, dy );
+#else
+		float4 specular = texPhys( $physicalVmtrPagesMap0, physCoord.xy );
+#endif
+		// coverMap is stored in specular.w
+		clip( specular.w - 0.5 );
+
+		result.color = _float4( 0.0 );
+	}
+}

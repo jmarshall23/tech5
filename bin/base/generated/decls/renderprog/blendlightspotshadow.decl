@@ -1,0 +1,34 @@
+{
+	parms {
+		lightColor	lightColor * exposure
+	}
+	state {
+		blend	GL_DST_COLOR GL_ONE
+		alphaMask
+		depthMask
+		depthFunc	GL_GREATER
+#if 1
+		stencilFunc	EQUAL 1 255		// only draw on stencil = 1
+		stencilOp	KEEP KEEP KEEP
+#endif
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+	}
+	hlsl_fp {
+		#include "blendLight_fragment.inc" 
+		
+		float4 viewColor = tex2Dlod( $viewColorMap, float4(window.xy, 0.0, 0.0) );
+
+		float shadow = viewColor.w;	// from alpha channel
+		if ( shadow > 0.59 && shadow < 0.91 ) {
+			shadow = saturate((shadow - 0.6)*(1.0/0.3));
+			color *= shadow;
+		}
+		
+		result.color = color * color.w;
+	}
+}

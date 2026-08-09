@@ -1,0 +1,114 @@
+{
+	parms {
+		stageSort		sortCoverage
+		useClipSpheres	1
+	}
+	state {
+		depthfunc	GL_LEQUAL
+	}
+	hlsl_vp {
+
+//#define FULL_WOUNDS
+  #define CLIP_SPHERES
+
+		#include "includes/vertex.inc"
+		#include "includes/gore.inc"
+
+		CALC_TEXCOORDS_BLEND( result.texcoord0 );
+		float4 position;
+		float4 normal;
+		float4 tangent;
+		float3 worldPosition;
+		CALC_PNT( position, normal, tangent );
+		CALC_SKINNED_POSITION_NORMALS( result.position, result.texcoord1, result.texcoord2, result.texcoord3, result.texcoord4, position, normal, tangent, worldPosition );
+			
+#if defined( CLIP_SPHERES )
+		result.texcoord7.xy = result.texcoord0.xy * $woundTexTile.xy * _half2( 256.0 );
+		CALC_GORE_CLIP_SPHERES( result.texcoord6 );
+#elif defined( FULL_WOUNDS )
+		CALC_GORE_VERTEX( result.texcoord6, result.texcoord7 );
+#endif
+	}
+	hlsl_fp {
+	
+//#define FULL_WOUNDS
+#define CLIP_SPHERES
+//#define DMG_SKINS
+
+		#include "includes/vmtr.inc"
+		#include "includes/gore.inc"
+
+		half4 sampleSpecular;
+		half4 sampleYCoCg;
+		half4 sampleNormal;
+		half2 feedbackTexCoord;
+		float4 feedback;
+		half3 fromViewerN;
+		half3 globalNormal;
+		half4 globalReflection;
+		half3 surfaceDiffuse;
+		half3 surfaceSpecular;
+		half4 color;
+
+
+#if defined( CLIP_SPHERES )
+		// look up wound texture with arbitrary tiling value, will need to be a parameter
+		half4 woundMap3 = tex2D( $woundTexture, fragment.texcoord7.xy );
+		APPLY_GORE_CLIP_SPHERES( fragment.texcoord6.w, woundMap3 );
+#endif
+
+#if defined( DMG_SKINS )
+		FETCH_VMTR_BLEND( sampleSpecular, sampleYCoCg, sampleNormal, feedbackTexCoord, fragment.htexcoord1.w );
+#elif defined( CLIP_SPHERES )
+		FETCH_VMTR_BLEND( sampleSpecular, sampleYCoCg, sampleNormal, feedbackTexCoord, fragment.htexcoord1.w );
+#else
+		FETCH_VMTR( sampleSpecular, sampleYCoCg, sampleNormal, feedbackTexCoord, fragment.htexcoord1.w );
+#endif
+
+		CALC_VMTR_FEEDBACK( feedback, feedbackTexCoord );
+		CALC_DIFFUSE_RGB( surfaceDiffuse, sampleYCoCg );
+		CALC_SPECULAR_RGB( surfaceSpecular, sampleSpecular, sampleNormal.z );
+
+		half3 diffuse = surfaceDiffuse;
+		half3 specular = surfaceSpecular;
+
+#if defined( FULL_WOUNDS )
+		APPLY_GORE_WOUNDS( diffuse, fragment.htexcoord6, fragment.htexcoord7, $skinSpecularScale.x, sampleSpecular.xyz );
+#elif defined( CLIP_SPHERES )
+
+		half decal = 1.0 - saturate( fragment.texcoord6.z );
+		woundMap3.w *= 1.0 - saturate( fragment.texcoord6.z );
+		woundMap3.w += smoothstep( 0.75, 1.2, decal );
+		woundMap3.w = smoothstep( 0.15, 0.8, woundMap3.w );
+		
+		// apply blood color to the diffuse
+		diffuse.xyz = lerp( diffuse.xyz, diffuse.xyz * half3( 1.0, 0.15, 0.0 ) + half3( 0.05, 0.0075, 0.0 ), _float3( woundMap3.w ) );
+
+		// lerp the spec so blood is shinier than the rest of the character
+		specular.xyz = lerp( specular.xyz, half3( 0.5f, 0.4f, 0.3f ), _float3( woundMap3.w ) );
+
+		// normal maps are not in local space so we have to bring them into local space,
+		// add them together then put them back into texture space.  Should probably bring 
+		// the normal maps into local space earlier than CALC_GLOBAL_NORMAL to make modifying
+		// them easier.
+		woundMap3.xy -= 0.5;
+		woundMap3.xy *= woundMap3.w;
+		sampleNormal.xy += woundMap3.xy;
+#endif
+
+		CALC_FROM_VIEWER( fromViewerN, fragment.htexcoord4.xyz );
+		CALC_GLOBAL_NORMAL( globalNormal, sampleNormal, fragment.htexcoord1.xyz, fragment.htexcoord2.xyz, fragment.htexcoord3.xyz );
+		CALC_GLOBAL_REFLECTION( globalReflection, globalNormal, fromViewerN );
+
+		APPLY_GRAZING( diffuse, specular, globalNormal, fromViewerN );
+		APPLY_SPECULAR_REFLECTION( specular, sampleNormal.x, globalReflection );
+		APPLY_SCALING( diffuse, specular );
+		APPLY_LIGHTING( color, diffuse, specular, globalNormal );
+		APPLY_HIGHLIGHT( color, fromViewerN, fragment.htexcoord1, fragment.htexcoord2, fragment.htexcoord3 );
+
+		result.color0 = color;
+		result.color1 = feedback;
+
+		OUTPUT_SURFACE_ATTRIBUTES( surfaceDiffuse, surfaceSpecular, sampleNormal.x, globalNormal );
+	}
+}

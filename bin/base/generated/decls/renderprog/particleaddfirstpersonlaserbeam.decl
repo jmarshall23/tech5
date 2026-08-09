@@ -1,0 +1,27 @@
+{
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		blend	GL_ONE GL_ONE
+		depthmask
+		depthfunc GL_LEQUAL
+	}
+	hlsl_vp {
+		#define VP_SINGLETEXCOORD
+		#include "particle_vp.inc"
+		result.color = vertColor * $exposure * fade * $color;
+	}
+	hlsl_fp {
+
+		float2 tc = screenPosToTexcoord( fragment.position.xy, $positionToViewTexture );
+		float noiseMap = tex2D( $transmap2, ( tc * $sMatrix.xy) + $tMatrix.xy ).x;
+
+		float2 rampCoords = tex2D( $transMap, fragment.texcoord0.xy ).xy;
+		float3 finalColor = tex2D( $transMap1, rampCoords *  saturate( noiseMap * 0.98 + 0.03 ) ).xyz;
+
+		result.color.xyz = finalColor * fragment.color.xyz;
+		result.color.w = 1.0;
+
+	}
+}

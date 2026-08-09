@@ -1,0 +1,77 @@
+{
+
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		blend	GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		depthmask
+		depthfunc GL_LEQUAL
+	}
+	hlsl_vp {
+		#include "skinning_normals.inc"
+
+		result.position.x = dot4( position, $mvpMatrixX );
+		result.position.y = dot4( position, $mvpMatrixY );
+		result.position.z = dot4( position, $mvpMatrixZ );
+		result.position.w = dot4( position, $mvpMatrixW );
+
+		// Convert back from 16 bit vertex elements.
+		float2 texcoord0 = vertex.texcoord0 * $vertexStScaleBias.xy + $vertexStScaleBias.zw;
+
+		result.texcoord0.x = texcoord0.x;
+		result.texcoord0.y = texcoord0.y;
+		result.texcoord0.z = dot4( texcoord0, $sMatrix );
+		result.texcoord0.w = dot4( texcoord0, $tMatrix );
+		
+		// transform the local space vectors to world space
+		result.texcoord1.x = dot3( tangent,   $modelMatrixX );
+		result.texcoord1.y = dot3( bitangent, $modelMatrixX );
+		result.texcoord1.z = dot3( normal,    $modelMatrixX );
+		result.texcoord1.w = morphScale;
+
+		result.texcoord2.x = dot3( tangent,   $modelMatrixY );
+		result.texcoord2.y = dot3( bitangent, $modelMatrixY );
+		result.texcoord2.z = dot3( normal,    $modelMatrixY );
+		result.texcoord2.w = 0.0;
+
+		result.texcoord3.x = dot3( tangent,   $modelMatrixZ );
+		result.texcoord3.y = dot3( bitangent, $modelMatrixZ );
+		result.texcoord3.z = dot3( normal,    $modelMatrixZ );
+		result.texcoord3.w = 0.0;
+		
+		result.color = $color;
+	}
+	hlsl_fp {
+		half2 texcoord = fragment.htexcoord0.xy;
+		
+		half4 diffuseMap = tex2D( $transMap, texcoord );
+		half4 bumpMap = tex2D( $spareBumpMap, texcoord );
+		
+		// Note that the optimized derivation of the localNormal below results in a vector that is half-unit length!
+		half3 localNormal = bumpMap.wyz - 0.5;
+		localNormal.z = sqrt( abs( dot( localNormal.xy, localNormal.xy ) - 0.25 ) );
+
+		// transform into global space
+		half3 globalNormal;
+		globalNormal.x = dot3( localNormal, fragment.htexcoord1.xyz );
+		globalNormal.y = dot3( localNormal, fragment.htexcoord2.xyz );
+		globalNormal.z = dot3( localNormal, fragment.htexcoord3.xyz );
+		globalNormal = normalize( globalNormal );
+
+		half3 primeLight = $primeLightColor.xyz;
+		half3 lightColor = _half3( 0.0 ) +
+			+ abs(  globalNormal.x * $channelLight0.xyz )
+			+ abs( -globalNormal.x * $channelLight1.xyz )
+			+ abs(  globalNormal.y * $channelLight2.xyz )
+			+ abs( -globalNormal.y * $channelLight3.xyz )
+			+ abs(  globalNormal.z * $channelLight4.xyz )
+			+ abs( -globalNormal.z * $channelLight5.xyz );
+		lightColor *= 0.85;
+		
+		half4 final = fragment.color * diffuseMap;
+		final.xyz *= lightColor + primeLight;
+
+		result.color = saturate( final );
+	}
+}

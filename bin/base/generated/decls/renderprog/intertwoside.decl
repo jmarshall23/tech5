@@ -1,0 +1,10 @@
+{
+	inherit interBasic
+	interaction			// load the _point / _parallel / _spot version
+	state {
+		twosided
+		depthfunc	GL_EQUAL
+		depthMask
+		blend		GL_ONE GL_ONE
+	}
+}

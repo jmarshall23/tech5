@@ -1,0 +1,46 @@
+{
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		depthmask
+		depthfunc GL_ALWAYS
+		twosided
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+		result.texcoord0 = float4( vertex.texcoord0.x, vertex.texcoord0.y, 0, 0 );
+		result.color = swizzleColor( vertex.color );
+		result.texcoord1 = swizzleColor( vertex.tangent ) * _float4( 2.0 ) - _float4( 1.0 );
+	}
+	hlsl_fp {
+		half4 CoYCgA = tex2D( $transMap, fragment.texcoord0.xy );
+		
+		// convert to RGBA
+		
+		// The 0 value for Co and Cg will be at DXT value 16 in the 0 - 31
+		// range of 5 bits, which will be expanded to 10000100b in 32 bit
+		// color, or 132/255.0 in floating point.
+		CoYCgA.xz -= 132.0 / 255.0;
+		half4	rgba;
+		rgba.x = CoYCgA.w + CoYCgA.x - CoYCgA.z;
+		rgba.y = CoYCgA.w + CoYCgA.z;
+		rgba.z = CoYCgA.w - CoYCgA.x - CoYCgA.z;
+		rgba.w = CoYCgA.y;
+		
+		// black level adjustment
+		float scale = 1.0 - $cbBlackLevel.x;
+		float bias = $cbBlackLevel.x;
+
+		// now that we are back in RGB space, apply the vertex color
+		rgba *= fragment.color;
+		rgba += fragment.texcoord1;
+
+		// use fragment.color.w instead if rgba.w so we don't apply the premultipled alpha twice.
+		result.color.xyz = saturate( rgba.xyz * scale + bias ) * fragment.color.w;
+		result.color.w = rgba.w;
+	}
+}

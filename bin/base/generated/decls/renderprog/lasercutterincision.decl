@@ -1,0 +1,52 @@
+{
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		blend		GL_ONE GL_ONE
+		depthFunc	GL_ALWAYS
+		depthMask
+		twosided
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		result.texcoord0 = vertex.texcoord0.xyxy;
+		result.texcoord1.xyz = vertex.position.xyz;
+		
+#ifdef XBOX
+		result.texcoord2 = result.position;
+#endif
+		result.color = swizzleColor( vertex.color ) * $color;
+		result.color.xyz *= $exposure.xyz;
+	}
+	hlsl_fp {
+#ifdef XBOX
+		float interpolatedZOverW = fragment.texcoord2.z / fragment.texcoord2.w;
+#else
+		float interpolatedZOverW = fragment.position.z;
+#endif
+		// sample the depth texture
+		float2 tc = screenPosToTexcoord( fragment.position.xy, $positionToViewTexture );
+		const float depth = tex2Ddepth( $viewDepthMap, tc );
+		
+		const float r1 = 1.0 / ( 1.0 - depth );
+		const float r2 = 1.0 / ( 1.0 - interpolatedZOverW );
+		const float depthDiff = abs( r1 - r2 );
+
+		// z-rejection
+		const float zReject = 0.1 - depthDiff;
+		clip( zReject );
+
+		float worldNoiseMap = tex2D( $transmap2, fragment.texcoord1.xy * 0.002 + ( $time.x * 0.025 ) + ( fragment.texcoord1.z * 0.002 )  ).x;
+
+		float2 rampCoords = tex2D( $transMap, fragment.texcoord0.xy ).xy;
+		float3 finalColor = tex2D( $transMap1, rampCoords * saturate( worldNoiseMap + 0.1 ) ).xyz;
+		
+		result.color.xyz = finalColor * fragment.color.xyz;
+		result.color.w = 1.0;
+	}
+}

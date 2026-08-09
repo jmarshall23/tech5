@@ -1,0 +1,35 @@
+{
+	parms {
+	}
+	state {
+		depthfunc GL_ALWAYS
+		depthmask
+		twosided
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+	}
+	hlsl_fp {
+		// convert from 0,1,2,3,... coordinates to 0.0 - 1.0
+		float2 texcoord = screenPosToTexcoord( fragment.position.xy, $positionToViewTexture );
+
+		half4 glareTex = h4tex2D( $glareMap, texcoord.xy );
+
+		// scale for general glare brightness
+		glareTex *= $glareScale.x;
+
+		// color normalize and get magnitude
+		glareTex.w = max( glareTex.x, glareTex.y );
+		glareTex.w = max( glareTex.w, glareTex.z );
+
+		// don't divide by zero
+		glareTex.w = max( glareTex.w, 0.0001 );
+		glareTex.xyz = glareTex.xyz / glareTex.w;
+
+		// color clamp
+		glareTex.w = min( glareTex.w, $glareMax.x );
+
+		result.hcolor = glareTex * glareTex.w;
+		result.hcolor.w = 1.0;
+	}
+}

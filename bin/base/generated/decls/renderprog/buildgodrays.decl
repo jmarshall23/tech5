@@ -1,0 +1,66 @@
+{
+	state {
+		depthfunc	GL_ALWAYS
+		depthmask
+		twosided
+	}
+	
+	hlsl_vp {
+
+		result.position = vertex.position;
+		result.position.xy = ( result.position.xy * $godRayQuadScaleBias.xy ) + $godRaySourceScaleBias.zw;
+#ifndef PS3
+		result.texcoord1 = vertex.position;
+		result.texcoord1.xy = ( result.texcoord1.xy * $godRaySourceScaleBias.xy ) + $godRaySourceScaleBias.zw;
+
+		result.texcoord1.zw = ( result.texcoord1.xy - $godRaySourceScaleBias.zw );
+
+//#define DEBUG_MASK
+#ifdef DEBUG_MASK
+		result.texcoord3.xy = result.position.xy;
+#endif
+#endif
+	}
+
+	hlsl_fp {
+#ifdef PS3
+		result.hcolor = float4( 0, 0, 0, 0 );
+#else
+#ifdef DEBUG_MASK
+		float4 debugMinMax = float4( $godRaySourceScaleBias.z - $godRaySourceScaleBias.x, $godRaySourceScaleBias.z + $godRaySourceScaleBias.x, $godRaySourceScaleBias.w - $godRaySourceScaleBias.y, $godRaySourceScaleBias.w + $godRaySourceScaleBias.y );
+		if ( fragment.texcoord3.x > debugMinMax.x && fragment.texcoord3.x < debugMinMax.y && fragment.texcoord3.y > debugMinMax.z && fragment.texcoord3.y < debugMinMax.w ) {
+			result.hcolor = float4( 1, 0, 1, 1 );
+			return;
+		}
+		result.hcolor = $godRayColor;
+		return;
+#endif
+
+#ifdef PC
+		const int NUM_STEPS = 32;
+#else
+		const int NUM_STEPS = 8;
+#endif
+
+		float2 depthMapCoord = ( fragment.texcoord1.xy * 0.5f ) + 0.5f;
+		const float2 depthMapStep = ( fragment.texcoord1.zw ) / NUM_STEPS;
+
+		result.hcolor = float4( 0, 0, 0, 0 );
+		for ( int i = 0; i < NUM_STEPS; i++ ) {
+#ifdef XBOX
+			const float depth = tex2Ddepth( $viewDepthMap, float2( depthMapCoord.x, 1 - depthMapCoord.y ) );
+#else
+			const float depth = tex2Ddepth( $viewDepthMap, depthMapCoord.xy );
+#endif
+			float depthMul = saturate( sign( depth - 0.999999f ) );
+				
+			float2 colorMapCoord = ( depthMapCoord - $godRayQuadScaleBias.zw ) / $godRaySourceScaleBias.xy;
+			colorMapCoord = saturate( colorMapCoord + float2( 0.5f, 0.5f ) );
+
+			result.hcolor.xyz += $godRayColor.xyz * h4tex2D( $transMap, colorMapCoord ).xyz * depthMul * $godRayColor.w;
+
+			depthMapCoord += depthMapStep;
+		}
+#endif
+	}
+}

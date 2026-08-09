@@ -1,0 +1,26 @@
+/***********************************************************************
+
+script_main.script
+
+This is the main script that is loaded before any level scripts load.
+
+***********************************************************************/
+
+// these are automatically included by every script file
+//#include "script_defs.script"
+//#include "script_events.script"
+
+// base defines and util functions
+#include "script_util.script"
+#include "debug_drawtext.script"
+//#include "rage_npc.script"
+
+void script_main() {
+	sys.print( "Entering script_main()\n");
+
+	//
+	// Do any script setup here
+	//
+
+	sys.print( "Exiting script_main()\n" );
+}

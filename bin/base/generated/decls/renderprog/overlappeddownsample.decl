@@ -1,0 +1,30 @@
+{
+	parms {
+	}
+	state {
+		depthmask
+		depthfunc	GL_ALWAYS
+		twosided
+		registerCountPS3 32
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+	}
+	hlsl_fp {
+		// On the PC, fragment.position.xy will always have a 0.5,
+		// like 0.5, 1.5, 2.5 ... 1279.5
+		// On the 360, it will always be an integer.
+
+		float2 texcoord = screenPosToTexcoord( fragment.position.xy - 0.5, $positionToViewTexture );
+		float2 translate = $positionToViewTexture.zw;
+
+		half4 total = h4tex2D( $viewColorMap, texcoord.xy );
+		texcoord.x += translate.x;
+		total += h4tex2D( $viewColorMap, texcoord.xy );
+		texcoord.y += translate.y;
+		total += h4tex2D( $viewColorMap, texcoord.xy );
+		texcoord.x -= translate.x;
+		total += h4tex2D( $viewColorMap, texcoord.xy );
+		result.hcolor = total * 0.25;
+	}
+}

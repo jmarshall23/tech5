@@ -1,0 +1,20 @@
+{
+	parms {
+	}
+	state {
+		blend		GL_ONE GL_ONE
+		alphaMask
+		depthMask
+		//depthFunc	GL_ALWAYS
+		twosided
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+	}
+	hlsl_fp {
+		result.color = float4( 1.0, 0.0, 0.0, 1.0 );
+	}
+}

@@ -1,0 +1,20 @@
+{
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		blend		GL_ONE GL_ZERO
+		depthmask
+	}
+	hlsl_vp {
+		#include "particle_vp.inc"
+	}
+	hlsl_fp {
+		#include "particle_fp.inc"
+		
+		// apply global fog
+		color.xyz = lerp( $fogColor.xyz, color.xyz, fogVal );
+		
+		result.color = color;
+	}
+}

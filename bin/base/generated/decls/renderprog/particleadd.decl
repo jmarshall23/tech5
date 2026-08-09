@@ -1,0 +1,21 @@
+{
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		blend		GL_ONE GL_ONE
+		depthmask
+	}
+	hlsl_vp {
+		#include "particle_vp.inc"
+		result.color = vertColor * $exposure * fade * $color;
+	}
+	hlsl_fp {
+		#include "particle_fp.inc"
+
+		// additive, so the global fog is just a modulate instead of a blend
+		color.xyz *= fogVal;
+
+		result.color = color * fragment.color;
+	}
+}

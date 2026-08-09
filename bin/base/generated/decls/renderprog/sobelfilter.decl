@@ -1,0 +1,39 @@
+{
+	parms {
+		stageSort	sortCoverage
+		color		color * sobelOpacity
+	}
+	state {
+		blend GL_ONE GL_ONE
+		depthfunc GL_ALWAYS	
+		depthmask
+		alphamask
+		twosided	
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+	}
+	hlsl_fp {
+		// Convert from [0,1,2,3,..., N-1] coordinates to [0.0,1.0]
+		float2 tc = screenPosToTexcoord( fragment.position.xy, $renderPositionToViewTexture );
+		float2 translate = $renderPositionToViewTexture.zw * 1.5;
+
+		half s_00 = tex2D( $transMap, tc + float2( -translate.x, -translate.y ) ).x;
+		half s_01 = tex2D( $transMap, tc + float2( 0.0, -translate.y ) ).x;
+		half s_02 = tex2D( $transMap, tc + float2( translate.x, -translate.y ) ).x;
+
+		half s_10 = tex2D( $transMap, tc + float2( -translate.x, 0.0 ) ).x;
+		half s_12 = tex2D( $transMap, tc + float2( translate.x, 0.0 ) ).x;
+
+		half s_20 = tex2D( $transMap, tc + float2( -translate.x, translate.y ) ).x;
+		half s_21 = tex2D( $transMap, tc + float2( 0.0, translate.y ) ).x;
+		half s_22 = tex2D( $transMap, tc + float2( translate.x, translate.y ) ).x;
+
+		half sx = s_00 + 2.0 * s_10 + s_20 - s_02 - 2.0 * s_12 - s_22;
+		half sy = s_00 + 2.0 * s_01 + s_02 - s_20 - 2.0 * s_21 - s_22;
+
+		float edge = sx * sx + sy * sy;
+		float fade = max( edge - $sobelThreshold.x, 0.0 ) * 0.1;
+		result.color = fade * $color;
+	}
+}

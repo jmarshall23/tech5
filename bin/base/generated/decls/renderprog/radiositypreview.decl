@@ -1,0 +1,72 @@
+{
+	parms {
+		stageSort			sortCoverage
+		newDiffuseScale		exposure.x * newDiffuseScale
+	}
+	state {
+	}
+	hlsl_vp {
+		#include "skinning_normals.inc"
+
+		result.position.x = dot( position, $mvpMatrixX );
+		result.position.y = dot( position, $mvpMatrixY );
+		result.position.z = dot( position, $mvpMatrixZ );
+		result.position.w = dot( position, $mvpMatrixW );
+
+		// texture projection into the preview texture
+		float4 v;
+		v.x = dot( position, $modelMatrixX );
+		v.y = dot( position, $modelMatrixY );
+		v.z = dot( position, $modelMatrixZ );
+		v.w = dot( position, $modelMatrixW );
+
+		result.texcoord1.x = dot( v, $radiosityPreviewX );
+		result.texcoord1.y = dot( v, $radiosityPreviewY );
+		result.texcoord1.z = dot( v, $radiosityPreviewZ );
+		result.texcoord1.w = dot( v, $radiosityPreviewW );
+
+		// fog factor in texture 0
+		result.texcoord0.xy = _float2( 0.0 );
+		result.texcoord0.z = -( clamp( result.position.w - $fogStart.x, 0.0, $fogEnd.x ) * $fogScale.x );
+		result.texcoord0.w = 0.0;
+	}
+	hlsl_fp {
+		float2	tc;
+		tc.x = fragment.texcoord1.x / fragment.texcoord1.w;
+		tc.y = fragment.texcoord1.y / fragment.texcoord1.w;
+
+		tc = ( tc + 1.0 ) * 0.5;
+		float4 color = tex2D( $radiosityPreviewMap, tc );
+
+//		color.xyz *= $newDiffuseScale.xyz;
+
+		//---------------------------------------------------------------
+		// read the dimshadow factor, apply before fog
+		//---------------------------------------------------------------
+		// this is normalized window space, not strict openGL window space
+		// that uses integer viewport values.
+		float4 window;
+		window.xy = screenPosToTexcoord( fragment.position.xy, $renderPositionToViewTexture );
+		window.z = 0.0;
+		window.w = 0.0;	// blur factor
+		float shadow = tex2Dlod( $viewColorMap, window ).w;	// from alpha channel
+
+		// only use half the dimshadow value, since we can't separate the
+		// contribution along the shadow from the remainder
+		shadow = saturate( shadow + 0.5 );
+
+
+
+//		color = tex2D( $radiosityPreviewMap, (float2)window );
+//		color.xyz *= $newDiffuseScale.xyz;
+
+		color.xyz *= shadow;
+
+		// --------- calculate fog
+		half fog = saturate( exp2( fragment.texcoord0.z ) );
+
+		// lerp towards the fog color by the fog factor
+		result.color = lerp( $fogColor, color, fog );
+		result.color1 = _float4( 0.0 );
+	}
+}

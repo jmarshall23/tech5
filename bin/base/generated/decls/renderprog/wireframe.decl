@@ -1,0 +1,7 @@
+{
+	inherit colorParmOnly
+	state {
+		alphamask
+		wireframe
+	}
+}

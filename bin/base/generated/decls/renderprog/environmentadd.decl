@@ -1,0 +1,8 @@
+{
+	inherit environment
+	state {
+		blend		GL_ONE GL_ONE
+		depthfunc	GL_LEQUAL
+		depthMask
+	}
+}

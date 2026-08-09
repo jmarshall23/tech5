@@ -1,0 +1,8 @@
+{
+	inherit ParticleBlend
+	hlsl_vp {
+		#include "particle_vp.inc"
+		result.color.xyz = vertColor.xyz * $exposure.xyz;
+		result.color.w = vertColor.w * fade;
+	}
+}

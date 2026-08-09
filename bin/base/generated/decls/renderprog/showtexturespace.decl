@@ -1,0 +1,19 @@
+{
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		blend		GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		result.color = float4( vertex.texcoord0.xy, 0.0, 1.0 );
+	}
+	hlsl_fp {
+		result.color = fragment.color;
+	}
+}

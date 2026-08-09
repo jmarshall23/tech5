@@ -1,0 +1,38 @@
+{
+	parms {
+		stageSort	sortLight
+		lightColor	lightColor * exposure * lightFade
+	}
+
+	state {
+		depthfunc	GL_LEQUAL
+		depthMask
+		alphaMask
+		blend	GL_ONE GL_ONE
+	}
+
+	hlsl_vp {
+		#ifndef PC
+			#define NOSHADOW
+		#endif
+		#include "includes/interaction.inc"
+		
+		#include "skinning_normals.inc"
+		INTERACTION_VERTEX;
+	}
+
+	hlsl_fp {
+		#include "includes/interaction.inc"
+		#ifdef PC
+			#include "includes/shadow.inc"
+	
+			float shadow;
+			SAMPLE_PARALLEL_LIGHT_SHADOW( shadow, fragment.texcoord5, fragment.texcoord2.w );
+
+		#else
+			float shadow = 1.0;
+		#endif
+		
+		INTERACTION_FRAGMENT_SKIN( shadow );
+	}
+}

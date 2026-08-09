@@ -1,0 +1,9 @@
+{
+	inherit environmentSingleModulateAdd
+	state {
+		twosided
+		blend		GL_ONE GL_SRC_ALPHA
+		depthfunc	GL_LEQUAL
+		depthMask
+	}
+}

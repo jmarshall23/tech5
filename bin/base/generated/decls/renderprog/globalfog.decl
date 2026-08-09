@@ -1,0 +1,38 @@
+{
+	parms {
+	}
+	state {
+		blend		GL_ONE_MINUS_SRC_ALPHA GL_SRC_ALPHA
+		depthfunc	GL_ALWAYS
+		depthmask
+		alphamask
+		twosided
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+		result.texcoord0 = vertex.texcoord0.xyxy;
+#if defined( PS3 ) || defined( XBOX )
+		result.texcoord0.y = 1.0 - vertex.texcoord0.y;
+#endif
+	}
+	hlsl_fp {
+		float2 texcoord = fragment.texcoord0.xy;
+
+		// Note that the sky box does not draw depth and we rely on reading
+		// a depth value of >= 1.0 such that no fog is applied to the sky.
+#if defined( XBOX )
+		float ndcZ = tex2Ddepth_fast( $viewDepthMap, texcoord.xy );
+#elif defined( PS3 )
+		// add a tiny value to make sure we get a depth value of 1.0 at infinity
+		float ndcZ = tex2Ddepth_fast( $viewDepthMap, texcoord.xy ) * 2.0 - 1.0 + ( 2.0 / 16777216.0 );
+#else
+		float ndcZ = tex2Ddepth_fast( $viewDepthMap, texcoord.xy ) * 2.0 - 1.0;
+#endif
+		float viewZ = ndcZ * $projectionMatrixZ.w / ( ndcZ + $projectionMatrixZ.z );
+		const float fogDepth = clamp( viewZ - $fogStart.x, 0.0, $fogEnd.x ) * $fogScale.x;
+		const float fog = saturate( exp2( -fogDepth ) );
+
+		result.color.xyz = $fogColor.xyz;
+		result.color.w = fog;
+	}
+}

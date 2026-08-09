@@ -1,0 +1,47 @@
+{
+	parms {
+		lightColor	lightColor * exposure
+	}
+	state {
+		blend		GL_ONE GL_ONE
+		alphaMask
+		depthMask
+		depthFunc	GL_GREATER
+		stencilFunc	EQUAL 1 255		// only draw on stencil = 1
+		stencilOp	KEEP KEEP KEEP
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+	}
+	hlsl_fp {
+		#include "includes/shadow.inc"
+		#include "includes/deferredlighting.inc"
+
+		float4 windowPosition;
+		windowPosition.xy = screenPosToTexcoord( fragment.position.xy, $renderPositionToViewTexture );
+#if defined( PC ) && !defined( PC_D3D )
+		windowPosition.z = texelFetch( $viewDepthStencilMap, ivec2( fragment.position.xy ), 0 ).x;
+#else
+		windowPosition.z = tex2Ddepth_fast( $viewDepthMap, windowPosition.xy );
+#endif
+		windowPosition.w = 1.0;
+
+		float4 shadowTexCoord;
+		shadowTexCoord.x = dot4( windowPosition, $windowPosToProjectedShadowS );
+		shadowTexCoord.y = dot4( windowPosition, $windowPosToProjectedShadowT );
+		shadowTexCoord.z = dot4( windowPosition, $windowPosToProjectedShadowR );
+		shadowTexCoord.w = dot4( windowPosition, $windowPosToProjectedShadowQ );
+
+		float shadow;
+		SAMPLE_POINT_LIGHT_SHADOW( shadow, shadowTexCoord );
+
+		float3 color;
+		DEFERRED_LIGHTING( color, fragment.position, windowPosition, shadow );
+
+		result.color.xyz = color;
+		result.color.w = 1.0;
+	}
+}

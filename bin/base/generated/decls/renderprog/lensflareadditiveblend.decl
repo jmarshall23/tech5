@@ -1,0 +1,12 @@
+{
+	inherit lensFlareBlend
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		blend		GL_SRC_ALPHA GL_ONE
+		depthmask
+		alphamask
+		depthfunc	GL_ALWAYS
+	}
+}

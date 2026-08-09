@@ -1,0 +1,17 @@
+{
+	state {
+		colormask
+		alphamask
+		depthmask
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+	}
+	hlsl_fp {
+		result.color0 = _float4( 0.0 );
+		result.color1 = _float4( 0.0 );
+	}
+}

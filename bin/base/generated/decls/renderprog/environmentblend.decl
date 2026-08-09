@@ -1,0 +1,26 @@
+{
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		blend	GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		depthmask
+		twosided
+		depthfunc GL_ALWAYS
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+		result.texcoord0.x = dot3( vertex.position.xyz, $envSMatrix.xyz );
+		result.texcoord0.y = dot3( vertex.position.xyz, $envTMatrix.xyz );
+		result.texcoord0.z = dot3( vertex.position.xyz, $envRMatrix.xyz );
+		result.texcoord0.w = $envBlendMip.x;	// fixed mip level
+		result.color = $color;
+	}
+	hlsl_fp {
+		result.color = texCUBElod( $userEnvMap, fragment.texcoord0 );
+		result.color.w = fragment.color.w;
+	}
+}

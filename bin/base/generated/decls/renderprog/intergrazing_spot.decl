@@ -1,0 +1,27 @@
+{
+	parms {
+		stageSort	sortLight
+		lightColor	lightColor * exposure * lightFade
+	}
+	state {
+		depthfunc	GL_LEQUAL
+		depthMask
+		alphaMask
+		blend		GL_ONE GL_ONE
+	}
+	hlsl_vp {
+		#include "includes/interaction.inc"
+
+		#include "skinning_normals.inc"
+		INTERACTION_VERTEX;
+	}
+	hlsl_fp {
+		#include "includes/shadow.inc"
+		#include "includes/interaction.inc"
+
+		float shadow;
+		SAMPLE_SPOT_LIGHT_SHADOW( shadow, fragment.texcoord5 );
+
+		INTERACTION_FRAGMENT_GRAZING( shadow );
+	}
+}

@@ -1,0 +1,15 @@
+{
+	parms {
+		stageSort			sortDecal
+	}
+	state {
+		depthmask
+	}
+	hlsl_vp {
+		result.position = _float4( 0.0 );
+	}
+	hlsl_fp {
+		clip( -1 );
+		result.color = _float4( 0.0 );
+	}
+}

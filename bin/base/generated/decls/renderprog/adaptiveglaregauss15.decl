@@ -1,0 +1,49 @@
+{
+	parms {
+	}
+	state {
+		depthfunc GL_ALWAYS
+		depthmask
+		twosided
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+	}
+	hlsl_fp {
+		// writes result.hcolor as the result of a smeared bloom
+		// glareStep will be { 1, 0 } or { 0, 1 } for horizontal / vertical separation
+
+		// gaussian 3 std dev
+		float bloom0 = 0.134598;
+		float bloom1 = 0.127325;
+		float bloom2 = 0.107778;
+		float bloom3 = 0.081638;
+		float bloom4 = 0.055335;
+		float bloom5 = 0.033562;
+		float bloom6 = 0.018216;
+		float bloom7 = 0.008847;
+
+		// convert from 0,1,2,3,... coordinates to 0.0 - 1.0
+		float2 tc = screenPosToTexcoord( fragment.position.xy, $positionToViewTexture );
+		float2 step = $adaptiveGlareBlurStep.xy * $positionToViewTexture.zw;
+		float2 dir = step;
+
+		float4 total;
+		total =	h4tex2D( $adaptiveGlareBlurMap, tc ) * bloom0;
+		total += ( h4tex2D( $adaptiveGlareBlurMap, tc + dir ) + h4tex2D( $adaptiveGlareBlurMap, tc - dir ) ) * bloom1;
+		dir += step;
+		total += ( h4tex2D( $adaptiveGlareBlurMap, tc + dir ) + h4tex2D( $adaptiveGlareBlurMap, tc - dir ) ) * bloom2;
+		dir += step;
+		total += ( h4tex2D( $adaptiveGlareBlurMap, tc + dir ) + h4tex2D( $adaptiveGlareBlurMap, tc - dir ) ) * bloom3;
+		dir += step;
+		total += ( h4tex2D( $adaptiveGlareBlurMap, tc + dir ) + h4tex2D( $adaptiveGlareBlurMap, tc - dir ) ) * bloom4;
+		dir += step;
+		total += ( h4tex2D( $adaptiveGlareBlurMap, tc + dir ) + h4tex2D( $adaptiveGlareBlurMap, tc - dir ) ) * bloom5;
+		dir += step;
+		total += ( h4tex2D( $adaptiveGlareBlurMap, tc + dir ) + h4tex2D( $adaptiveGlareBlurMap, tc - dir ) ) * bloom6;
+		dir += step;
+		total += ( h4tex2D( $adaptiveGlareBlurMap, tc + dir ) + h4tex2D( $adaptiveGlareBlurMap, tc - dir ) ) * bloom7;
+
+		result.hcolor = total;
+	}
+}

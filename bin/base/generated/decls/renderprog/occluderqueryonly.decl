@@ -1,0 +1,17 @@
+{
+	state {
+		colormask
+		alphamask
+		depthmask
+		twosided
+	}
+	hlsl_vp {
+		#include "includes/vertex.inc"
+
+		CALC_SKINNED_POSITION( result.position );
+	}
+	hlsl_fp {
+		result.color0 = _float4( 0.0 );
+		result.color1 = _float4( 0.0 );
+	}
+}

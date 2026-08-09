@@ -1,0 +1,19 @@
+{
+	parms {
+		stageSort	sortCoverage
+	}
+	state {
+		alphamask
+	}
+	hlsl_vp {
+		#include "skinning.inc"
+	
+		result.position.x = dot4( position, $mvpMatrixX );
+		result.position.y = dot4( position, $mvpMatrixY );
+		result.position.z = dot4( position, $mvpMatrixZ );
+		result.position.w = dot4( position, $mvpMatrixW );
+	}
+	hlsl_fp {
+		result.color = $color;
+	}
+}

@@ -1,0 +1,6 @@
+{
+	inherit empty
+	parms {
+		stageSort	sortTrans
+	}
+}

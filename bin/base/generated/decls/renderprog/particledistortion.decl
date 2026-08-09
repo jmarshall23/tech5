@@ -1,0 +1,82 @@
+{
+	parms {
+		stageSort	sortPerturber
+	}
+	state {
+		depthMask
+		depthfunc	GL_ALWAYS
+		blend		GL_ONE_MINUS_DST_ALPHA GL_DST_ALPHA
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		float4 worldPosition;
+		worldPosition.x = dot4( vertex.position, $modelMatrixX );
+		worldPosition.y = dot4( vertex.position, $modelMatrixY );
+		worldPosition.z = dot4( vertex.position, $modelMatrixZ );
+		worldPosition.w = dot4( vertex.position, $modelMatrixW );
+		
+		float eyeDistance = abs( dot4( worldPosition, $viewMatrixZ ) );
+		float nearFade = saturate( ( eyeDistance - $distortionFade.x ) / ( $distortionFade.y - $distortionFade.x ) );
+		float farFade = saturate( ( eyeDistance - $distortionFade.z ) / ( $distortionFade.w - $distortionFade.z ) );
+		float fade = nearFade * ( 1.0 - farFade );
+
+		// Convert back from 16 bit vertex elements.
+		float4 tc = vertex.texcoord0.xyxy * $particleStScaleBias.x + $particleStScaleBias.y;
+
+		result.texcoord0.xy = tc.xy;
+		result.texcoord0.z = fade;
+		result.texcoord0.w = 0.0;
+
+		result.texcoord1.x = dot4( tc, $sMatrix );
+		result.texcoord1.y = dot4( tc, $tMatrix );
+#ifdef XBOX
+		result.texcoord1.zw = result.position.zw;
+#else
+		result.texcoord1.zw = _float2( 0.0 );
+#endif
+
+		//result.texcoord2 = vertex.normal;
+
+		result.color = swizzleColor( vertex.color );
+		//result.color.w *= fade;
+	}
+	hlsl_fp {
+		// Load the mask map
+		float4 texel = tex2D( $transMap, fragment.texcoord0.xy );
+		
+		// Fade mask and blur depending on vertex alpha and distance
+		float blur = texel.z * fragment.color.w * fragment.texcoord0.z;
+		float mask = texel.w * fragment.color.w * fragment.texcoord0.z;
+		
+		// Kill the pixel if the blur or distortion is very small
+		clip( ( blur + mask ) - 0.01 );
+
+#ifdef XBOX
+		float interpolatedZOverW = fragment.texcoord1.z / fragment.texcoord1.w;
+#else
+		float interpolatedZOverW = fragment.position.z;
+#endif
+
+		// sample the depth texture
+		float2 tc = screenPosToTexcoord( fragment.position.xy, $positionToViewTexture );
+		const float dstDepth = tex2Ddepth( $viewDepthMap, tc );
+		const float srcDepth = interpolatedZOverW;
+
+		// z-rejection
+		const float zReject = dstDepth - srcDepth;
+		//clip( zReject - $particleDepthClipRange.x );
+		clip( zReject );
+
+		// scale/bias the distortion map
+		float2 distortion = 2.0 * texel.xy - 1.0;
+
+		// Scale distortion and blur
+		distortion *= ( $distortionScale.xy * mask );
+
+		result.color = ComputeDistortion( distortion, blur );
+	}
+}

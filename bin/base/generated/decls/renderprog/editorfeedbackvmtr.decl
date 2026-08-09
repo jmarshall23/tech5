@@ -1,0 +1,36 @@
+{
+	parms {
+	}
+	state {
+	}
+	hlsl_vp {
+		#include "includes/vertex.inc"
+
+		float4 localPosition;
+		CALC_SKINNED_POSITIONS( localPosition, result.position );
+		CALC_TEXCOORDS_BLEND( result.texcoord0 );
+	}
+	hlsl_fp {
+		#include "includes/vmtr.inc"
+
+		float2 texcoord;
+		BRANCH if ( $useVirtualMapping.x > 0 ) {
+			// this is basically only for non pre-lit levels, and shouldn't be used often.
+			// this doesn't attempt to get the derivative correct at the frac crossing point
+			texcoord = frac( fragment.texcoord0.xy ) * $virtualMapping.xy + $virtualMapping.zw;
+		} else {
+			BRANCH if ( $useSkinBlending.x > 0.0 ) {
+				float2 fp = float2( fragment.position.x * $positionToFeedback.z, fragment.position.y * $positionToFeedback.w );
+				float2 xy = frac( fp ) - 0.5;
+				texcoord = ( xy.x * xy.y < 0.0 ) ? fragment.texcoord0.xy : fragment.texcoord0.zw;
+			} else {
+				texcoord = fragment.texcoord0.xy;
+			}
+		}
+
+		float4 feedback;
+		CALC_VMTR_FEEDBACK( feedback, texcoord );
+
+		result.color = feedback;
+	}
+}

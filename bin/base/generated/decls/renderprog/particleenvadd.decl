@@ -1,0 +1,84 @@
+{
+	parms {
+		stageSort	sortTrans+1
+	}
+	state {
+		blend		GL_SRC_ALPHA GL_ONE
+		depthmask
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		// Convert back from 16 bit vertex elements.
+		result.texcoord0 = vertex.texcoord0.xyxy * $particleStScaleBias.x + $particleStScaleBias.y;
+
+		float3 globalPos;
+		globalPos.x = dot3( vertex.position, $modelMatrixX );
+		globalPos.y = dot3( vertex.position, $modelMatrixY );
+		globalPos.z = dot3( vertex.position, $modelMatrixZ );
+		result.texcoord1.xyz = $globalViewOrigin.xyz - globalPos;
+		result.texcoord1.w = 1.0;
+
+		// Fade particle based on distance to near clip
+		//float fade = saturate( abs( result.position.w ) * $particleFade.x );
+
+		result.color = swizzleColor( vertex.color );
+		result.color.xyz *= $exposure.xyz;// * fade;
+	}
+	hlsl_fp {
+		/*
+			Our particles do not compute or store normals, tangents, etc which makes for fast CPU computation.
+			If we want to calcuate the tangent space then for the particle, we can do so by making a
+			a few assumptions:
+				- The surface is planar
+				- Texture coordinates are interpolated across the surface
+
+			If true, the partial derivatives are constant across each surface and the tangent vectors
+			can be computed as:
+				- T partial derivative of U with respect to the global space position
+				- B partial derivative of V with respect to the global space position
+
+			The view vector is used as our normal.
+		*/
+
+		half4 envMask = tex2D( $spareSpecularMap, fragment.texcoord0.xy );
+
+		float3 toViewer = normalize( fragment.texcoord1.xyz );
+
+		// calculate the edge differences over the 2x2 pixel area
+		float3 dp1 = ddx( fragment.texcoord1.xyz );
+		float3 dp2 = ddy( fragment.texcoord1.xyz );
+		float2 duv1 = ddx( fragment.texcoord0.xy );
+		float2 duv2 = ddy( fragment.texcoord0.xy );
+
+		float3 T = normalize( float3( duv1.x * dp1.x + duv2.x * dp2.x, duv1.x * dp1.y + duv2.x * dp2.y, duv1.x * dp1.z + duv2.x * dp2.z ) );
+		float3 B = normalize( float3( duv1.y * dp1.x + duv2.y * dp2.x, duv1.y * dp1.y + duv2.y * dp2.y, duv1.y * dp1.z + duv2.y * dp2.z ) );
+		float3 N = cross( T, B );
+
+		float3 localNormal = tex2D( $spareBumpMap, fragment.texcoord0.xy ).wyz;
+		localNormal = float3( localNormal.xy * 2.0 - 1.0, 0.0 );
+		localNormal.z  = sqrt( 1.0 - min( dot3( localNormal, localNormal ), 1.0 ) );
+
+		float3 globalNormal;
+		globalNormal.x = dot3( localNormal, T );
+		globalNormal.y = dot3( localNormal, B );
+		globalNormal.z = dot3( localNormal, N );
+		globalNormal = normalize( globalNormal );
+
+		// calculate the specular reflection vector from viewer and globalNormal
+		float4 reflection;
+		reflection.xyz = ( globalNormal * dot3( toViewer, globalNormal ) * 2.0 ) - toViewer;
+		reflection.w = 0.0;
+
+		// load up the environment value from the reflection vector
+		half4 color = texCUBElod( $dynamicEnvMap, reflection );
+		color.w = envMask.g;
+
+		//test the specular map alpha with the vertex alpha
+		//fragment.color.w = step( 1 - fragment.color.w, envMask.a );
+		result.color = fragment.color * color; // * ( envMask *  fragment.color.w ); //color * envMask * fragment.color;
+	}
+}

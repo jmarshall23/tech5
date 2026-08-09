@@ -1,0 +1,61 @@
+{
+	parms {
+		stageSort	sortCoverage
+	}
+	state {
+		depthfunc	GL_LEQUAL
+	}
+	hlsl_vp {
+		// Convert back from 16 bit vertex elements.
+		float4 position = vertex.position * $vertexXYZScale + $vertexXYZBias;
+
+		result.position.x = dot( position, $mvpMatrixX );
+		result.position.y = dot( position, $mvpMatrixY );
+		result.position.z = dot( position, $mvpMatrixZ );
+		result.position.w = dot( position, $mvpMatrixW );
+	}
+	hlsl_fp {
+
+		// this is normalized window space, not strict openGL window space
+		// that uses integer viewport values.
+		float3 window;
+		window.xy = screenPosToTexcoord( fragment.position.xy, $renderPositionToViewTexture );
+
+		// fetch the window space depth value
+		// this instruction does the 1.0 - depth calculation automatically
+		window.z = tex2Ddepth( $viewDepthMap, window.xy );
+
+#ifndef PC
+		window.y = 1.0 - window.y;	// image y origin adjust
+#endif
+
+		// move the window space 0.0 - 1.0 xyz to -1.0 - 1.0
+		// normalized device coordinate, assumes a full depth range
+		float3 device = ( window.xyz * 2.0 ) - 1.0;
+#ifdef XBOX
+		device.z = window.z;	// D3D has a non-clipped Z range of 0 to W, while OpenGL/PS3 has -W to W
+#endif
+
+		float4 d;
+		d.xyz = device;
+		d.w = 1;
+
+		float4 wclip;
+		wclip.x = dot4( d, $inverseMVPMatrixX );
+		wclip.y = dot4( d, $inverseMVPMatrixY );
+		wclip.z = dot4( d, $inverseMVPMatrixZ );
+		wclip.w = dot4( d, $inverseMVPMatrixW );
+
+		wclip.xyzw /= wclip.w;
+
+		// now transform to the light clip space
+		float4 light;
+		light.x = dot4( wclip, $lightProjectionS );
+		light.y = dot4( wclip, $lightProjectionT );
+		light.z = dot4( wclip, $lightProjectionR );
+		light.w = dot4( wclip, $lightProjectionQ );
+
+		float shadowVal = tex2D( $globalShadows, light.xy ).x;
+		result.color = _float4( shadowVal );
+	}
+}

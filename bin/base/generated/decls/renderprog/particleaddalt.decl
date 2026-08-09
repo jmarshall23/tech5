@@ -1,0 +1,12 @@
+{
+	inherit particleAdd
+	hlsl_fp {
+		#define PARTICLE_FP_ALT
+		#include "particle_fp.inc"
+
+		// additive, so the global fog is just a modulate instead of a blend
+		color.xyz *= fogVal;
+
+		result.color = color * fragment.color;
+	}
+}

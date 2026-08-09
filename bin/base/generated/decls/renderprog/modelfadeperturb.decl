@@ -1,0 +1,45 @@
+{
+	parms {
+	}
+	state {
+		polygonOffset
+		depthmask
+		depthfunc	GL_EQUAL
+		blend		GL_ONE_MINUS_DST_ALPHA GL_DST_ALPHA
+	}
+	hlsl_vp {
+		#include "skinning_normals.inc"
+
+		float4 extrudedPos;
+		extrudedPos.xyz = position.xyz + ( normal.xyz * $modelFadeExtrude.x );
+		extrudedPos.w = position.w;
+
+		result.position.x = dot4( extrudedPos, $mvpMatrixX );
+		result.position.y = dot4( extrudedPos, $mvpMatrixY );
+		result.position.z = dot4( extrudedPos, $mvpMatrixZ );
+		result.position.w = dot4( extrudedPos, $mvpMatrixW );
+
+#ifdef XBOX
+		result.texcoord3 = result.position;
+#endif
+	}
+	hlsl_fp {
+
+#ifdef XBOX
+		float interpolatedZOverW = fragment.texcoord3.z / fragment.texcoord3.w;
+#else
+		float interpolatedZOverW = fragment.position.z;
+#endif
+
+		// sample the depth texture
+		float2 tc = screenPosToTexcoord( fragment.position.xy, $positionToViewTexture );
+		const float dstDepth = tex2Ddepth( $viewDepthMap, tc );
+		const float srcDepth = interpolatedZOverW;
+
+		// z-rejection
+		const float zReject = dstDepth - srcDepth + 0.002;
+		clip( zReject );
+
+		result.color = ComputeDistortion( _float2( 0.0 ), ( 0.5 - abs( $modelFade.x - 0.5 ) ) * 0.75 );
+	}
+}

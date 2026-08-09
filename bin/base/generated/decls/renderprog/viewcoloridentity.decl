@@ -1,0 +1,23 @@
+{
+	parms {
+	}
+	state {
+		blend	GL_ONE GL_ZERO
+		depthfunc GL_ALWAYS
+		depthmask
+		twosided
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+		result.texcoord0 = vertex.texcoord0.xyxy;
+	}
+	hlsl_fp {
+#ifndef PC
+		float2 tc = float2( fragment.texcoord0.x, 1.0 - fragment.texcoord0.y );
+#else
+		float2 tc = fragment.texcoord0.xy;
+#endif
+		result.hcolor = h4tex2D( $viewColorMap, tc );
+		//result.hcolor.w = 0.5;
+	}
+}

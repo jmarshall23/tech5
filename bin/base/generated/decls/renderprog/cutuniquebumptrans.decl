@@ -1,0 +1,7 @@
+{
+	inherit landUniqueBump
+	state {
+		depthfunc			GL_EQUAL
+		depthMask
+	}
+}

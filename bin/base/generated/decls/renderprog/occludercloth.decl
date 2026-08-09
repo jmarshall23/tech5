@@ -1,0 +1,37 @@
+{
+	parms {
+	}
+	state {
+		colormask
+		alphamask
+		twosided
+	}
+	hlsl_vp {
+		float4 position = vertex.position;
+
+		result.position.x = dot4( position, $mvpMatrixX );
+		result.position.y = dot4( position, $mvpMatrixY );
+		result.position.z = dot4( position, $mvpMatrixZ );
+		result.position.w = dot4( position, $mvpMatrixW );
+
+		result.texcoord0.xy = vertex.texcoord0.xy;
+		result.texcoord0.zw = vertex.color.xy;
+	}
+	hlsl_fp {
+		float2 texcoord = clamp( fragment.texcoord0.xy, 0.01f, 0.99f ) * $virtualMapping.xy + $virtualMapping.zw;
+		float3 physCoord = VmtrVirtualToPhysical( texcoord );
+
+#ifdef USE_VIRTUAL_ANISO_FOOTPRINT
+		float2 dx = ddx( texcoord.xy ) * physCoord.z;
+		float2 dy = ddy( texcoord.xy ) * physCoord.z;
+
+		float4 specular = texPhys( $physicalVmtrPagesMap0, physCoord.xy, dx, dy );
+#else
+		float4 specular = texPhys( $physicalVmtrPagesMap0, physCoord.xy );
+#endif
+		// coverMap is stored in specular.w
+		clip( specular.w - 0.5f - ( fragment.texcoord0.z * specular.y ) - ( fragment.texcoord0.w * specular.z ) );
+
+		result.color = _float4( 0.0 );
+	}
+}

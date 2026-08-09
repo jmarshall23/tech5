@@ -1,0 +1,117 @@
+{
+	parms {
+#ifdef PS3
+		projectionMatrixZ.z		projectionMatrixZ.z * 0.5 - 0.5
+#endif
+	}
+	state {
+		depthfunc	GL_ALWAYS
+		depthmask
+		alphamask
+		twosided
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+	}
+	hlsl_fp {
+		float2 tc = screenPosToTexcoord( fragment.position.xy, $positionToViewTexture );
+
+		const float MAX_FLAT_DEPTH = 10.0;		// maximum depth for two adjacent pixels to be considered in the same plane
+		const float MIN_CRACK_DEPTH = 100.0;	// a pixel is considered a crack if it's depth increases this much between two adjacent pixels
+		const float MAX_CRACK_DISTANCE = 500.0;	// don't look for cracks beyond this point because small far away adjacent geometry will appear as cracks
+
+		float3 foundCrack = _float3( 0.0 );
+		for ( float x = -4.0; x <= 4.0; x += 1.0 ) {
+			for ( float y = -4.0; y <= 4.0; y += 1.0 ) {
+				float2 localTC = tc + float2( x, y ) * $positionToViewTexture.zw;
+
+				float centerDepth = tex2Ddepth( $spare1Map, localTC );
+				float4 surroundingDepth;
+				surroundingDepth.x = tex2Ddepth( $spare1Map, localTC + float2( +1, 0 ) * $positionToViewTexture.zw );
+				surroundingDepth.y = tex2Ddepth( $spare1Map, localTC + float2( 0, +1 ) * $positionToViewTexture.zw );
+				surroundingDepth.z = tex2Ddepth( $spare1Map, localTC + float2( -1, 0 ) * $positionToViewTexture.zw );
+				surroundingDepth.w = tex2Ddepth( $spare1Map, localTC + float2( 0, -1 ) * $positionToViewTexture.zw );
+
+#if defined( PS3 )
+				float centerClipZ = ( centerDepth - 0.5 ) * $projectionMatrixZ.w / ( centerDepth + $projectionMatrixZ.z );
+				float4 surroundingClipZ = ( surroundingDepth - 0.5 ) * $projectionMatrixZ.w / ( surroundingDepth + $projectionMatrixZ.z );
+#elif defined( XBOX )
+				float centerClipZ = -( $projectionMatrixZ.w / ( -centerDepth - $projectionMatrixZ.z ) ) * centerDepth;
+				float4 surroundingClipZ = -( $projectionMatrixZ.w / ( -surroundingDepth - $projectionMatrixZ.z ) ) * surroundingDepth;
+#else
+				centerDepth = centerDepth * 2.0 - 1.0;
+				surroundingDepth = surroundingDepth * 2.0 - 1.0;
+				float centerClipZ = -( $projectionMatrixZ.w / ( -centerDepth - $projectionMatrixZ.z ) ) * centerDepth;
+				float4 surroundingClipZ = -( $projectionMatrixZ.w / ( -surroundingDepth - $projectionMatrixZ.z ) ) * surroundingDepth;
+#endif
+
+				float minClipX = min( surroundingClipZ.x, surroundingClipZ.z );
+				float minClipY = min( surroundingClipZ.y, surroundingClipZ.w );
+				float minClipZ = min( minClipX, minClipY );
+
+				float2 averageSurroundingClipZ = ( surroundingClipZ.xy + surroundingClipZ.zw ) * 0.5;
+
+				if ( abs( averageSurroundingClipZ.x - surroundingClipZ.x ) < MAX_FLAT_DEPTH &&
+						centerClipZ - averageSurroundingClipZ.x > MIN_CRACK_DEPTH && averageSurroundingClipZ.x < MAX_CRACK_DISTANCE ) {
+					foundCrack = float3( localTC.x, localTC.y, minClipZ );
+				}
+				if ( abs( averageSurroundingClipZ.y - surroundingClipZ.y ) < MAX_FLAT_DEPTH &&
+							centerClipZ - averageSurroundingClipZ.y > MIN_CRACK_DEPTH && averageSurroundingClipZ.y < MAX_CRACK_DISTANCE ) {
+					foundCrack = float3( localTC.x, localTC.y, minClipZ );
+				}
+			}
+		}
+
+		if ( foundCrack.z != 0.0 ) {
+			for ( float x = -16.0; x <= 16.0; x += 4.0 ) {
+				for ( float y = -16.0; y <= 16.0; y += 4.0 ) {
+					float2 localTC = foundCrack.xy + float2( x, y ) * $positionToViewTexture.zw;
+					float centerDepth = tex2Ddepth( $spare1Map, localTC );
+					float4 surroundingDepth;
+					surroundingDepth.x = tex2Ddepth( $spare1Map, localTC + float2( +1, 0 ) * $positionToViewTexture.zw );
+					surroundingDepth.y = tex2Ddepth( $spare1Map, localTC + float2( 0, +1 ) * $positionToViewTexture.zw );
+					surroundingDepth.z = tex2Ddepth( $spare1Map, localTC + float2( -1, 0 ) * $positionToViewTexture.zw );
+					surroundingDepth.w = tex2Ddepth( $spare1Map, localTC + float2( 0, -1 ) * $positionToViewTexture.zw );
+
+#if defined( PS3 )
+					float centerClipZ = ( centerDepth - 0.5 ) * $projectionMatrixZ.w / ( centerDepth + $projectionMatrixZ.z );
+					float4 surroundingClipZ = ( surroundingDepth - 0.5 ) * $projectionMatrixZ.w / ( surroundingDepth + $projectionMatrixZ.z );
+#elif defined( XBOX )
+					float centerClipZ = -( $projectionMatrixZ.w / ( -centerDepth - $projectionMatrixZ.z ) ) * centerDepth;
+					float4 surroundingClipZ = -( $projectionMatrixZ.w / ( -surroundingDepth - $projectionMatrixZ.z ) ) * surroundingDepth;
+#else
+					centerDepth = centerDepth * 2.0 - 1.0;
+					surroundingDepth = surroundingDepth * 2.0 - 1.0;
+					float centerClipZ = -( $projectionMatrixZ.w / ( -centerDepth - $projectionMatrixZ.z ) ) * centerDepth;
+					float4 surroundingClipZ = -( $projectionMatrixZ.w / ( -surroundingDepth - $projectionMatrixZ.z ) ) * surroundingDepth;
+#endif
+
+					float2 averageSurroundingClipZ = ( surroundingClipZ.xy + surroundingClipZ.zw ) * 0.5;
+
+					if ( abs( averageSurroundingClipZ.x - surroundingClipZ.x ) < MAX_FLAT_DEPTH &&
+							centerClipZ - averageSurroundingClipZ.x > MIN_CRACK_DEPTH && averageSurroundingClipZ.x < MAX_CRACK_DISTANCE ) {
+					} else if ( abs( averageSurroundingClipZ.y - surroundingClipZ.y ) < MAX_FLAT_DEPTH &&
+								centerClipZ - averageSurroundingClipZ.y > MIN_CRACK_DEPTH && averageSurroundingClipZ.y < MAX_CRACK_DISTANCE ) {
+					} else if ( centerClipZ > foundCrack.z + MIN_CRACK_DEPTH ) {
+						foundCrack.z = 0.0;
+					}
+				}
+			}
+		}
+
+		if ( foundCrack.z != 0.0 ) {
+			result.color = float4( 1.0, 0.25, 0.25, 1.0 );
+		} else {
+			float centerDepth = tex2Ddepth( $spare1Map, tc );
+#if defined( PS3 )
+			float centerClipZ = ( centerDepth - 0.5 ) * $projectionMatrixZ.w / ( centerDepth + $projectionMatrixZ.z );
+#elif defined( XBOX )
+			float centerClipZ = -( $projectionMatrixZ.w / ( -centerDepth - $projectionMatrixZ.z ) ) * centerDepth;
+#else
+			centerDepth = centerDepth * 2.0 - 1.0;
+			float centerClipZ = -( $projectionMatrixZ.w / ( -centerDepth - $projectionMatrixZ.z ) ) * centerDepth;
+#endif
+			result.color = _float4( centerClipZ / 1000 );
+		}
+	}
+}

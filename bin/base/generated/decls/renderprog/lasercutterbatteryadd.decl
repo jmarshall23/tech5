@@ -1,0 +1,14 @@
+{
+	inherit basicBlend
+	parms {
+		stageSort	sortEmit
+	}
+	state {
+		blend	GL_ONE GL_ONE
+		depthmask
+	}
+	hlsl_fp {
+		// Diversity is used as relative battery charge
+		result.color = tex2D( $transMap, fragment.texcoord0.xy ) * fragment.color * $diversity;
+	}
+}

@@ -1,0 +1,39 @@
+{
+	parms {
+		fadePerturbProgram = modelFadePerturb;
+	}
+	state {
+		colormask
+		alphamask
+		twosided
+	}
+	hlsl_vp {
+		#include "includes/vertex.inc"
+
+		CALC_TEXCOORDS( result.texcoord0 );
+		CALC_SKINNED_POSITION( result.position );
+	}
+	hlsl_fp {
+		float2 texcoord = fragment.texcoord0.xy;
+		BRANCH if ( $useVirtualMapping.x > 0 ) {
+			// this is basically only for non pre-lit levels, and shouldn't be used often.
+			// this doesn't attempt to get the derivative correct at the frac crossing point
+			texcoord = frac( fragment.texcoord0.xy ) * $virtualMapping.xy + $virtualMapping.zw;
+		}
+
+		float3 physCoord = VmtrVirtualToPhysical( texcoord );
+
+#ifdef USE_VIRTUAL_ANISO_FOOTPRINT
+		float2 dx = ddx( texcoord.xy ) * physCoord.z;
+		float2 dy = ddy( texcoord.xy ) * physCoord.z;
+
+		float4 specular = texPhys( $physicalVmtrPagesMap0, physCoord.xy, dx, dy );
+#else
+		float4 specular = texPhys( $physicalVmtrPagesMap0, physCoord.xy );
+#endif
+		// coverMap is stored in specular.w
+		clip( specular.w - 0.5 );
+
+		result.color = _float4( 0.0 );
+	}
+}

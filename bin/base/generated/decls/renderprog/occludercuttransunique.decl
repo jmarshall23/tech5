@@ -1,0 +1,34 @@
+{
+	parms {
+		stageSort				sortCoverage
+		depthFillFadeProgram	occluderCutTransUniqueModelFade
+	}
+	state {
+		alphamask
+		colormask
+		twosided
+	}
+	hlsl_vp {
+		#include "includes/vertex.inc"
+
+		CALC_TEXCOORDS( result.texcoord0 );
+		CALC_POSITION( result.position );
+	}
+	hlsl_fp {
+		float3 physCoord = UniqueVirtualToPhysical( fragment.texcoord0.xy );
+
+#ifdef USE_VIRTUAL_ANISO_FOOTPRINT
+		float2 dx = ddx( fragment.texcoord0.xy ) * physCoord.z;
+		float2 dy = ddy( fragment.texcoord0.xy ) * physCoord.z;
+
+		float4 specular = texPhys( $physicalUniquePagesMap0, physCoord.xy, dx, dy );
+#else
+		float4 specular = texPhys( $physicalUniquePagesMap0, physCoord.xy );
+#endif
+
+		// coverMap is stored in specular.w
+		clip( specular.w - 0.5 );
+
+		result.color = _float4( 0.0 );
+	}
+}

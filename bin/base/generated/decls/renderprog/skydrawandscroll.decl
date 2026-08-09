@@ -1,0 +1,84 @@
+{
+	state {
+		twosided		// this allows skyboxes to be a simple cube dynamic model
+	}
+	parms {
+		stageSort			sortSkybox+1
+		forceOpaque			1	// we want dmap to consider this opaque
+
+		localViewOrigin.x	dot4( globalViewOrigin, inverseModelMatrixX )
+		localViewOrigin.y	dot4( globalViewOrigin, inverseModelMatrixY )
+		localViewOrigin.z	dot4( globalViewOrigin, inverseModelMatrixZ )
+		localViewOrigin.w	dot4( globalViewOrigin, inverseModelMatrixW )
+	}
+	hlsl_vp {
+		// Convert back from 16 bit vertex elements.
+		float4 position = vertex.position * $vertexXYZScale + $vertexXYZBias;
+
+		result.position.x = dot4( position, $mvpMatrixX );
+		result.position.y = dot4( position, $mvpMatrixY );
+		result.position.z = dot4( position, $mvpMatrixZ );
+		result.position.w = dot4( position, $mvpMatrixW );
+
+		// Convert back from 16 bit vertex elements.
+		float2 texcoord0 = vertex.texcoord0 * $vertexStScaleBias.xy + $vertexStScaleBias.zw;
+
+		result.texcoord0.xy = texcoord0;
+		result.texcoord0.zw = _float2( 0.0 );
+
+		result.texcoord1.x = dot4( texcoord0, $sMatrix );
+		result.texcoord1.y = dot4( texcoord0, $tMatrix );
+		result.texcoord1.zw = _float2( 0.0 );
+
+		result.texcoord2.x = dot4( texcoord0, $sMatrix1 );
+		result.texcoord2.y = dot4( texcoord0, $tMatrix1 );
+		result.texcoord2.zw = _float2( 0.0 );
+
+		result.texcoord3.xyz = position.xyz - $localViewOrigin.xyz;
+		result.texcoord3.w = 0.0;
+	}
+	hlsl_fp {
+		float4 YCoCg = tex2D( $spare1Map, fragment.texcoord0.xy );
+
+		// convert the diffuse from YCoCg to RGB
+		half4 skyCol;
+		YCoCg.z = ( YCoCg.z * 31.875 ) + 1.0;			//z = z * 255.0/8.0 + 1.0
+		YCoCg.z = 1.0 / YCoCg.z;
+		YCoCg.xy *= YCoCg.z;
+		skyCol.x = dot4( YCoCg, matrixCoCg1YtoRGB1X );
+		skyCol.y = dot4( YCoCg, matrixCoCg1YtoRGB1Y );
+		skyCol.z = dot4( YCoCg, matrixCoCg1YtoRGB1Z );
+		skyCol.w = 1.0;
+		skyCol *= $exposure;
+
+		// fog distance is fog altitude / normalized Z component
+		float dist = ( $skyFogCutoffHeight.x / normalize( fragment.texcoord3.xyz ).z ) * $fogScale.x; // combine fogScale with fogCutoffHeight?
+		dist = saturate( exp2( -dist ));
+
+		half3 final = skyCol.xyz;
+
+		// add the scrolling second cloud layer
+		half4 cloudCol = tex2D( $transMap, fragment.texcoord1.xy ) * $cloudScale;
+		final += cloudCol.xyz * dist;
+
+		// Apply additional additive pass
+		half4 mask = tex2D( $fadeMap, fragment.texcoord2.xy );
+		half4 cloudCol1 = tex2D( $transMap1, fragment.texcoord2.xy ) * $cloudScale1;
+
+#if 1 // cloud test for Justin
+		final = lerp( final, cloudCol1.xyz, mask.x * dist );
+#else
+		final += cloudCol1.xyz * mask.xyz * dist;
+#endif
+		result.color0.xyz = final;
+
+		// store fog factor in alpha so additive passes can be blended on
+		//result.color0.w = dist;
+
+		// make sure alpha is always 1.0 so the radiosity programs
+		// don't think they are seeing back sides of surfaces
+		result.color0.w = 1.0;
+
+		result.color1 = _float4( 0.0f );
+	}
+}

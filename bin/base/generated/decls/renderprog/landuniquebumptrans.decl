@@ -1,0 +1,23 @@
+{
+	inherit landUniqueBump
+	state {
+		depthfunc	GL_LEQUAL
+	}
+	hlsl_fp {
+		#include "includes/unique.inc"
+
+		result.color1 = PackFeedback( CalculateFeedback( fragment.texcoord0.xy, $virtualTextureFeedbackFloat, $physicalUniqueFilterParms ) );
+
+		half4 sampleSpecular;
+		half4 sampleYCoCg;
+		half4 sampleNormal;
+		half4 color;
+
+		FETCH_UNIQUE( sampleSpecular, sampleYCoCg, sampleNormal );
+		clip( sampleSpecular.w - 0.5 );
+		CALC_DIFFUSE_RGB( color, sampleYCoCg );
+		APPLY_SPECULAR( color, sampleSpecular, sampleNormal, fragment.htexcoord1.xyz, fragment.htexcoord2.xyz, fragment.htexcoord3.xyz, fragment.htexcoord4.xyz );
+
+		result.color0 = color;
+	}
+}

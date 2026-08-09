@@ -1,0 +1,64 @@
+{
+	parms {
+		stageSort	sortCoverage
+	}
+	state {
+		depthfunc	GL_LEQUAL
+	}
+	hlsl_vp {
+		#include "includes/vertex.inc"
+
+		CALC_TEXCOORDS( result.texcoord0 );
+		float4 position;
+		float4 normal;
+		float4 tangent;
+		float3 worldPosition;
+		CALC_PNT( position, normal, tangent );
+		CALC_SKINNED_POSITION_NORMALS( result.position, result.texcoord1, result.texcoord2, result.texcoord3, result.texcoord4, position, normal, tangent, worldPosition );
+	}
+	hlsl_fp {
+	
+		#include "includes/vmtr.inc"
+	
+		half4 sampleDiffuse;
+		half4 sampleNormal;
+		half3 fromViewerN;
+		half3 globalNormal;
+		half4 globalReflection;
+		half4 color;
+		
+		sampleDiffuse = tex2D( $spareDiffuseMap, fragment.texcoord0.xy );
+
+		clip( sampleDiffuse.w - 0.5 );
+		
+		sampleNormal = tex2D( $spareBumpMap, fragment.texcoord0.xy );
+
+		half3 diffuse = sampleDiffuse.xyz;
+		
+		CALC_FROM_VIEWER( fromViewerN, fragment.texcoord4.xyz );
+		CALC_GLOBAL_NORMAL( globalNormal, sampleNormal, fragment.texcoord1.xyz, fragment.texcoord2.xyz, fragment.texcoord3.xyz );
+		APPLY_SCALING_DIFFUSE( diffuse );
+
+		{
+			half primeLightFactor = saturate( dot3( $primeLightDir, globalNormal ) - 0.2 );
+			half3 primeLight = $primeLightColor.xyz * primeLightFactor;
+			half3 channelLight =
+				+ max(  globalNormal.x * $channelLight0.xyz, 0 )
+				+ max( -globalNormal.x * $channelLight1.xyz, 0 )
+				+ max(  globalNormal.y * $channelLight2.xyz, 0 )
+				+ max( -globalNormal.y * $channelLight3.xyz, 0 )
+				+ max(  globalNormal.z * $channelLight4.xyz, 0 )
+				+ max( -globalNormal.z * $channelLight5.xyz, 0 );
+			half3 light = primeLight + channelLight;
+
+			// Maximum amount of dim-shadowing based on the pime light contribution
+			float acceptDimShadow = primeLightFactor * ( 1.0 - saturate( 0.5 + $primeLightMin.x ) );
+
+			color.xyz = light * diffuse;
+			color.w = acceptDimShadow;
+		}
+	
+		result.color0 = color;
+		result.color1 = _float4( 0.0 );
+	}
+}

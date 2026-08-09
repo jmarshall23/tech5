@@ -1,0 +1,74 @@
+{
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		depthmask
+		depthfunc GL_ALWAYS
+		twosided
+	}
+	hlsl_vp {
+		float4 position = vertex.position * $vertexXYZScale + $vertexXYZBias;
+
+		result.position.x = dot4( position, $mvpMatrixX );
+		result.position.y = dot4( position, $mvpMatrixY );
+		result.position.z = dot4( position, $mvpMatrixZ );
+		result.position.w = dot4( position, $mvpMatrixW );
+		result.texcoord0 = float4( vertex.texcoord0.x * $vertexStScaleBias.x + $vertexStScaleBias.z, vertex.texcoord0.y * $vertexStScaleBias.y + $vertexStScaleBias.w, 0, 0 );
+		result.color = swizzleColor( vertex.color );
+		result.texcoord1 = swizzleColor( vertex.tangent ) * _float4( 2.0 ) - _float4( 1.0 );
+	}
+	hlsl_fp {
+		//-------- non-wrapping virtual texture lookup ------------
+		float2 texcoord = saturate( fragment.texcoord0.xy ) * $virtualMapping.xy + $virtualMapping.zw;
+		float3 physCoord = VmtrVirtualToPhysical( texcoord );
+
+		//---------------------------------------------------------------
+		// load the virtual textures
+		//---------------------------------------------------------------
+#ifdef XBOX
+		// Weird, low-level hardware issues give occasional horizontal and vertical
+		// quad-lines of crap with the virtualized gui images if the anisotropic
+		// filter isn't explicitly disabled.
+		half4 YCoCg;
+		half4 bumpPage;
+		asm {
+			tfetch2D YCoCg, physCoord.xy, $physicalVmtrPagesMap1, AnisoFilter = disabled
+			tfetch2D bumpPage, physCoord.xy, $physicalVmtrPagesMap2, AnisoFilter = disabled
+		};
+#else
+
+#ifdef USE_VIRTUAL_ANISO_FOOTPRINT
+		float2 dx = ddx( texcoord.xy ) * physCoord.z;
+		float2 dy = ddy( texcoord.xy ) * physCoord.z;
+		half4 YCoCg = tex2D( $physicalVmtrPagesMap1, physCoord.xy, dx, dy );
+		half4 bumpPage = tex2D( $physicalVmtrPagesMap2, physCoord.xy, dx, dy );
+#else
+		half4 YCoCg = tex2D( $physicalVmtrPagesMap1, physCoord.xy );
+		half4 bumpPage = tex2D( $physicalVmtrPagesMap2, physCoord.xy );
+#endif
+				
+#endif
+				
+		YCoCg.z = ( YCoCg.z * 31.875 ) + 1.0;			//z = z * 255.0/8.0 + 1.0
+		YCoCg.z = 1.0 / YCoCg.z;
+		YCoCg.xy *= YCoCg.z;
+		
+		half4	diffuse;
+		diffuse.x = dot4( YCoCg, matrixCoCg1YtoRGB1X );
+		diffuse.y = dot4( YCoCg, matrixCoCg1YtoRGB1Y );
+		diffuse.z = dot4( YCoCg, matrixCoCg1YtoRGB1Z );
+		diffuse.w = bumpPage.w;				// virtualTransImage stores this here for best results
+		
+		// black level adjustment
+		float scale = 1.0 - $cbBlackLevel.x;
+		float bias = $cbBlackLevel.x;
+
+		diffuse *= fragment.color;
+		diffuse += fragment.texcoord1;
+
+		// use fragment.color.w instead if diffuse.w so we don't apply the premultipled alpha twice.
+		result.color.xyz = saturate( diffuse.xyz * scale + bias ) * fragment.color.w;
+		result.color.w = diffuse.w;
+	}
+}

@@ -1,0 +1,35 @@
+{
+	parms {
+		stageSort	sortTrans
+		autoSpriteType	1
+		discrete		1
+
+		localViewLeft.x	dot3( globalViewLeft, inverseModelMatrixX )
+		localViewLeft.y	dot3( globalViewLeft, inverseModelMatrixY )
+		localViewLeft.z	dot3( globalViewLeft, inverseModelMatrixZ )
+
+		localViewUp.x	dot3( globalViewUp, inverseModelMatrixX )
+		localViewUp.y	dot3( globalViewUp, inverseModelMatrixY )
+		localViewUp.z	dot3( globalViewUp, inverseModelMatrixZ )
+	}
+	state {
+		depthmask
+		alphamask
+	}
+	hlsl_vp {
+		#include "includes/autosprite.inc"
+
+		float4 position;
+		CALC_POSITION_AUTOSPRITE1( position.xyz, vertex.position.xyz, $localViewLeft.xyz, $localViewUp.xyz, vertex.tangent.xyz );
+		position.w = vertex.position.w;
+
+		result.position.x = dot4( position, $mvpMatrixX );
+		result.position.y = dot4( position, $mvpMatrixY );
+		result.position.z = dot4( position, $mvpMatrixZ );
+		result.position.w = dot4( position, $mvpMatrixW );
+		result.color = $color;
+	}
+	hlsl_fp {
+		result.color = fragment.color;
+	}
+}

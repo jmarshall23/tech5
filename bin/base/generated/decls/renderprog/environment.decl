@@ -1,0 +1,99 @@
+{
+	// attached environment maps are added on to surfaces at all times,
+	// without changing
+	parms {
+		stageSort	sortDecal
+	}
+	state {
+		blend		GL_ONE GL_ONE
+		depthfunc	GL_EQUAL
+		depthMask
+	}
+
+	hlsl_vp {
+		#include "skinning_normals.inc"
+
+		result.position.x = dot4( position, $mvpMatrixX );
+		result.position.y = dot4( position, $mvpMatrixY );
+		result.position.z = dot4( position, $mvpMatrixZ );
+		result.position.w = dot4( position, $mvpMatrixW );
+
+		// Convert back from 16 bit vertex elements.
+		float2 texcoord0 = vertex.texcoord0 * $vertexStScaleBias.xy + $vertexStScaleBias.zw;
+
+		// texture 1 takes the base coordinates
+		result.texcoord1 = texcoord0.xyxy;
+
+		// texture 0 takes the dir to the viewer
+		result.texcoord0.x = dot4( position, $modelMatrixX );
+		result.texcoord0.y = dot4( position, $modelMatrixY );
+		result.texcoord0.z = dot4( position, $modelMatrixZ );
+		result.texcoord0.xyz -= $globalViewOrigin.xyz;
+		result.texcoord0.w = -( clamp( result.position.w - $fogStart.x, 0.0, $fogEnd.x ) * $fogScale.x );
+
+		// transform the local space vectors to world space
+		result.texcoord2.x = dot3( tangent,   $modelMatrixX );
+		result.texcoord2.y = dot3( bitangent, $modelMatrixX );
+		result.texcoord2.z = dot3( normal,    $modelMatrixX );
+		result.texcoord2.w = 1.0;
+
+		result.texcoord3.x = dot3( tangent,   $modelMatrixY );
+		result.texcoord3.y = dot3( bitangent, $modelMatrixY );
+		result.texcoord3.z = dot3( normal,    $modelMatrixY );
+		result.texcoord3.w = 1.0;
+
+		result.texcoord4.x = dot3( tangent,   $modelMatrixZ );
+		result.texcoord4.y = dot3( bitangent, $modelMatrixZ );
+		result.texcoord4.z = dot3( normal,    $modelMatrixZ );
+		result.texcoord4.w = 1.0;
+	}
+	hlsl_fp {
+
+		half4 specularColor = tex2D( $spareSpecularMap, fragment.texcoord1.xy );
+		half4 bump = tex2D( $spareBumpMap, fragment.texcoord1.xy );
+
+		float3 localNormal = float3( ( bump.xy * 2.0 ) - 1.0, 0.0 );
+		// derive the localNormal z component
+		localNormal.z = sqrt( abs( 1.0 - dot3( localNormal, localNormal ) ) );
+
+		// transform into global space
+		float3 globalNormal;
+		globalNormal.x = dot3( localNormal, fragment.texcoord2 );
+		globalNormal.y = dot3( localNormal, fragment.texcoord3 );
+		globalNormal.z = dot3( localNormal, fragment.texcoord4 );
+		globalNormal = normalize( globalNormal );
+
+		//-------------------------------------------
+
+		// normalize the direction to the viewer
+		float3 toViewer = normalize( -fragment.texcoord0.xyz );
+
+		// calculate the grazing fraction
+		float graze = saturate( dot3( toViewer, globalNormal ) );
+		graze = saturate( ( $viewGraze.x - max( graze, -graze ) ) / ( $viewGraze.x + 0.0001 ) );
+
+		// the scale factor will be a lerp between envScale and envGrazingScale
+		graze = lerp( $envScale.x, $envGrazingScale.x, graze );
+
+		// calculate the specular reflection vector from viewer and globalNormal
+		half4 reflection;
+		reflection.xyz = ( 2.0 * globalNormal * dot3( globalNormal, toViewer ) ) - toViewer;
+		reflection.w = 0;
+
+		// load up the environment value from the reflection vector
+		half3 color = texCUBElod( $dynamicEnvMap, reflection ).xyz;
+
+		// modulate by the environment mask map (specular channel)
+		color *= specularColor.xyz;
+		color *= $exposure.xyz;
+
+		// and the combined grazing scale
+		color *= graze;
+
+		float fog = saturate( exp2( fragment.texcoord0.w ) );
+
+		// lerp towards 0.0 by the fog factor
+		result.color.xyz = lerp( _float3( 0.0 ), color.xyz, fog );
+		result.color.w = 1.0;
+	}
+}

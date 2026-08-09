@@ -1,0 +1,35 @@
+{
+	parms {
+		stageSort			sortCoverage
+		newDiffuseScale		exposure.x * newDiffuseScale
+	}
+	state {
+		depthfunc			GL_LEQUAL
+	}
+	hlsl_vp {
+		// Convert back from 16 bit vertex elements.
+		float4 position = vertex.position * $vertexXYZScale + $vertexXYZBias;
+
+		result.position.x = dot( position, $mvpMatrixX );
+		result.position.y = dot( position, $mvpMatrixY );
+		result.position.z = dot( position, $mvpMatrixZ );
+		result.position.w = dot( position, $mvpMatrixW );
+
+		// texture 0 takes the base coordinates modified by stScaleBias
+		// for 16 bit vertex elements
+		result.texcoord0 = ( vertex.texcoord0.xy * $vertexStScaleBias.xy + $vertexStScaleBias.zw ).xyxy;
+	}
+	hlsl_fp {
+		#include "includes/unique.inc"
+
+		result.color1 = PackFeedback( CalculateFeedback( fragment.texcoord0.xy, $virtualTextureFeedbackFloat, $physicalUniqueFilterParms ) );
+
+		half4 sampleYCoCg;	
+		half4 color;
+
+		FETCH_UNIQUE_YCOCG( sampleYCoCg );
+		CALC_DIFFUSE_RGB( color, sampleYCoCg );
+
+		result.color0 = color;
+	}
+}

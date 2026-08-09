@@ -1,0 +1,7 @@
+{
+	inherit softParticleAdditiveBlend
+	parms {
+		stageSort	sortEmit
+		exposure	exposure * glarePreScale
+	}
+}

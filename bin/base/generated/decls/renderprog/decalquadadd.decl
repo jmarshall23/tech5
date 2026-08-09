@@ -1,0 +1,20 @@
+{
+	inherit decalQuadBlend
+	parms {
+		stageSort	sortDecal
+	}
+	state {
+		blend		GL_ONE	GL_ONE
+		depthfunc	GL_LEQUAL
+		alphamask
+		depthmask
+		twosided
+	}
+	hlsl_fp {
+		#include "decalQuadMerged_fragment.inc"
+
+		final.w *= fog;
+		result.color.xyz = final.xyz * final.w;
+		result.color.w = final.w;
+	}
+}

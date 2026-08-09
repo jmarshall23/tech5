@@ -1,0 +1,227 @@
+{
+	parms {
+		overlayOpacity.x		showOverlay.x * overlayOpacity.x
+		overlayOpacity.y		1.0 - overlayOpacity.x
+	}
+	state {
+		blend		GL_ONE GL_ZERO
+		depthfunc	GL_ALWAYS
+		depthmask
+		twosided
+	}
+	hlsl_vp {
+		result.position = vertex.position;
+#ifdef PS3
+		result.texcoord0 = vertex.texcoord0.xyxy;
+		result.texcoord0.y = 1.0 - vertex.texcoord0.y;
+#endif
+	}
+	hlsl_fp {
+#ifdef PS3
+		float2 texcoord = fragment.texcoord0.xy;
+#else
+		// Convert from [0,1,2,3,..., N-1] coordinates to [0.0,1.0]
+		float2 texcoord = screenPosToTexcoord( fragment.position.xy, $renderPositionToViewTexture );
+#endif
+
+		// Fix so that screen overlay can be sampled properly (ie not upside down etc)
+		float2 texcoord2 = texcoord;
+#if defined( PC ) && !defined( PC_D3D )
+		texcoord2.y = 1.0 - texcoord2.y;
+#endif
+
+#ifdef PC
+		// TODO GK: Optimize me
+		float2 scale = 2.0 * texcoord.xy - 1.0;
+		float2 blah = saturate( float2( 0.8 - scale.x * scale.x, 0.8 - scale.y * scale.y ) );
+		texcoord.xy += $doubleVision.xy * blah;
+#endif
+
+		// Load the glare texture
+		const half4 glareTex = h4tex2D( $glareMap, texcoord.xy );
+
+		//--------------------------------
+		// Depth Of Field - calculate depth-of-field offset
+
+#ifdef XBOX
+		float ndcZ = tex2Ddepth_fast( $viewDepthMap, texcoord.xy );
+#else
+		float ndcZ = tex2Ddepth_fast( $viewDepthMap, texcoord.xy ) * 2.0 - 1.0;
+#endif
+		float clipZ = ndcZ * $projectionMatrixZ.w / ( ndcZ + $projectionMatrixZ.z );
+
+		half dof = clipZ - $depthOfField2.x;
+		dof *= ( dof < 0.0 ) ? $depthOfField2.y : $depthOfField2.z;
+		dof = saturate( abs( dof ) ) * $depthOfField2.w + $globalBlur.x;
+
+/*
+if ( dof < 0.1 ) {
+	result.hcolor = float4( 0, 0, 0, 1 );
+} else if ( dof < 0.2 ) {
+	result.hcolor = float4( 1, 0, 0, 1 );
+} else if ( dof < 0.3 ) {
+	result.hcolor = float4( 0, 1, 0, 1 );
+} else if ( dof < 0.4 ) {
+	result.hcolor = float4( 1, 1, 0, 1 );
+} else if ( dof < 0.5 ) {
+	result.hcolor = float4( 0, 0, 1, 1 );
+} else if ( dof < 0.6 ) {
+	result.hcolor = float4( 1, 0, 1, 1 );
+} else if ( dof < 0.7 ) {
+	result.hcolor = float4( 0, 1, 1, 1 );
+} else if ( dof < 0.8 ) {
+	result.hcolor = float4( 1, 1, 1, 1 );
+} else if ( dof < 0.9 ) {
+	result.hcolor = float4( .5, 0, .5, 1 );
+}
+return;
+*/
+		//--------------------------------
+		// Distortion Effects
+
+		half2 perturb = _half2( 0.0 );
+		half blur = 0.0;
+		{
+			//--------------------------------
+			// Apply distortions accumulated while rendering the scene ( i.e. heat distortion )
+			//half4 distortion = h4tex2D( $postDistortionMap, texcoord.xy ) - 127.0 / 255.0;
+			//perturb += distortion.xy * distortion.z;
+			//blur += saturate( distortion.w ) * 16;
+
+			half4 distortion = h4tex2D( $postDistortionMap, texcoord.xy ) - 0.5;
+			perturb += distortion.xy * 0.1;				// distortion is multiplied by an arbitrary value
+			blur += saturate( distortion.w ) * 16.0;	// can make sharper or blurrier based on shaders
+		}
+
+		//--------------------------------
+		// Apply perturbation to texcoord
+		{
+			// TODO: If necessary, avoid perturbation artifacts on borders by falling-off to zero
+			texcoord.xy += perturb.xy;
+		}
+
+#ifdef PC
+		half4 final;
+		BRANCH if ( $radialBlurEnable.x != 0.0 ) {
+#if 1		// Slow.... Radial blur for Qcon demo
+			const int numsamples = 32;
+			half4 col = _half4( 0.0 );
+			for ( int i = 0; i < numsamples; ++i ) {
+				float scale = 1.0 - ( $radialBlurMaxScale.x ) * ( i / float( numsamples - 1.0 ) );
+				col += tex2D( $viewColorMap, scale * texcoord.xy + ( 1.0 - scale ) * $radialBlurCenter.xy ) * ( numsamples - i ) * ( numsamples - i );
+			}
+			col = col / ( numsamples * numsamples * numsamples / 4 );
+			float luminance = saturate( dot3( col.xyz, half3( 0.33, 0.59, 0.11 ) ) ) * $radialBlurScale.x;
+			final = tex2Dlod( $viewColorMap, float4( texcoord.xy, 0.0, dof + blur ) );
+			final = lerp( final, col, sqrt( luminance ) );
+#else
+//			const int numsamples = 16;
+//			half4 col = 0;
+//			for ( int i = 0; i < numsamples; i++ ) {
+//				float scale = 1.0 - 0.25 * ( i / (float)( numsamples - 1.0 ) );
+//				float2 v = ( texcoord - $radialBlurCenter.xy );
+//				col += tex2D( $viewColorMap, v * scale + $radialBlurCenter.xy );
+//			}
+//			final = col / numsamples;
+
+			// use anisotropic filtering - on the PS3, this can take up to 5ms )
+			// TODO: fall off to zero at edges to prevent border from being blended in
+			// TODO: pass in dof+blur
+			// assumes: viewColorImage has aniso set and lodmaxclamp = 0
+			float2 v = normalize( $radialBlurCenter.xy - texcoord.xy );
+			// dx, dy need to be orthogonal
+			float2 dx = v * 0.02;
+			float2 dy = float2( v.y, -v.x ) * 0.0001;	// change this for tiny line effect, minimum footprint width
+			final = tex2D( $viewColorMap, texcoord.xy, dx, dy );
+#endif
+		} else {
+
+			//--------------------------------
+			// Load the original screen value
+			final = tex2Dlod( $viewColorMap, float4( texcoord.xy, 0.0, dof + blur ) );
+		}
+#else
+		//--------------------------------
+		// Load the original screen value
+
+		half4 final = tex2Dlod( $viewColorMap, float4( texcoord.xy, 0.0, dof + blur ) );
+#endif
+		final = final * $screenScale + glareTex;
+
+#ifdef PC
+		//---------------------------------
+		// Double Vision
+		BRANCH if ( anyNotEqual( $doubleVision.xy, _float2( 0.0 ) ) ) {
+			// Convert from [0,1,2,3,..., N-1] coordinates to [0.0,1.0]
+			float2 tc2 = screenPosToTexcoord( fragment.position.xy, $renderPositionToViewTexture );
+			// GK TODO: Optimize me
+			float2 scale = 2.0 * texcoord.xy - 1.0;
+			float2 blah = saturate( float2( 0.8 - scale.x * scale.x, 0.8 - scale.y * scale.y ) );
+			tc2 -= $doubleVision.xy * blah;
+			half4 glareTex2 = tex2D( $glareMap, tc2.xy );
+			// See if we need to compute a new dof at this location - might be ok to just use previous location's dof
+			half4 final2 = tex2Dlod( $viewColorMap, float4( tc2.xy, 0.0, dof + blur ) ) * $screenScale + glareTex;
+			final = lerp( final, final2, 0.5 );
+		}
+#endif
+
+		//---------------------------------
+		// Color Grading - desaturation, color balance, dodge, burn, multiply, screen, brightness, etc.
+
+		half3 tmpCol = _half3( dot3( final.xyz, half3( 0.33, 0.59, 0.11 ) ) );
+		final.xyz = lerp( final.xyz, tmpCol, $cbDesaturate.x );
+
+		tmpCol.x = h4tex2D( $cbConversionLUT, float2( final.x, 0.0 ) ).x;
+		tmpCol.y = h4tex2D( $cbConversionLUT, float2( final.y, 0.0 ) ).y;
+		tmpCol.z = h4tex2D( $cbConversionLUT, float2( final.z, 0.0 ) ).z;
+
+		// Apply other cb ops not stored in LUT
+		tmpCol *= $cbBrightness.x;
+
+		// Blend in color grading based on depth ( just use the dof value )
+		tmpCol.xyz = lerp( tmpCol.xyz, final.xyz, min( $depthBasedColorGrading.x * dof, 1.0 ) );
+
+		// Screen border overlay
+#if 1
+		tmpCol.xyz *= $overlayOpacity.y + h4tex2D( $screenOverlay, texcoord2 ).xyz * $overlayOpacity.x;
+		// test for recompositing a whole overlay based on one corner - gives us 2x more resolution
+		//float2 stc = 1.0 - abs( 2.0 * texcoord - 1.0 );
+		//tmpCol.xyz *= $overlayOpacity.y + h4tex2D( $screenOverlay1, stc ).xyz * $overlayOpacity.x;
+#endif
+
+		//---------------------------------
+		// Grain
+		
+		// Calculate UV coordinate for grain and sample texture
+		float2 graincoord = ( texcoord.xy * $postGrainScaleBias.xy ) + $postGrainScaleBias.zw;
+		half3 grain = h4tex2D( $grainMap, graincoord ).xyz * $postGrainParms.x + $postGrainParms.y;
+
+		// Sloppy grayscale conversion used as luminance to determine amount of grain
+		half tempLum = dot( tmpCol.xyz, half3( 0.3, 0.59, 0.11 ) );
+		
+		// Bias and scale luminance value
+		tempLum = saturate( ( tempLum * $postGrainParms.z ) + $postGrainParms.w );
+		
+		// Scale grain amount using screen luminance
+		grain *= tempLum;
+		
+		// Apply grain on final color
+		tmpCol.xyz += grain;
+
+		//---------------------------------
+		// Result
+
+		result.hcolor.xyz = tmpCol.xyz;
+		result.hcolor.w = 1.0;
+
+#ifdef PC	// DEBUG
+		if ( $showDepthOfField.x == 1.0 ) {
+			result.hcolor.xyz = _half3( dof );
+		}
+		
+		if ( $showGrainLevels.x == 1.0 ) {
+			result.hcolor.xyz = _half3( tempLum );
+		}
+#endif
+	}
+}

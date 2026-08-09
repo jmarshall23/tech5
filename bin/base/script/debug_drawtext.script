@@ -1,0 +1,25 @@
+/***********************************************************************
+
+debug_drawtext.script
+
+Tool for drawing text in world.
+
+***********************************************************************/
+
+object debug_drawtext {
+	void		onTrigger( entity activator );
+	
+	string		text;			// text to draw
+	float		scale;			// size of text
+	vector		color;			// color of text
+	float		align;			// 0-left, 1-center, 2-right
+};
+
+/*
+================
+debug_drawtext::onTrigger
+================
+*/
+void debug_drawtext::onTrigger( entity activator ) {
+	sys.drawText( text, getOrigin(), scale * 0.0545, color, align, 0.5 );
+}

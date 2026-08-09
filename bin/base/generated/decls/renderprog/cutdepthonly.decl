@@ -1,0 +1,39 @@
+{
+	parms {
+		stageSort			sortCoverage
+	}
+	state {
+		depthfunc			GL_LEQUAL
+		colorMask
+	}
+	hlsl_vp {
+		// Convert back from 16 bit vertex elements.
+		float4 position = vertex.position * $vertexXYZScale + $vertexXYZBias;
+
+		// Transform vertex
+		result.position.x = dot( position, $mvpMatrixX );
+		result.position.y = dot( position, $mvpMatrixY );
+		result.position.z = dot( position, $mvpMatrixZ );
+		result.position.w = dot( position, $mvpMatrixW );
+
+		// Texture 0 takes the base coordinates modified by stScaleBias for 16 bit vertex elements
+		// Also store the distance from the camera in [0,1] range clamping at 1500 units.
+		result.texcoord0.xy = ( vertex.texcoord1.xy * $vertexStScaleBias.xy + $vertexStScaleBias.zw ).xy;
+		result.texcoord0.z = 0.0;
+		result.texcoord0.w = saturate( result.position.w * 0.000667 );
+	}
+	hlsl_fp {
+		// Calculate clip alpha threshold (higher threshold the closer to the texture that we are)
+		// This isn't correct in any way, but it does make the texture 'pop' more in the distance but still
+		// look sharp and crisp when looking at it close-up.
+		half threshold = -0.3 * fragment.texcoord0.w + 0.5;
+		
+		// Clip pixels using physical none virtualized texture
+		half4 texel = tex2D( $textureMap, fragment.texcoord0.xy );
+		clip( texel.a - threshold );
+
+		// Clear output
+		result.color0 = _half4( 0.0 );
+		result.color1 = _half4( 0.0 );
+	}
+}

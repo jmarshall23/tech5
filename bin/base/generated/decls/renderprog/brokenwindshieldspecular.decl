@@ -1,0 +1,127 @@
+{
+	parms {
+		stageSort	sortTrans+1
+	}
+	
+	state {
+		depthFunc	GL_LEQUAL
+		depthMask
+		alphaMask
+		blend		GL_ONE GL_ONE
+	}
+	
+	hlsl_vp {
+		#include "skinning_normals.inc"
+
+		// vertex position
+		result.position.x = dot4( position, $mvpMatrixX );
+		result.position.y = dot4( position, $mvpMatrixY );
+		result.position.z = dot4( position, $mvpMatrixZ );
+		result.position.w = dot4( position, $mvpMatrixW );
+
+		// Convert back from 16 bit vertex elements.
+		float2 texcoord0 = vertex.texcoord0 * $vertexStScaleBias.xy + $vertexStScaleBias.zw;
+		
+		// texture 0 takes the base coordinates
+		result.texcoord0.x = texcoord0.x;
+		result.texcoord0.y = texcoord0.y;
+		result.texcoord0.z = ( $modelAngles.y - 0.5 ) + dot4( texcoord0, $sMatrix );
+		result.texcoord0.w = $modelAngles.w + dot4( texcoord0, $tMatrix );
+
+		// transform the local space vectors to world space
+		result.texcoord1.x = dot3( tangent,   $modelMatrixX );
+		result.texcoord1.y = dot3( bitangent, $modelMatrixX );
+		result.texcoord1.z = dot3( normal,    $modelMatrixX );
+		result.texcoord1.w = morphScale;
+
+		result.texcoord2.x = dot3( tangent,   $modelMatrixY );
+		result.texcoord2.y = dot3( bitangent, $modelMatrixY );
+		result.texcoord2.z = dot3( normal,    $modelMatrixY );
+		result.texcoord2.w = 0.0;
+
+		result.texcoord3.x = dot3( tangent,   $modelMatrixZ );
+		result.texcoord3.y = dot3( bitangent, $modelMatrixZ );
+		result.texcoord3.z = dot3( normal,    $modelMatrixZ );½
+		result.texcoord3.w = 0.0;
+
+ 		// texture 4 takes the dir to the viewer and the fog value
+		result.texcoord4.x = dot4( position, $modelMatrixX );
+		result.texcoord4.y = dot4( position, $modelMatrixY );
+		result.texcoord4.z = dot4( position, $modelMatrixZ );
+		result.texcoord4.xyz -= $globalViewOrigin.xyz;
+		result.texcoord4.w = -( clamp( result.position.w - $fogStart.x, 0.0, $fogEnd.x ) * $fogScale.x );
+	}
+	hlsl_fp {
+	
+		half specularPower1 = 25.0;
+		half specularPower2 = 60.0;
+		half specularPower3 = 100.0;
+		
+		half2 texcoord = fragment.htexcoord0.xy;
+		half2 texcoordAnim = fragment.htexcoord0.zw;
+		
+		half4 bumpMap = tex2D( $spareBumpMap, texcoord );
+		half4 specularMap = tex2D( $spareSpecularMap, texcoord );
+
+		half3 localNormal = bumpMap.wyz - 0.5;
+		localNormal.z = sqrt( abs( dot( localNormal.xy, localNormal.xy ) - 0.25 ) );
+
+		half4 fakeEnvMap = tex2D( $textureMap, texcoordAnim + ( localNormal.xy * 0.075 ) );
+
+		// transform into global space
+		half3 globalNormal;
+		globalNormal.x = dot3( localNormal, fragment.htexcoord1.xyz );
+		globalNormal.y = dot3( localNormal, fragment.htexcoord2.xyz );
+		globalNormal.z = dot3( localNormal, fragment.htexcoord3.xyz );
+		globalNormal = normalize( globalNormal );
+		
+		half3 fromViewer = normalize( fragment.htexcoord4.xyz );
+		half3 toViewer = -fromViewer;
+		
+		//---------------------------------------------------------------
+		// reflection vector 
+		//---------------------------------------------------------------
+		half3 reflection = fromViewer - ( globalNormal * dot3( fromViewer, globalNormal ) * 2.0 );
+
+		half primeShadow = saturate( ( abs( dot3( globalNormal, fromViewer ) ) - 0.2 ) * 1.5 );
+		half cosd1 = saturate( dot3( globalNormal, reflection ) );
+
+		//---------------------------------------------------------------
+		// Create a half vector where light points both from and to it's direction and then select
+		// maximum so we get a good highlight from both viewing directions
+		//---------------------------------------------------------------
+		half3 halfVec2_1 = normalize( toViewer + $primeLightDir.xyz );
+		half3 halfVec2_2 = normalize( toViewer - $primeLightDir.xyz );
+		half cosd2 = max( dot3( halfVec2_1, globalNormal ), dot3( halfVec2_2, globalNormal ) );
+		cosd2 = saturate( ( cosd2 - 0.2 ) * 1.25 );
+		
+		//---------------------------------------------------------------
+		// Add some fake specular using our view matrix so we basically always have something in the window
+		//---------------------------------------------------------------
+		half3 halfVec3 = normalize( toViewer + $viewMatrixZ.xyz );
+		half cosd3 = saturate( ( dot3( globalNormal, halfVec3 ) - 0.2 ) * 1.25 );
+		
+		// Sum everything togheter
+		half cosd = 0.0;
+		cosd += pow( cosd1, specularPower1 ) * 4.0;
+		cosd += pow( cosd2, specularPower2 );
+		cosd += pow( cosd3, specularPower3 );
+
+		half3 primeLight = $primeLightColor.xyz;
+		half3 lightColor = _half3( 0.0 )
+			+ abs(  globalNormal.x * $channelLight0.xyz )
+			+ abs( -globalNormal.x * $channelLight1.xyz )
+			+ abs(  globalNormal.y * $channelLight2.xyz )
+			+ abs( -globalNormal.y * $channelLight3.xyz )
+			+ abs(  globalNormal.z * $channelLight4.xyz )
+			+ abs( -globalNormal.z * $channelLight5.xyz );
+		lightColor *= 0.5;
+		
+		// Add everything togheter
+		half3 light = ( primeLight + lightColor ) * specularMap.xyz * cosd;
+
+		result.color.xyz = saturate( light );
+		result.color.xyz += fakeEnvMap.xyz * ( primeLight + lightColor ) * specularMap.w;
+		result.color.w = 1.0;
+	}
+}

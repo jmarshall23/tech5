@@ -1,0 +1,77 @@
+{
+	parms {
+	}
+	state {
+		blend		GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		depthFunc	GL_GREATER		// we are also relying on the stencil buffer already being set
+		depthMask
+		alphaMask
+		stencilFunc EQUAL 1	255		// only draw on stencil = STENCIL_SHADOW
+		stencilop	KEEP KEEP KEEP
+	}
+	hlsl_vp {
+		float4 pos = vertex.position;
+		float3 normal = vertex.normal.xyz * 2.0 - 1.0;
+		if ( dot3( normal, $dimShadowExtrude ) > 0.0 ) {
+			float dist = dot4( pos, $dimShadowClipPlane );
+			float closing = dot3( $dimShadowExtrude.xyz, $dimShadowClipPlane.xyz );
+			pos.xyz -= $dimShadowExtrude.xyz * ( dist / closing );
+		}
+
+		result.position.x = dot4( pos, $mvpMatrixX );
+		result.position.y = dot4( pos, $mvpMatrixY );
+		result.position.z = dot4( pos, $mvpMatrixZ );
+		result.position.w = dot4( pos, $mvpMatrixW );
+	}
+	hlsl_fp {
+		// this is normalized window space, not strict openGL window space
+		// that uses integer viewport values.
+		float3 window;
+		window.xy = screenPosToTexcoord( fragment.position.xy, $renderPositionToViewTexture );
+
+		// fetch the window space depth value
+		window.z = tex2Ddepth( $viewDepthMap, window.xy );
+
+		float4 wclip = float4( window.xyz, 1.0f );
+
+		// now transform to the light clip space
+		float4 light;
+		light.x = dot4( wclip, $windowPosToDimShadowBlurS );
+		light.y = dot4( wclip, $windowPosToDimShadowBlurT );
+		light.z = dot4( wclip, $windowPosToDimShadowBlurR );
+		light.w = dot4( wclip, $windowPosToDimShadowBlurQ );
+
+		// divide by w to get to light device coordinates
+		light.xyz /= light.w;
+
+		// move the -1.0 - 1.0 light device st to the 0.0 - 1.0 texture range
+#if defined( XBOX )
+		light.xy = ( light.xy * 0.5 ) + 0.5;	// don't adjust z, it is already 0 - 1
+#else
+		light = ( light * 0.5 ) + 0.5;
+#endif
+
+#if defined( XBOX ) || defined( PS3 )
+		light.y = 1.0 - light.y;	// image y origin adjust
+#endif
+		// clamp before sampling, because the shadow depth map may have
+		// only been updated in a restricted viewport
+		light.xy = min( light.xy, 0.99 );
+		light.xy = max( light.xy, 0.01 );
+
+		// make sure that the cleared z = 1.0 in the shadow buffer
+		// will always be farther away than any world surface
+		light.z = min( light.z, 0.9999999 );
+
+		float shadow = shadow2Ddepth( $dimShadowDepthMap, light.xyz );
+
+		// get the amount of shadow accepted by the surface from the alpha channel
+		float acceptShadow = tex2D( $viewColorMap, window.xy ).w;
+
+		// only use a fraction of the dimshadow value, since we can't separate the
+		// contribution along the shadow from the remainder
+		shadow = ( 1.0 - shadow ) * acceptShadow * $dimshadowfade.x;
+
+		result.color = float4( 0.0, 0.0, 0.0, shadow );
+	}
+}

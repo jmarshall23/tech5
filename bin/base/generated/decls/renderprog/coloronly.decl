@@ -1,0 +1,22 @@
+{
+	parms {
+		stageSort	sortCoverage
+	}
+	state {
+		alphamask
+	}
+	hlsl_vp {
+		// Convert back from 16 bit vertex elements.
+		float4 position = vertex.position * $vertexXYZScale + $vertexXYZBias;
+
+		result.position.x = dot4( position, $mvpMatrixX );
+		result.position.y = dot4( position, $mvpMatrixY );
+		result.position.z = dot4( position, $mvpMatrixZ );
+		result.position.w = dot4( position, $mvpMatrixW );
+
+		result.color = swizzleColor( vertex.color );
+	}
+	hlsl_fp {
+		result.color = fragment.color;
+	}
+}

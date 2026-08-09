@@ -1,0 +1,30 @@
+{
+	parms {
+		stageSort	sortCoverage
+	}
+	state {
+		depthfunc	GL_ALWAYS
+		depthmask
+		blend		GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX ) * $testImageFlip.x;
+		result.position.y = dot4( vertex.position, $mvpMatrixY ) * $testImageFlip.y;
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+
+		result.texcoord0.xy = vertex.texcoord0.xy;
+		result.texcoord0.zw = _float2( 0.0 );
+	}
+	hlsl_fp {
+#if defined( PC ) && !defined( PC_D3D )
+		// texelFetch requires unnormalized texcoords
+		float2 texcoord = fragment.texcoord0.xy * float2( 1.0 / $positionToViewTexture.z, 1.0 / $positionToViewTexture.w );
+		ivec2 texcoordi = ivec2( texcoord.x, texcoord.y );
+		result.color.xyz = texelFetch( $textureMapMultisample, texcoordi.xy, 0 ).xyz;
+#else
+		result.color = tex2D( $textureMapMultisample, fragment.texcoord0.xy );
+#endif
+		result.color.w = $testImageAlpha.x;
+	}
+}

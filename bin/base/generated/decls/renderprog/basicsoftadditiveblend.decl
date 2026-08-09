@@ -1,0 +1,11 @@
+{
+	inherit basicSoftBlend
+	parms {
+		stageSort		sortEmit
+		alphaScale.y	1.0 / alphaScale.x
+	}
+	state {
+		blend	GL_SRC_ALPHA GL_ONE
+		depthmask
+	}
+}

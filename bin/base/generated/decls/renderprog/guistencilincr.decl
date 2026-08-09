@@ -1,0 +1,22 @@
+{
+	parms {
+		stageSort	sortTrans
+	}
+	state {
+		colormask
+		alphamask
+		depthmask
+		depthfunc GL_ALWAYS
+		stencilOp keep incr incr
+		twosided
+	}
+	hlsl_vp {
+		result.position.x = dot4( vertex.position, $mvpMatrixX );
+		result.position.y = dot4( vertex.position, $mvpMatrixY );
+		result.position.z = dot4( vertex.position, $mvpMatrixZ );
+		result.position.w = dot4( vertex.position, $mvpMatrixW );
+	}
+	hlsl_fp {
+		result.color = _float4( 0.0 );
+	}
+}
