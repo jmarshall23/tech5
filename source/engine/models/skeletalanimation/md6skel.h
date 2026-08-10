@@ -11,6 +11,8 @@
 
 class idMD6Anim;
 class idMD6Model;
+class idDeclMD6;
+class idParser;
 enum invalidJointConversionHandle_t : int;
 enum invalidJointHandle_t : int;
 enum invalidUserChannelHandle_t : int;
@@ -63,6 +65,7 @@ public:
     md6JointIndex_t GetJointIndex(md6JointHandle_t handle) const;
     md6JointIndex_t GetJointIndex(const char* name) const;
     md6JointHandle_t GetJointHandle(int jointIndex) const;
+    const char* GetJointName(int jointIndex) const;
     md6UserChannelIndex_t GetUserChannelIndex(
         md6UserChannelHandle_t handle) const;
     md6UserChannelIndex_t GetUserChannelIndex(const char* name) const;
@@ -79,7 +82,7 @@ public:
     void GetJointList(const idMD6Model* model, const char* jointNames,
         idList<md6JointIndex_t, 5>& jointList) const;
 
-    bool MakeSkeletonData(int numJoints, const float* basePoseMatrices,
+    bool MakeSkeletonData(int numJoints, const float* basePose,
         const md6JointHandle_t* jointHandles, const short* parents,
         int numUserChannels, const float* userChannelDefaults,
         const md6UserChannelHandle_t* userChannelHandles,
@@ -116,6 +119,7 @@ public:
     static idTypedResourceList<idMD6Skel> resourceList;
 
 private:
+    bool Parse(idParser& parser);
     void AddChildren(md6JointIndex_t parent,
         idList<md6JointIndex_t, 5>& list) const;
     void SubtractChildren(md6JointIndex_t parent,
@@ -132,3 +136,34 @@ private:
     static UserChannelCallback userChannelCallback;
     static TextLoadCallback textLoadCallback;
 };
+
+class idMD6SkeletonConfig : public idResource {
+public:
+    struct instance_t {
+        unsigned int timestamp;
+        const idMD6Skel* skeleton;
+    };
+
+    idMD6SkeletonConfig();
+    ~idMD6SkeletonConfig() override = default;
+
+    void LoadResource() override;
+    bool ReloadIfStale() override;
+    idResourceList* GetResourceList() override;
+
+    bool LoadSkeletonConfig(const char* basePath);
+    bool ReadSkeletonConfig_Binary(const char* fileName);
+    bool WriteSkeletonConfig_Binary(const char* fileName) const;
+
+    idList<instance_t, 5> instances;
+    const idDeclMD6* boundsDecl;
+
+    static idTypedResourceList<idMD6SkeletonConfig> resourceList;
+};
+
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(idMD6SkeletonConfig::instance_t) == 8,
+    "Recovered skeleton-config instance ABI changed");
+static_assert(sizeof(idMD6SkeletonConfig) == 56,
+    "Recovered skeleton-config ABI changed");
+#endif

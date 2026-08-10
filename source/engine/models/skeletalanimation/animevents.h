@@ -8,6 +8,8 @@
 
 class idAnimEvents {
 public:
+    using CacheTransformsCallback = bool (*)(idAnimEvents& events,
+        idDeclMD6& declaration);
     struct animEventInfo_t {
         bool operator==(const animEventInfo_t& other) const;
         bool GetCachedJoints(int eventNum,
@@ -21,6 +23,12 @@ public:
     virtual ~idAnimEvents();
 
     static idHandle<unsigned int, invalidAnimEventId_t, 0> GetNextEventId();
+
+    void Parse(const idDeclMD6* declaration, idParser& parser,
+        int& loadErrors);
+    void Write(idFile_String& file, const char* indent) const;
+    bool CacheTransforms(idDeclMD6* declaration);
+    static void SetCacheTransformsCallback(CacheTransformsCallback callback);
 
     int FindAnimEventInfoIndex(
         const idAtomicStringT<md6AnimAtomicString_t>& animation) const;
@@ -43,6 +51,7 @@ public:
 
 private:
     static idHandle<unsigned int, invalidAnimEventId_t, 0> curEventId;
+    static CacheTransformsCallback cacheTransformsCallback;
 };
 
 #if INTPTR_MAX == INT32_MAX

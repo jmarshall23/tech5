@@ -1,61 +1,65 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\framework\debugmenu.h
-// Recovered logical types: 4
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/list.h"
+#include "idlib/math/vector.h"
+#include "idlib/text/str.h"
 
+class idRenderModelGui;
+class idFont;
+class idLexer;
+struct sysEvent_t;
 
-// IDA Local Type ordinal 21805; PDB kind: class.
-class idDebugMenu
-{
+class idDebugMenu {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21806.
-  virtual ~idDebugMenu();
-  virtual bool Init();
-  virtual bool IsActive();
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual idRenderModelGui *Render();
-
+    virtual ~idDebugMenu() = default;
+    virtual bool Init() = 0;
+    virtual bool IsActive() = 0;
+    virtual bool HandleGuiEvent(const sysEvent_t*) = 0;
+    virtual idRenderModelGui* Render() = 0;
 };
 
-// IDA Local Type ordinal 23605; PDB kind: struct.
-struct idDebugMenuLocal::CEntry
-{
-  bool valid;
-  int shortcut;
-  idStr title;
-  idStr description;
-  idStr cmd;
-  idStr entityValid;
-  idStr entityDescr;
-  idVec4 color;
-};
-
-// IDA Local Type ordinal 23607; PDB kind: class.
-class idDebugMenuLocal::CGroup
-{
+class idDebugMenuLocal : public idDebugMenu {
 public:
-  idStr title;
-  idList<idDebugMenuLocal::CEntry,3> items;
+    struct CEntry {
+        CEntry();
+        CEntry& operator=(const CEntry& other);
+
+        bool valid;
+        int shortcut;
+        idStr title;
+        idStr description;
+        idStr cmd;
+        idStr entityValid;
+        idStr entityDescr;
+        idVec4 color;
+    };
+    class CGroup { public: idStr title; idList<CEntry, 3> items; };
+
+    idDebugMenuLocal();
+    ~idDebugMenuLocal() override;
+    bool Init() override;
+    bool IsActive() override;
+    bool HandleGuiEvent(const sysEvent_t*) override;
+    idRenderModelGui* Render() override;
+
+    bool modKeyPressed;
+    int selectedGroup;
+    int selectedItem;
+    int startItem;
+    idRenderModelGui* guiModel;
+    const idFont* font;
+    idList<CGroup, 3> groups;
+
+private:
+    static bool idLexerJSON_ExpectLiteralToken(idLexer& src,
+        const char* token);
+    static bool idLexerJSON_ExpectString(idLexer& src,
+        const char* string);
+    bool ReadEntry(idLexer& src, CEntry& entry);
+    bool ReadEntries(idLexer& src, CGroup& group);
+    bool ReadGroup(idLexer& src);
+    bool LoadMenu();
 };
 
-// IDA Local Type ordinal 23609; PDB kind: class.
-class idDebugMenuLocal : public idDebugMenu
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 23610.
-  virtual ~idDebugMenuLocal();
-  virtual bool Init();
-  virtual bool IsActive();
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual idRenderModelGui *Render();
-
-  bool modKeyPressed;
-  int selectedGroup;
-  int selectedItem;
-  int startItem;
-  idRenderModelGui *guiModel;
-  const idFont *font;
-  idList<idDebugMenuLocal::CGroup,3> groups;
-};
+extern idDebugMenuLocal debugMenuLocal;
+extern idDebugMenu* debugMenu;

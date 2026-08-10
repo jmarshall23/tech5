@@ -70,6 +70,22 @@ enum prtSortType_t : int {
 
 class idParticleStage {
 public:
+    struct materialTraits_t {
+        idVec4 atlasScaleBias;
+        bool hasEmissivePass;
+        bool usesTransSortAtlas;
+        bool isTransparencySorted;
+        bool alphaBlended;
+
+        materialTraits_t()
+            : atlasScaleBias(1.0f, 1.0f, 0.0f, 0.0f),
+              hasEmissivePass(false), usesTransSortAtlas(false),
+              isTransparencySorted(false), alphaBlended(false) {}
+    };
+    using MaterialTraitsCallback = bool (*)(const idMaterial* material,
+        materialTraits_t& traits);
+    using DefaultMaterialCallback = const idMaterial* (*)();
+
     struct prtStageProperties_t {
         const idMaterial* material;
         std::int16_t totalParticles;
@@ -179,6 +195,8 @@ public:
     void SetMaterial(const idMaterial* material);
     void SetStaticMesh(const idStaticParticleModelData* data,
         const idDrawVert* vertices = nullptr, int vertexCount = 0);
+    static void SetMaterialCallbacks(MaterialTraitsCallback traits,
+        DefaultMaterialCallback defaultMaterial);
     int NumVertsPerParticle() const;
     void CalculateBounds(const idLookupTable* tables);
 
@@ -216,6 +234,10 @@ public:
     prtCustomPath_t customPath;
     prtGenericParms_t genericParm;
     prtLODParms_t lodParms;
+
+private:
+    static MaterialTraitsCallback materialTraitsCallback;
+    static DefaultMaterialCallback defaultMaterialCallback;
 };
 
 #if INTPTR_MAX == INT32_MAX

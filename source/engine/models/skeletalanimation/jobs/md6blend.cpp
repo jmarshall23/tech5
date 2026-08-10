@@ -206,7 +206,7 @@ void BasePose(const idMD6SkelData* skeleton, Pose& pose,
 }
 
 const std::uint16_t* AnimationMapCrcs(const idMD6AnimData* animation) {
-    return reinterpret_cast<const std::uint16_t*>(animation + 1);
+    return reinterpret_cast<const std::uint16_t*>(animation + 1) + 1;
 }
 
 const std::uint16_t* AnimationMapOffsets(const idMD6AnimData* animation) {
@@ -215,11 +215,16 @@ const std::uint16_t* AnimationMapOffsets(const idMD6AnimData* animation) {
 
 const frameSetData_t* FrameSetForFrame(const idMD6AnimData* animation,
         int frame, int& localFrame) {
-    if (animation->numFrameSets == 0) return nullptr;
+    if (animation->numFrameSets == 0 ||
+            animation->frameSetTblOffset >= animation->totalSize ||
+            static_cast<unsigned int>(animation->frameSetOffsetTblOffset) +
+                (static_cast<unsigned int>(animation->numFrameSets) + 1u) *
+                    sizeof(std::uint32_t) > animation->totalSize)
+        return nullptr;
     frame = (std::max)(0, (std::min)(frame,
         static_cast<int>(animation->numFrames) - 1));
     const unsigned char* base = Bytes(animation);
-    const std::uint16_t* offsets = reinterpret_cast<const std::uint16_t*>(
+    const std::uint32_t* offsets = reinterpret_cast<const std::uint32_t*>(
         base + animation->frameSetOffsetTblOffset);
     int setIndex = 0;
     if (animation->numFrameSets > 1) {
@@ -227,8 +232,12 @@ const frameSetData_t* FrameSetForFrame(const idMD6AnimData* animation,
         setIndex = (std::min)(static_cast<int>(animation->numFrameSets) - 1,
             static_cast<int>(table[frame]));
     }
+    const std::uint32_t setOffset = offsets[setIndex] * 16u;
+    if (setOffset > animation->totalSize ||
+            animation->totalSize - setOffset < sizeof(frameSetData_t))
+        return nullptr;
     const frameSetData_t* result = reinterpret_cast<const frameSetData_t*>(
-        base + offsets[setIndex]);
+        base + setOffset);
     localFrame = frame - result->frameStart;
     return result;
 }
@@ -281,12 +290,56 @@ void AnimatedTriples(const std::uint8_t* channels, const int channelCount,
     }
 }
 
+void AnimatedScalars(const std::uint8_t* channels, const int channelCount,
+        const int frame, const int numFrames, const float fraction,
+        const float* firstKeys, const float* nextKeys,
+        const std::uint8_t* frameBits, float* output) {
+    const int bytesPerChannel = (numFrames + 7) / 8;
+    int nextCursor = 0;
+    for (int channel = 0; channel < channelCount; ++channel) {
+        int leftFrame = 0;
+        int rightFrame = numFrames > 1 ? numFrames - 1 : 0;
+        int leftKey = -1;
+        int rightKey = -1;
+        int keyAtFrame = -1;
+        for (int scan = 1; scan < numFrames; ++scan) {
+            if (!FrameBit(frameBits, bytesPerChannel, channel, scan))
+                continue;
+            ++keyAtFrame;
+            if (scan <= frame) {
+                leftFrame = scan;
+                leftKey = nextCursor + keyAtFrame;
+            } else if (rightKey < 0) {
+                rightFrame = scan;
+                rightKey = nextCursor + keyAtFrame;
+            }
+        }
+        const int keysForChannel = keyAtFrame + 1;
+        const float left = leftKey < 0 ? firstKeys[channel]
+            : nextKeys[leftKey];
+        const float right = rightKey < 0 ? left : nextKeys[rightKey];
+        float interpolation = fraction;
+        if (rightFrame > leftFrame) {
+            interpolation = (static_cast<float>(frame - leftFrame) +
+                fraction) / static_cast<float>(rightFrame - leftFrame);
+        }
+        interpolation = (std::max)(0.0f,
+            (std::min)(1.0f, interpolation));
+        output[channels[channel]] = left +
+            (right - left) * interpolation;
+        nextCursor += keysForChannel;
+    }
+}
+
 void AnimatedRotations(const std::uint8_t* channels, const int channelCount,
         const int frame, const int numFrames, const float fraction,
         const std::int16_t* firstKeys, const std::int16_t* nextKeys,
         const std::uint8_t* frameBits, float* output) {
     std::vector<float> xyz(Pad8(channelCount) * 4, 0.0f);
-    AnimatedTriples(channels, channelCount, frame, numFrames, fraction,
+    std::vector<std::uint8_t> sequential(Pad8(channelCount), 0);
+    for (int index = 0; index < channelCount; ++index)
+        sequential[index] = static_cast<std::uint8_t>(index);
+    AnimatedTriples(sequential.data(), channelCount, frame, numFrames, fraction,
         firstKeys, nextKeys, frameBits, xyz.data(), 4, 1.0f / 32767.0f);
     for (int index = 0; index < channelCount; ++index) {
         const int target = channels[index] * 4;
@@ -314,6 +367,11 @@ void DecodePose(const idMD6SkelData* skeleton,
     if ((animation->flags & idMD6AnimData::ANIM_FLAG_HAS_JOINT_DATA) == 0 &&
             (animation->flags &
                 idMD6AnimData::ANIM_FLAG_HAS_USER_CHANNEL_DATA) == 0)
+        return;
+    const unsigned int mapsEnd = sizeof(idMD6AnimData) + 2u +
+        static_cast<unsigned int>(animation->numAnimMaps) *
+            (sizeof(std::uint16_t) + 8u * sizeof(std::uint16_t));
+    if (animation->numAnimMaps == 0 || mapsEnd > animation->totalSize)
         return;
     int map = idMD6Blend::GetAnimMapIndex(animation,
         skeleton->parentTblCrc);
@@ -390,8 +448,10 @@ void DecodePose(const idMD6SkelData* skeleton,
     if (animU > 0) {
         const float* first = reinterpret_cast<const float*>(
             setBase + set->firstUOffset);
-        for (int channel = 0; channel < animU; ++channel)
-            pose.users[userChannels[channel]] = first[channel];
+        AnimatedScalars(userChannels, animU, localFrame, set->frameRange,
+            frameFraction, first,
+            reinterpret_cast<const float*>(setBase + set->nextUOffset),
+            setBase + set->UBitsOffset, pose.users.data());
     }
 }
 
@@ -527,7 +587,11 @@ void FrameFromInfo(const idMD6SkelData* skeleton,
 
 int idMD6Blend::GetAnimMapIndex(const idMD6AnimData* animation,
         const idHandle<unsigned short, invalidCrc_t, 65535> parentTableCrc) {
-    if (animation == nullptr) return -1;
+    if (animation == nullptr || animation->numAnimMaps == 0 ||
+            sizeof(idMD6AnimData) + 2u +
+                static_cast<unsigned int>(animation->numAnimMaps) *
+                    sizeof(std::uint16_t) > animation->totalSize)
+        return -1;
     const std::uint16_t* maps = AnimationMapCrcs(animation);
     for (int index = 0; index < animation->numAnimMaps; ++index)
         if (maps[index] == parentTableCrc.Get()) return index;

@@ -1,69 +1,105 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\framework\resourcemanager_local.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "framework/resourcemanager.h"
 
+#include "idlib/containers/hashindex.h"
+#include "idlib/containers/staticlist.h"
+#include "idlib/text/atomicstring.h"
+#include "idlib/text/strstatic.h"
 
-// IDA Local Type ordinal 23578; PDB kind: class.
-class __declspec(align(4)) idResourceManagerLocal : public idResourceManager
-{
+class idResource;
+class idResourceList;
+class idResourceAnnotation;
+
+struct idPlatformStreamData {
+    char lang[16];
+    unsigned int streamAlignment;
+    unsigned int streamLength;
+    void* streamData;
+};
+
+struct idResourceFileEntry {
+    int resourceIndex;
+    idResourceList* resourceList;
+    idStrStatic<32> typeName;
+    idStrStatic<256> resourceName;
+    idStrStatic<256> filename;
+    unsigned int offset;
+    int compressedLength;
+    int uncompressedLength;
+    idStaticList<idPlatformStreamData, 16> stream;
+    char lang[16];
+    int useBits;
+};
+
+struct idResourceCacheEntry {
+    idAtomicString filename;
+    unsigned int offset;
+    unsigned int streamOffset;
+    int compressedLength;
+    int uncompressedLength;
+};
+
+class alignas(4) idResourceManagerLocal : public idResourceManager {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 23579.
-  virtual ~idResourceManagerLocal();
-  virtual void Init();
-  virtual void Init2(const bool);
-  virtual void Shutdown();
-  virtual void CancelToTerminate();
-  virtual void CloseOpenFileHandles();
-  virtual bool ReOpenFileHandles();
-  virtual void StartupComplete();
-  virtual void SetFileHook();
-  virtual void ReleaseFileHook();
-  virtual bool AllocGameWithResourceFile(idGame **, const idGameSpawnInfo *, idFile *, const char *);
-  virtual idFile_Memory *LoadCacheFile(const char *);
-  virtual idFile_Memory *LoadPatchFile(const char *);
-  virtual idFile_Stat *StatCacheFile(const char *);
-  virtual idFile_Stat *StatPatchFile(const char *);
-  virtual bool GetCacheFileInfo(const char *, __int64 *, unsigned int *, unsigned int *, unsigned int *, bool);
-  virtual bool GetPatchFileInfo(const char *, __int64 *, unsigned int *, unsigned int *, unsigned int *, int *);
-  virtual idFile *GetCacheFile();
-  virtual idFile *GetPatchFile(const int);
-  virtual idFile *GetStreamFile();
-  virtual idFile *GetCachedStreamFile();
-  virtual idFile *GetLocalizedStreamFile();
-  virtual bool IsResourceFile(idFile *);
-  virtual void SetResourceFilePlatform(unsigned int);
-  virtual unsigned int GetBuildPlatforms();
-  virtual void BeginEntity(const char *, const idList<idStr,5> *);
-  virtual void EndEntity();
-  virtual const idList<idStr,5> *GetLanguages();
-  virtual bool ExcludeImage(const char *);
-  virtual bool ExcludeFont(const char *);
-  virtual int GetCurrentDiscNumber();
+    idResourceManagerLocal();
+    ~idResourceManagerLocal() override;
 
-  idFile *resourceFile;
-  idFile *streamFile;
-  idFile *localizedStreamFile;
-  idFile *cachedStreamFile;
-  idStaticList<idFile *,32> patchFiles;
-  unsigned int tableOffset;
-  unsigned int tableLength;
-  unsigned int resourceMagic;
-  idResourceAnnotation *currentSortedResource;
-  idResource *currentResource;
-  idList<idResourceFileEntry,99> writtenResourceTable;
-  idList<idResourceFileEntry,99> fileTable;
-  int fileTableResource;
-  idList<idResourceCacheEntry,99> cacheTable;
-  idHashIndex cacheHash;
-  idList<idResourceCacheEntry,99> patchTable;
-  idHashIndex patchHash;
-  unsigned int filePlatformBits;
-  unsigned int buildPlatforms;
-  int lastUPacifierMsec;
-  idList<idStr,5> languages;
-  bool denyFonts;
-  volatile bool cancelToTerminate;
+    void Init() override;
+    void Init2(bool toolsMode) override;
+    void Shutdown() override;
+    void CancelToTerminate() override;
+    void CloseOpenFileHandles() override;
+    bool ReOpenFileHandles() override;
+    void StartupComplete() override;
+    void SetFileHook() override;
+    void ReleaseFileHook() override;
+    bool AllocGameWithResourceFile(idGame**, const idGameSpawnInfo*, idFile*,
+        const char*) override;
+    idFile_Memory* LoadCacheFile(const char*) override;
+    idFile_Memory* LoadPatchFile(const char*) override;
+    idFile_Stat* StatCacheFile(const char*) override;
+    idFile_Stat* StatPatchFile(const char*) override;
+    bool GetCacheFileInfo(const char*, std::int64_t*, unsigned int*,
+        unsigned int*, unsigned int*, bool) override;
+    bool GetPatchFileInfo(const char*, std::int64_t*, unsigned int*,
+        unsigned int*, unsigned int*, int*) override;
+    idFile* GetCacheFile() override;
+    idFile* GetPatchFile(int) override;
+    idFile* GetStreamFile() override;
+    idFile* GetCachedStreamFile() override;
+    idFile* GetLocalizedStreamFile() override;
+    bool IsResourceFile(idFile*) override;
+    void SetResourceFilePlatform(unsigned int) override;
+    unsigned int GetBuildPlatforms() override;
+    void BeginEntity(const char*, const idList<idStr, 5>*) override;
+    void EndEntity() override;
+    const idList<idStr, 5>* GetLanguages() override;
+    bool ExcludeImage(const char*) override;
+    bool ExcludeFont(const char*) override;
+    int GetCurrentDiscNumber() override;
+
+    idFile* resourceFile;
+    idFile* streamFile;
+    idFile* localizedStreamFile;
+    idFile* cachedStreamFile;
+    idStaticList<idFile*, 32> patchFiles;
+    unsigned int tableOffset;
+    unsigned int tableLength;
+    unsigned int resourceMagic;
+    idResourceAnnotation* currentSortedResource;
+    idResource* currentResource;
+    idList<idResourceFileEntry, 99> writtenResourceTable;
+    idList<idResourceFileEntry, 99> fileTable;
+    int fileTableResource;
+    idList<idResourceCacheEntry, 99> cacheTable;
+    idHashIndex cacheHash;
+    idList<idResourceCacheEntry, 99> patchTable;
+    idHashIndex patchHash;
+    unsigned int filePlatformBits;
+    unsigned int buildPlatforms;
+    int lastUPacifierMsec;
+    idList<idStr, 5> languages;
+    bool denyFonts;
+    volatile bool cancelToTerminate;
 };

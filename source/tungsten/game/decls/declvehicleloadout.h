@@ -1,40 +1,34 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\decls\declvehicleloadout.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../engine/decls/decltypeinfo.h"
+#include "../../../shared/idlib/containers/list.h"
+#include "../../../shared/idlib/langdict.h"
 
+class idDeclVehicleUnlock;
 
-// IDA Local Type ordinal 17942; PDB kind: class.
-class idDeclVehicleLoadout : public idDeclTypeInfo
-{
+class idDeclVehicleLoadout : public idDeclTypeInfo {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 17943.
-  virtual ~idDeclVehicleLoadout();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    idDeclVehicleLoadout();
 
-  idStrId desc;
-  const idDeclVehicleUnlock *vehicleClass;
-  const idDeclVehicleUnlock *vehicle;
-  const idDeclVehicleUnlock *weaponPrimary;
-  const idDeclVehicleUnlock *weaponSecondary;
-  const idDeclVehicleUnlock *quickUse1;
-  const idDeclVehicleUnlock *quickUse2;
-  bool isDefault;
-  int order;
+    // Retail symbol: ?GetDeclInfo@idDeclVehicleLoadout@@UBAPAVidDeclInfo@@XZ
+    // EA: 0x82BCBD60, RVA: 0x00BCBD60
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    idStrId desc;
+    const idDeclVehicleUnlock* vehicleClass;
+    const idDeclVehicleUnlock* vehicle;
+    const idDeclVehicleUnlock* weaponPrimary;
+    const idDeclVehicleUnlock* weaponSecondary;
+    const idDeclVehicleUnlock* quickUse1;
+    const idDeclVehicleUnlock* quickUse2;
+    bool isDefault;
+    int order;
+
+    static idList<const idDeclVehicleLoadout*, 5> defaultLoadouts;
+    static idDeclInfoTemplate<idDeclVehicleLoadout> resourceList;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclVehicleLoadout) == 100,
+    "Recovered idDeclVehicleLoadout layout changed");
+#endif

@@ -326,16 +326,26 @@ bool ConvertImportModelToStaticModel(idStaticModel& destination,
 
     const int materialCount = (std::max)(1,
         static_cast<int>(source.materials.size()));
-    idList<idRawSurface, 5> rawSurfaces;
-    rawSurfaces.SetNum(materialCount);
+    idList<idStr, 5> materialNames;
+    materialNames.SetNum(materialCount);
     for (int material = 0; material < materialCount; ++material) {
-        idRawSurface& raw = rawSurfaces[material];
-        std::string name = material < static_cast<int>(source.materials.size())
-            ? source.materials[static_cast<std::size_t>(material)].name
+        materialNames[material] = material <
+                static_cast<int>(source.materials.size())
+            ? source.materials[static_cast<std::size_t>(material)].name.c_str()
             : "_default";
-        const int materialNumber = StripMaterialNumber(name);
-        raw.material = idStaticModel::ResolveMaterial(name.c_str());
-        raw.materialNum = materialNumber >= 0 ? materialNumber : material;
+    }
+    idList<const idMaterial*, 5> resolvedMaterials;
+    idList<int, 5> mergeTo;
+    idList<const idMaterial*, 5> uniqueMaterials;
+    idList<int, 5> uniqueMaterialNumbers;
+    destination.BuildMergeList(materialNames, resolvedMaterials, mergeTo,
+        uniqueMaterials, uniqueMaterialNumbers);
+    idList<idRawSurface, 5> rawSurfaces;
+    rawSurfaces.SetNum(uniqueMaterials.Num());
+    for (int material = 0; material < uniqueMaterials.Num(); ++material) {
+        idRawSurface& raw = rawSurfaces[material];
+        raw.material = uniqueMaterials[material];
+        raw.materialNum = uniqueMaterialNumbers[material];
         raw.generateNormals = false;
         raw.normalEpsilon = 1.0f - DEFAULT_NORMAL_SLOP;
         raw.InitHash(positions, texCoords, morphPositions);
@@ -349,8 +359,10 @@ bool ConvertImportModelToStaticModel(idStaticModel& destination,
         const idImportTriangle& triangle = source.triangles[triangleIndex];
         if (!ValidTriangle(source, triangle)) continue;
         const int material = SafeMaterialIndex(source, triangle.material);
-        idRawSurface& raw = rawSurfaces[(std::min)(material,
-            rawSurfaces.Num() - 1)];
+        const int mergedMaterial = material >= 0 && material < mergeTo.Num()
+            ? mergeTo[material] : 0;
+        idRawSurface& raw = rawSurfaces[(std::max)(0,
+            (std::min)(mergedMaterial, rawSurfaces.Num() - 1))];
         for (int cornerIndex = 0; cornerIndex < 3; ++cornerIndex) {
             const idImportCorner& corner = triangle.corners[cornerIndex];
             const int position = positionRemap[corner.position];
@@ -369,6 +381,85 @@ bool ConvertImportModelToStaticModel(idStaticModel& destination,
     if (validTriangles == 0) return false;
     EmitRawSurfacesToStaticModel(rawSurfaces, destination);
     return destination.surfaces.Num() > 0;
+}
+
+void idStaticModel::BuildMergeList(
+        const idList<idStr, 5>& materialNames,
+        idList<const idMaterial*, 5>& resolvedMaterials,
+        idList<int, 5>& mergeTo,
+        idList<const idMaterial*, 5>& uniqueMaterials,
+        idList<int, 5>& uniqueMaterialNumbers) {
+    const int count = materialNames.Num();
+    resolvedMaterials.SetNum(count);
+    mergeTo.SetNum(count);
+    uniqueMaterials.SetNum(count);
+    uniqueMaterialNumbers.SetNum(count);
+    std::vector<std::string> strippedNames(static_cast<std::size_t>(count));
+    bool hasNumberedMaterial = false;
+    for (int index = 0; index < count; ++index) {
+        strippedNames[static_cast<std::size_t>(index)] =
+            materialNames[index].c_str();
+        const int number = StripMaterialNumber(
+            strippedNames[static_cast<std::size_t>(index)]);
+        const idMaterial* const material = ResolveMaterial(
+            strippedNames[static_cast<std::size_t>(index)].c_str());
+        resolvedMaterials[index] = material;
+        uniqueMaterials[index] = material;
+        uniqueMaterialNumbers[index] = number;
+        mergeTo[index] = index;
+        hasNumberedMaterial = hasNumberedMaterial || number >= 0;
+    }
+    if (hasNumberedMaterial) {
+        std::vector<int> order(static_cast<std::size_t>(count));
+        for (int index = 0; index < count; ++index)
+            order[static_cast<std::size_t>(index)] = index;
+        std::stable_sort(order.begin(), order.end(),
+            [&](const int left, const int right) {
+                const std::string& a =
+                    strippedNames[static_cast<std::size_t>(left)];
+                const std::string& b =
+                    strippedNames[static_cast<std::size_t>(right)];
+                if (a != b) return a < b;
+                return uniqueMaterialNumbers[left]
+                    < uniqueMaterialNumbers[right];
+            });
+        idList<const idMaterial*, 5> sortedMaterials;
+        idList<int, 5> sortedNumbers;
+        sortedMaterials.SetNum(count);
+        sortedNumbers.SetNum(count);
+        for (int sortedIndex = 0; sortedIndex < count; ++sortedIndex) {
+            const int original = order[static_cast<std::size_t>(sortedIndex)];
+            mergeTo[original] = sortedIndex;
+            sortedMaterials[sortedIndex] = resolvedMaterials[original];
+            sortedNumbers[sortedIndex] = uniqueMaterialNumbers[original];
+        }
+        uniqueMaterials.Swap(sortedMaterials);
+        uniqueMaterialNumbers.Swap(sortedNumbers);
+        return;
+    }
+
+    uniqueMaterials.Clear();
+    uniqueMaterialNumbers.Clear();
+    for (int index = 0; index < count; ++index) {
+        materialGenerationTraits_t traits;
+        const bool discreteMaterial = materialTraitsCallback != nullptr
+            && materialTraitsCallback(resolvedMaterials[index], traits)
+            && traits.discrete;
+        int destination = -1;
+        if (!discreteMaterial) {
+            for (int unique = 0; unique < uniqueMaterials.Num(); ++unique) {
+                if (uniqueMaterials[unique] == resolvedMaterials[index]) {
+                    destination = unique;
+                    break;
+                }
+            }
+        }
+        if (destination < 0) {
+            destination = uniqueMaterials.Append(resolvedMaterials[index]);
+            uniqueMaterialNumbers.Append(-1);
+        }
+        mergeTo[index] = destination;
+    }
 }
 
 bool idStaticModel::ConvertASEToModelSurfaces(const idASEModel* ase) {

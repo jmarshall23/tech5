@@ -550,6 +550,52 @@ void idCutterGraphManager::FreeEdge(Edge_t* edge) {
     edgesPool.Append(edge);
 }
 
+void idCutterGraphManager::AddInvalidNode(Node_t* node) {
+    if (node == nullptr) return;
+    for (int index = 0; index < invalidNodes.Num(); ++index) {
+        if (invalidNodes[index] == node) return;
+    }
+    invalidNodes.Append(node);
+}
+
+void idCutterGraphManager::ProcessLinks(Contour* contour, Node_t* node) {
+    if (contour == nullptr || node == nullptr) return;
+    int linkCount = 0;
+    for (Link_t* link = node->link; link != nullptr; link = link->next)
+        ++linkCount;
+    if (linkCount < 3) return;
+
+    for (Link_t* link = node->link; link != nullptr; link = link->next) {
+        if (link->node == nullptr) continue;
+        const idVec2i midpoint(
+            (node->pos.x + link->node->pos.x) / 2,
+            (node->pos.y + link->node->pos.y) / 2);
+        if (!PointInPolygon(midpoint, contour->edges)) continue;
+
+        bool followsBoundary = false;
+        for (ContourEdge_t* edge = contour->edges;
+                edge != nullptr && !followsBoundary; edge = edge->next) {
+            for (ContourNode_t* point = edge->node;
+                    point != nullptr && point->next != nullptr;
+                    point = point->next) {
+                if (PointOnSegment(node->pos, point->pos,
+                            point->next->pos) &&
+                        PointOnSegment(link->node->pos, point->pos,
+                            point->next->pos)) {
+                    followsBoundary = true;
+                    break;
+                }
+            }
+        }
+        if (followsBoundary) {
+            link->invalid = 2;
+        } else {
+            link->invalid |= 1;
+            AddInvalidNode(node);
+        }
+    }
+}
+
 idCutterGraphManager::Node_t* idCutterGraphManager::GenerateNode(
         const idVec3&, const idVec2i& pos, int threshold) {
     if (graph == nullptr) return nullptr;
@@ -922,6 +968,58 @@ bool idCutterGraphManager::AddContour(Contour* contours,
         graph->contoursInner = contour;
         last = contour;
         contour = followingContour;
+    }
+
+    invalidNodes.Clear();
+    for (int nodeIndex = graph->nodes.Num() - 1; nodeIndex >= 0;
+            --nodeIndex) {
+        Node_t* node = graph->nodes[nodeIndex].data;
+        for (Link_t* link = node->link; link != nullptr; link = link->next)
+            link->invalid = 0;
+
+        bool removeNode = false;
+        for (Contour* contour = graph->contoursInner;
+                contour != nullptr; contour = contour->next) {
+            if (!PointInPolygon(node->pos, contour->edges)) continue;
+            bool onBoundary = false;
+            for (ContourEdge_t* edge = contour->edges;
+                    edge != nullptr && !onBoundary; edge = edge->next) {
+                for (ContourNode_t* point = edge->node;
+                        point != nullptr && point->next != nullptr;
+                        point = point->next) {
+                    if (PointOnSegment(node->pos, point->pos,
+                            point->next->pos)) {
+                        onBoundary = true;
+                        break;
+                    }
+                }
+            }
+            if (onBoundary) continue;
+            removeNode = true;
+            break;
+        }
+
+        if (removeNode) {
+            while (node->link != nullptr) Disconnect(node->link->edge);
+            if (graph->lastNode == node) graph->lastNode = nullptr;
+            if (graph->prevNode == node) graph->prevNode = nullptr;
+            graph->nodes.RemoveIndexFast(nodeIndex);
+            FreeNode(node);
+            continue;
+        }
+        for (Contour* contour = graph->contoursInner;
+                contour != nullptr; contour = contour->next)
+            ProcessLinks(contour, node);
+    }
+
+    for (int invalidIndex = 0; invalidIndex < invalidNodes.Num();
+            ++invalidIndex) {
+        Node_t* node = invalidNodes[invalidIndex];
+        for (Link_t* link = node->link; link != nullptr;) {
+            Link_t* next = link->next;
+            if ((link->invalid & 3) == 1) Disconnect(link->edge);
+            link = next;
+        }
     }
 
     std::vector<Edge_t*> remove;

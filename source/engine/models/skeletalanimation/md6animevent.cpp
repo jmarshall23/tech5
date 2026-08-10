@@ -1,13 +1,30 @@
 #include "models/skeletalanimation/md6animevent.h"
 
+#include "idlib/filesystem/file.h"
 #include "idlib/sys/sys_alloc.h"
 #include "idlib/text/parser.h"
+#include "idlib/text/str.h"
 #include "models/skeletalanimation/animevents.h"
 
+#include <algorithm>
 #include <malloc.h>
 #include <new>
+#include <unordered_map>
 
 idMD6AnimEvent::ParseCallback idMD6AnimEvent::parseCallback = nullptr;
+idMD6AnimEvent::EventNumberResolver idMD6AnimEvent::eventNumberResolver =
+    nullptr;
+idMD6AnimEvent::EventNameResolver idMD6AnimEvent::eventNameResolver = nullptr;
+
+namespace {
+
+std::unordered_map<unsigned int, idStr> recoveredEventNames;
+
+bool EventTokenIs(const idToken& token, const char* text) {
+    return idStr::Cmp(token.c_str(), text) == 0;
+}
+
+} // namespace
 
 bool idCachedJoint::operator==(const idCachedJoint& other) const {
     return jointIndex == other.jointIndex && frameNum == other.frameNum &&
@@ -81,21 +98,153 @@ void idMD6AnimEvent::SetParseCallback(ParseCallback callback) {
     parseCallback = callback;
 }
 
+void idMD6AnimEvent::SetEventResolvers(
+        const EventNumberResolver numberResolver,
+        const EventNameResolver nameResolver) {
+    eventNumberResolver = numberResolver;
+    eventNameResolver = nameResolver;
+}
+
 bool idMD6AnimEvent::Parse(const idDeclMD6* md6, idParser& parser,
         int& loadErrors) {
     if (parseCallback != nullptr)
         return parseCallback(*this, md6, parser, loadErrors);
 
-    // Event signatures are registered by the game DLL, outside the model
-    // subsystem. Consume the complete event declaration so the owning MD6
-    // parser remains synchronized, and report that resolution is unavailable.
     idToken eventName;
-    if (!parser.ReadToken(eventName)) {
+    if (!parser.ExpectTokenType(TT_STRING, 0, eventName)) {
         ++loadErrors;
         return false;
     }
-    parser.SkipBracedSection(true);
-    eventNum = -1;
-    ++loadErrors;
-    return false;
+    recoveredEventNames[eventId.Get()] = eventName.c_str();
+    const int resolvedNumber = eventNumberResolver != nullptr
+        ? eventNumberResolver(eventName.c_str()) : -1;
+    eventNum = static_cast<std::int16_t>(resolvedNumber >= -32768 &&
+        resolvedNumber <= 32767 ? resolvedNumber : -1);
+    args.ClearArgs();
+
+    if (!parser.ExpectTokenString("{")) {
+        ++loadErrors;
+        return false;
+    }
+    idToken token;
+    while (parser.ReadToken(token)) {
+        if (EventTokenIs(token, "}")) break;
+        if (EventTokenIs(token, "frame")) {
+            frameNum = static_cast<std::int16_t>(parser.ParseInt());
+        } else if (EventTokenIs(token, "row")) {
+            row = static_cast<std::uint8_t>((std::max)(0,
+                (std::min)(255, parser.ParseInt())));
+        } else if (EventTokenIs(token, "locked")) {
+            locked = parser.ParseBool();
+        } else if (EventTokenIs(token, "bool")) {
+            args.AddArg(parser.ParseBool());
+        } else if (EventTokenIs(token, "int")) {
+            args.AddArg(parser.ParseInt());
+        } else if (EventTokenIs(token, "float")) {
+            args.AddArg(parser.ParseFloat());
+        } else if (EventTokenIs(token, "vec3")) {
+            idVec3 value(0.0f, 0.0f, 0.0f);
+            if (parser.Parse1DMatrix(3, &value.x)) args.AddArg(value);
+            else ++loadErrors;
+        } else if (EventTokenIs(token, "quat")) {
+            idQuat value(0.0f, 0.0f, 0.0f, 1.0f);
+            if (parser.Parse1DMatrix(4, &value.x)) args.AddArg(value);
+            else ++loadErrors;
+        } else if (EventTokenIs(token, "vec4")) {
+            idVec4 value(0.0f, 0.0f, 0.0f, 0.0f);
+            if (parser.Parse1DMatrix(4, &value.x)) args.AddArg(value);
+            else ++loadErrors;
+        } else if (EventTokenIs(token, "angles")) {
+            idAngles value;
+            if (parser.Parse1DMatrix(3, &value.pitch)) args.AddArg(value);
+            else ++loadErrors;
+        } else if (EventTokenIs(token, "string")) {
+            idToken value;
+            if (parser.ExpectTokenType(TT_STRING, 0, value))
+                args.AddArg(value.c_str());
+            else
+                ++loadErrors;
+        } else {
+            parser.Warning("Unknown field '%s' in animation event '%s'",
+                token.c_str(), eventName.c_str());
+            ++loadErrors;
+            parser.SkipRestOfLine();
+        }
+    }
+    return true;
+}
+
+const char* idMD6AnimEvent::GetEventName() const {
+    if (eventNameResolver != nullptr && eventNum >= 0) {
+        const char* resolved = eventNameResolver(eventNum);
+        if (resolved != nullptr && *resolved != '\0') return resolved;
+    }
+    const auto found = recoveredEventNames.find(eventId.Get());
+    return found != recoveredEventNames.end()
+        ? found->second.c_str() : "<unknown>";
+}
+
+void idMD6AnimEvent::Write(idFile_String& file, const char* indent) const {
+    const char* prefix = indent != nullptr ? indent : "";
+    file.Printf("%sevent \"%s\" {\n", prefix, GetEventName());
+    file.Printf("%s\tframe %d\n", prefix, static_cast<int>(frameNum));
+    file.Printf("%s\trow %u\n", prefix, static_cast<unsigned int>(row));
+    file.Printf("%s\tlocked %d\n", prefix, locked ? 1 : 0);
+    for (int index = 0; index < args.NumArgs(); ++index) {
+        switch (args.GetArgType(index)) {
+        case ARG_BOOL: {
+            bool value = false; args.GetArg(index, value);
+            file.Printf("%s\tbool %d\n", prefix, value ? 1 : 0);
+            break;
+        }
+        case ARG_CHAR: {
+            char value = 0; args.GetArg(index, value);
+            file.Printf("%s\tint %d\n", prefix, static_cast<int>(value));
+            break;
+        }
+        case ARG_INTEGER: {
+            int value = 0; args.GetArg(index, value);
+            file.Printf("%s\tint %d\n", prefix, value);
+            break;
+        }
+        case ARG_FLOAT: {
+            float value = 0.0f; args.GetArg(index, value);
+            file.Printf("%s\tfloat %.9g\n", prefix, value);
+            break;
+        }
+        case ARG_VECTOR: {
+            idVec3 value; args.GetArg(index, value);
+            file.Printf("%s\tvec3 ( %.9g %.9g %.9g )\n", prefix,
+                value.x, value.y, value.z);
+            break;
+        }
+        case ARG_QUAT: {
+            idQuat value; args.GetArg(index, value);
+            file.Printf("%s\tquat ( %.9g %.9g %.9g %.9g )\n", prefix,
+                value.x, value.y, value.z, value.w);
+            break;
+        }
+        case ARG_ANGLES: {
+            idAngles value; args.GetArg(index, value);
+            file.Printf("%s\tangles ( %.9g %.9g %.9g )\n", prefix,
+                value.pitch, value.yaw, value.roll);
+            break;
+        }
+        case ARG_VECTOR4: {
+            idVec4 value; args.GetArg(index, value);
+            file.Printf("%s\tvec4 ( %.9g %.9g %.9g %.9g )\n", prefix,
+                value.x, value.y, value.z, value.w);
+            break;
+        }
+        case ARG_STRING: {
+            const char* value = ""; args.GetArg(index, value);
+            file.Printf("%s\tstring \"%s\"\n", prefix,
+                value != nullptr ? value : "");
+            break;
+        }
+        default:
+            break;
+        }
+    }
+    file.Printf("%s}\n", prefix);
 }

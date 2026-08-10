@@ -1,45 +1,50 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\gameplayfilter.h
-// Recovered logical types: 5
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../shared/idlib/containers/list.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 1614; PDB kind: enum.
-enum idGameplayFilter::Element::flagState_t : __int32
-{
-  FS_FALSE = 0x0,
-  FS_TRUE = 0x1,
-  FS_IGNORE = 0x2,
-};
+// Reconstructed from the retail PDB types associated with
+// w:\tech5\tungsten\game\gameplayfilter.h.  The original generated header
+// placed the nested types before their owner, which was useful as type
+// evidence but was not valid C++.
 
-// IDA Local Type ordinal 1615; PDB kind: enum.
-enum idGameplayFilter::Element::elementType_t : __int32
-{
-  ET_AND = 0x0,
-  ET_OR = 0x1,
-};
-
-// IDA Local Type ordinal 15568; PDB kind: class.
-class idGameplayFilterTarget
-{
+class idGameplayFilterTarget {
 public:
-  unsigned int bits;
+    void SetFlag(int index, bool flagValue);
+
+    std::uint32_t bits;
 };
 
-// IDA Local Type ordinal 18788; PDB kind: class.
-class idGameplayFilter::Element
-{
+class idGameplayFilter {
 public:
-  unsigned int desiredBits;
-  unsigned int activeBits;
-  idGameplayFilter::Element::elementType_t elementType;
+    class Element {
+    public:
+        enum flagState_t : std::int32_t {
+            FS_FALSE = 0,
+            FS_TRUE = 1,
+            FS_IGNORE = 2
+        };
+
+        enum elementType_t : std::int32_t {
+            ET_AND = 0,
+            ET_OR = 1
+        };
+
+        std::uint32_t desiredBits;
+        std::uint32_t activeBits;
+        elementType_t elementType;
+    };
+
+    idList<Element, 5> elements;
 };
 
-// IDA Local Type ordinal 22274; PDB kind: class.
-class idGameplayFilter
-{
-public:
-  idList<idGameplayFilter::Element,5> elements;
-};
+static_assert(sizeof(idGameplayFilterTarget) == 4,
+    "Recovered idGameplayFilterTarget layout changed");
+static_assert(sizeof(idGameplayFilter::Element) == 12,
+    "Recovered idGameplayFilter::Element layout changed");
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idGameplayFilter) == 16,
+    "Recovered idGameplayFilter Xbox 360 layout changed");
+#endif

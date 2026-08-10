@@ -1,48 +1,69 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\bot\bot_weaponstate.h
-// Recovered logical types: 4
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../shared/idlib/containers/list.h"
+#include "../../../shared/idlib/text/str.h"
 
+class idBot;
+struct idBotWeapon;
 
-// IDA Local Type ordinal 1262; PDB kind: enum.
-enum botWeaponSlots_t : __int32
-{
-  WEAPON_SLOT_MELEE = 0x0,
-  WEAPON_SLOT_PRIMARY = 0x1,
-  WEAPON_SLOT_SECONDARY = 0x2,
-  WEAPON_SLOT_EXPLOSIVE = 0x3,
-  WEAPON_SLOT_MAX = 0x4,
+enum botWeaponPriority_t : int {
+    WEAPON_PRIORITY_NULL = 0,
+    WEAPON_PRIORITY_BEHAVIOR_DRIVEN = 1,
+    WEAPON_PRIORITY_MAX = 2
 };
 
-// IDA Local Type ordinal 1292; PDB kind: enum.
-enum botWeaponCategory_t : __int32
-{
-  WEAPON_CATEGORY_MELEE = 0x0,
-  WEAPON_CATEGORY_SMG = 0x1,
-  WEAPON_CATEGORY_SHOTGUN = 0x2,
-  WEAPON_CATEGORY_SNIPER = 0x3,
-  WEAPON_CATEGORY_THROWN = 0x4,
-  WEAPON_CATEGORY_MAX = 0x5,
+enum botWeaponSlots_t : int {
+    WEAPON_SLOT_MELEE = 0,
+    WEAPON_SLOT_PRIMARY = 1,
+    WEAPON_SLOT_SECONDARY = 2,
+    WEAPON_SLOT_EXPLOSIVE = 3,
+    WEAPON_SLOT_MAX = 4
 };
 
-// IDA Local Type ordinal 14980; PDB kind: struct.
-struct idBotWeaponState::BotWeaponRequest_t
-{
-  botWeaponPriority_t weaponPriority;
-  botWeaponSlots_t weaponSlot;
-  botWeaponFireMode_t weaponFireMode;
-  struct idBotWeapon *weaponHandler;
-  idStr weaponUserName;
+enum botWeaponFireMode_t : int {
+    WEAPON_FIRE_MODE_HOLD = 0,
+    WEAPON_FIRE_MODE_FORCE = 1,
+    WEAPON_FIRE_MODE_FORCE_ONCE = 2,
+    WEAPON_FIRE_MODE_WHEN_READY = 3,
+    WEAPON_MODE_MAX = 4
 };
 
-// IDA Local Type ordinal 14982; PDB kind: class.
-class idBotWeaponState
-{
+enum botWeaponCategory_t : int {
+    WEAPON_CATEGORY_MELEE = 0,
+    WEAPON_CATEGORY_SMG = 1,
+    WEAPON_CATEGORY_SHOTGUN = 2,
+    WEAPON_CATEGORY_SNIPER = 3,
+    WEAPON_CATEGORY_THROWN = 4,
+    WEAPON_CATEGORY_MAX = 5
+};
+
+class idBotWeaponState {
 public:
-  idBot *owner;
-  idBotWeaponState::BotWeaponRequest_t weaponRequests[4];
-  idList<idBotWeapon *,5> weapons;
-  botWeaponCategory_t currentWeaponCategory;
+    struct BotWeaponRequest_t {
+        BotWeaponRequest_t();
+
+        botWeaponPriority_t weaponPriority;
+        botWeaponSlots_t weaponSlot;
+        botWeaponFireMode_t weaponFireMode;
+        idBotWeapon* weaponHandler;
+        idStr weaponUserName;
+    };
+
+    idBotWeaponState();
+    ~idBotWeaponState();
+
+    int FindIndexOfWeaponRequestUser(const char* userName) const;
+
+    idBot* owner;
+    BotWeaponRequest_t weaponRequests[4];
+    idList<idBotWeapon*, 5> weapons;
+    botWeaponCategory_t currentWeaponCategory;
 };
+
+static_assert(sizeof(idBotWeaponState::BotWeaponRequest_t) == 48,
+    "Recovered bot weapon request ABI changed");
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idBotWeaponState) == 216,
+    "Recovered bot weapon state ABI changed");
+#endif
+

@@ -1,76 +1,26 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\superscript\generated\shared\worldutil.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "superscript/sys/ssobject_core.h"
 
-
-// IDA Local Type ordinal 13287; PDB kind: class.
-class ssWorldUtil : public idSuperScriptObject
-{
+// Source-visible portion of the generated world utility.  Generated
+// reflection wrappers are tracked separately from worldutil.cpp's source
+// routine and will be filled in by the generated-code recovery pass.
+class ssWorldUtil : public idSuperScriptObject {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 13288.
-  virtual void Init();
-  virtual void Destroy();
-  virtual void _OnActivate(int);
-  virtual void _OnTrigger(int);
-  virtual void _OnActivateTargets(int);
-  virtual void _OnActionReached(int, int, bool);
-  virtual void _OnGoalReach(int);
-  virtual void _OnGoalAssigned(int);
-  virtual void _OnDamage(int, float);
-  virtual void _OnDeath(int);
-  virtual void _OnLeftGoal(int);
-  virtual void _OnReachGoal(int);
-  virtual void _OnLeaveAction(int);
-  virtual void _OnReachAction(int);
-  virtual void _OnAssignedGoal(int);
-  virtual void _OnAnimNotify(const char *);
-  virtual void _OnAnimEnd();
-  virtual void _OnAnimStart();
-  virtual void _OnMoverNotify(const char *);
-  virtual void _OnTargetSpawn(int);
-  virtual void _OnEnter(int);
-  virtual void _OnExit(int);
-  virtual void _OnUse(int);
-  virtual const char *_name();
-  virtual bool _isTypeOf(const char *);
-  virtual int _getEntity();
-  virtual void _setEntity(int);
-  virtual void (__fastcall *_getThreadFunction(const char *))(idSSObject *, void *);
-  virtual bool _isNotifyFunction(const char *);
-  virtual void *_getDeclPtr();
-  virtual ~ssWorldUtil();
-  virtual void OnActivate(ssEntity);
-  virtual void OnTrigger(ssEntity);
-  virtual void OnActivateTargets(ssEntity);
-  virtual void OnActionReached(ssEntity, ssEntity, bool);
-  virtual void OnGoalReach(ssEntity);
-  virtual void OnGoalAssigned(ssEntity);
-  virtual void OnDamage(ssEntity, float);
-  virtual void OnDeath(ssEntity);
-  virtual void OnLeftGoal(ssEntity);
-  virtual void OnReachGoal(ssEntity);
-  virtual void OnLeaveAction(ssEntity);
-  virtual void OnReachAction(ssEntity);
-  virtual void OnAssignedGoal(ssEntity);
-  virtual void OnAnimNotify(ssString);
-  virtual void OnAnimEnd();
-  virtual void OnAnimStart();
-  virtual void OnMoverNotify(ssString);
-  virtual void OnTargetSpawn(ssEntity);
-  virtual void OnEnter(ssEntity);
-  virtual void OnExit(ssEntity);
-  virtual void OnUse(ssEntity);
+    void Init() override;
 
-  ssEntity world;
-  ssEntity player1;
-  ssEntity player2;
-  ssEntity player3;
-  ssEntity player4;
-  ssEntity player5;
-  ssEntity player6;
-  ssEntity player7;
-  ssEntity player8;
+    ssEntity world;
+    ssEntity player1;
+    ssEntity player2;
+    ssEntity player3;
+    ssEntity player4;
+    ssEntity player5;
+    ssEntity player6;
+    ssEntity player7;
+    ssEntity player8;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(ssWorldUtil) == 44,
+    "Recovered ssWorldUtil ABI changed");
+#endif

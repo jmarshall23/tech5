@@ -1,24 +1,23 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\aievents\aieventsound.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "aieventsphere.h"
 
-
-// IDA Local Type ordinal 21476; PDB kind: class.
-class idAIEventSound : public idAIEventSphere
-{
+class idAIEventSound : public idAIEventSphere {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21477.
-  virtual idTypeInfo *GetType();
-  virtual ~idAIEventSound();
-  virtual void Clear();
-  virtual idAIEvent::aiEventUpdateResult_t InternalUpdate(const int);
-  virtual idAIEvent::aiEventUpdateResult_t InternalUpdateAttached(const int);
-  virtual bool InternalIsTouching(const idEntity *, const int);
-  virtual void InternalDrawDebug(const int, const int, const int);
-  virtual float InternalGetIntensity(const idEntity *);
-  virtual const idColor *GetColor();
+    idAIEventSound();
+    ~idAIEventSound() override = default;
 
+    bool InternalIsTouching(
+        const idEntity* entity, int currentTime) override;
+    float InternalGetIntensity(const idEntity* entity) override;
 };
+
+bool Tungsten_AIEventSoundTraceOccluded(
+    const idVec3& origin, const idVec3& listenerOrigin);
+void Tungsten_DebugAIEventSoundTrace(const idVec3& origin,
+    const idVec3& listenerOrigin, bool occluded);
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAIEventSound) == 52,
+    "Recovered sound AI-event ABI changed");
+#endif

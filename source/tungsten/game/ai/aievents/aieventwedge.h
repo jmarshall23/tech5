@@ -1,38 +1,42 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\aievents\aieventwedge.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "aievent.h"
+#include "../../../../shared/idlib/containers/array.h"
 
-
-// IDA Local Type ordinal 2367; PDB kind: unknown.
-enum idAIEventWedge::<unnamed_tag> : __int32
-{
-  WEDGEPLANE_TOP = 0x0,
-  WEDGEPLANE_BOTTOM = 0x1,
-  WEDGEPLANE_LEFT = 0x2,
-  WEDGEPLANE_RIGHT = 0x3,
-  WEDGEPLANE_MAX = 0x4,
-};
-
-// IDA Local Type ordinal 21472; PDB kind: class.
-class idAIEventWedge : public idAIEvent
-{
+class idAIEventWedge : public idAIEvent {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21473.
-  virtual idTypeInfo *GetType();
-  virtual ~idAIEventWedge();
-  virtual void Clear();
-  virtual idAIEvent::aiEventUpdateResult_t InternalUpdate(const int);
-  virtual idAIEvent::aiEventUpdateResult_t InternalUpdateAttached(const int);
-  virtual bool InternalIsTouching(const idEntity *, const int);
-  virtual void InternalDrawDebug(const int, const int, const int);
-  virtual float InternalGetIntensity(const idEntity *);
+    enum wedgePlane_t : int {
+        WEDGEPLANE_TOP = 0,
+        WEDGEPLANE_BOTTOM = 1,
+        WEDGEPLANE_LEFT = 2,
+        WEDGEPLANE_RIGHT = 3,
+        WEDGEPLANE_MAX = 4
+    };
 
-  idVec3 dir;
-  float radius;
-  int lastRefresh;
-  idMat3 axis;
-  idArray<idPlane,4> planes;
+    idAIEventWedge();
+    ~idAIEventWedge() override = default;
+
+    aiEventUpdateResult_t InternalUpdateAttached(int currentTime) override;
+    bool InternalIsTouching(
+        const idEntity* entity, int currentTime) override;
+    void InternalDrawDebug(int level, int currentTime, int duration) override;
+    void Cache(int currentTime) const;
+
+    idVec3 dir;
+    float radius;
+    mutable int lastRefresh;
+    mutable idMat3 axis;
+    mutable idArray<idPlane, 4> planes;
 };
+
+bool Tungsten_GetAIEventEntityBounds(
+    const idEntity* entity, idBounds& bounds);
+void Tungsten_DebugAIEventWedgeLine(
+    const idVec3& start, const idVec3& end, int duration);
+void Tungsten_DebugAIEventWedgeArrow(
+    const idVec3& start, const idVec3& end, int kind);
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAIEventWedge) == 172,
+    "Recovered wedge AI-event ABI changed");
+#endif

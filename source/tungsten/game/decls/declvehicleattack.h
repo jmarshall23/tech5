@@ -1,69 +1,74 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\decls\declvehicleattack.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../engine/decls/decltypeinfo.h"
 
-
-// IDA Local Type ordinal 2035; PDB kind: enum.
-enum vehicleAttack_t : __int32
-{
-  ATTACK_IDLE = 0x0,
-  ATTACK_RAM_ENEMY = 0x1,
-  ATTACK_RANGE_SHOOT = 0x2,
-  ATTACK_STRAFE_SHOOT = 0x3,
-  ATTACK_CIRCLE_SHOOT = 0x4,
-  ATTACK_CHASE_REAR_BUMP = 0x5,
-  ATTACK_CHASE_SIDE_BUMP = 0x6,
-  ATTACK_CHASE_SHOOT = 0x7,
-  ATTACK_CHASE_SIDE_SHOOT = 0x8,
-  ATTACK_CHASE_BYPASS = 0x9,
-  ATTACK_HITANDRUN = 0xA,
-  ATTACK_WAYPOINT_TAG = 0xB,
-  ATTACK_FIRE_WEAPON = 0xC,
-  ATTACK_RANDOM_FOLLOW = 0xD,
-  ATTACK_CHASE_POWERTURN_SHOOT = 0xE,
-  ATTACK_RC_BOMB_OUTSIDE = 0xF,
-  ATTACK_RC_BOMB_RACE = 0x10,
-  ATTACK_RC_BOMB_INSIDE = 0x11,
-  ATTACK_FREE_FORM = 0x12,
-  ATTACK_MP_STOP = 0x13,
-  ATTACK_MP_RAM = 0x14,
-  ATTACK_MP_CHASE = 0x15,
-  ATTACK_MP_PICKUP_ITEM = 0x16,
-  ATTACK_MP_REPAIR_STATION = 0x17,
-  ATTACK_MP_CTF_CAPTURE_FLAG = 0x18,
-  ATTACK_MP_CTF_DEFEND_BASE = 0x19,
-  ATTACK_MP_CTF_ENEMY_FLAG_TO_BASE = 0x1A,
-  ATTACK_MP_CTF_DEFEND_TEAMMATE = 0x1B,
-  ATTACK_MP_CTF_FIND_LOST_FLAG = 0x1C,
-  ATTACK_MP_CTF_GET_FLAG_FROM_ENEMY = 0x1D,
-  ATTACK_NONE = 0x1E,
+enum vehicleAttack_t : int {
+    ATTACK_IDLE = 0,
+    ATTACK_RAM_ENEMY,
+    ATTACK_RANGE_SHOOT,
+    ATTACK_STRAFE_SHOOT,
+    ATTACK_CIRCLE_SHOOT,
+    ATTACK_CHASE_REAR_BUMP,
+    ATTACK_CHASE_SIDE_BUMP,
+    ATTACK_CHASE_SHOOT,
+    ATTACK_CHASE_SIDE_SHOOT,
+    ATTACK_CHASE_BYPASS,
+    ATTACK_HITANDRUN,
+    ATTACK_WAYPOINT_TAG,
+    ATTACK_FIRE_WEAPON,
+    ATTACK_RANDOM_FOLLOW,
+    ATTACK_CHASE_POWERTURN_SHOOT,
+    ATTACK_RC_BOMB_OUTSIDE,
+    ATTACK_RC_BOMB_RACE,
+    ATTACK_RC_BOMB_INSIDE,
+    ATTACK_FREE_FORM,
+    ATTACK_MP_STOP,
+    ATTACK_MP_RAM,
+    ATTACK_MP_CHASE,
+    ATTACK_MP_PICKUP_ITEM,
+    ATTACK_MP_REPAIR_STATION,
+    ATTACK_MP_CTF_CAPTURE_FLAG,
+    ATTACK_MP_CTF_DEFEND_BASE,
+    ATTACK_MP_CTF_ENEMY_FLAG_TO_BASE,
+    ATTACK_MP_CTF_DEFEND_TEAMMATE,
+    ATTACK_MP_CTF_FIND_LOST_FLAG,
+    ATTACK_MP_CTF_GET_FLAG_FROM_ENEMY,
+    ATTACK_NONE
 };
 
-// IDA Local Type ordinal 15637; PDB kind: class.
-class idDeclVehicleAttack : public idDeclTypeInfo
-{
+struct vehicleAttackParams_t {
+    int attempts;
+    float range;
+    float time;
+    float minSpeed;
+    float maxSpeed;
+};
+
+class idDeclVehicleAttack : public idDeclTypeInfo {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15638.
-  virtual ~idDeclVehicleAttack();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    // Retail symbol: ??0idDeclVehicleAttack@@QAA@XZ
+    // EA: 0x82BCC878, RVA: 0x00BCC878
+    idDeclVehicleAttack()
+        : state(ATTACK_NONE)
+        , params{-1, -1.0f, -1.0f, -1.0f, -1.0f} {
+    }
 
-  vehicleAttack_t state;
-  vehicleAttackParams_t params;
+    ~idDeclVehicleAttack() override = default;
+
+    // Retail symbol: ?GetDeclInfo@idDeclVehicleAttack@@UBAPAVidDeclInfo@@XZ
+    // EA: 0x82BCC8E0, RVA: 0x00BCC8E0
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    vehicleAttack_t state;
+    vehicleAttackParams_t params;
+
+    static idDeclInfoTemplate<idDeclVehicleAttack> resourceList;
 };
+
+static_assert(sizeof(vehicleAttackParams_t) == 20,
+    "Recovered vehicle-attack parameter layout changed");
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclVehicleAttack) == 88,
+    "Recovered vehicle-attack declaration ABI changed");
+#endif

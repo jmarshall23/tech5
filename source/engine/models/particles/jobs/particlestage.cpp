@@ -1,10 +1,16 @@
 #include "models/particles/jobs/particlestage.h"
 
+#include "models/particles/jobs/particlegen.h"
 #include "models/particles/jobs/staticparticlemodeldata.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+
+idParticleStage::MaterialTraitsCallback
+    idParticleStage::materialTraitsCallback = nullptr;
+idParticleStage::DefaultMaterialCallback
+    idParticleStage::defaultMaterialCallback = nullptr;
 
 idParticleStage::idParticleStage() {
     Default();
@@ -33,6 +39,8 @@ void idParticleStage::Default(const idLookupTable*) {
     systemProperties.sortType = PSORT_TYPE_NONE;
     systemProperties.boundsExpansion = 0.0f;
     systemProperties.randomOnCycle = true;
+    SetMaterial(defaultMaterialCallback != nullptr
+        ? defaultMaterialCallback() : nullptr);
 
     distribution.type = PDIST_RECT;
     for (int axis = 0; axis < 3; ++axis) {
@@ -116,6 +124,28 @@ void idParticleStage::Default(const idLookupTable*) {
 
 void idParticleStage::SetMaterial(const idMaterial* material) {
     systemProperties.material = material;
+    atlasScaleBias.Set(1.0f, 1.0f, 0.0f, 0.0f);
+    hasEmissivePass = 0;
+    usesTransSortAtlas = 0;
+    isTransparencySorted = 0;
+    alphaBlended = 0;
+    materialTraits_t traits;
+    if (material != nullptr && materialTraitsCallback != nullptr &&
+            materialTraitsCallback(material, traits)) {
+        atlasScaleBias = traits.atlasScaleBias;
+        hasEmissivePass = traits.hasEmissivePass ? 1 : 0;
+        usesTransSortAtlas = traits.usesTransSortAtlas ? 1 : 0;
+        isTransparencySorted = traits.isTransparencySorted ? 1 : 0;
+        alphaBlended = (traits.alphaBlended ||
+            traits.isTransparencySorted) ? 1 : 0;
+    }
+}
+
+void idParticleStage::SetMaterialCallbacks(
+        MaterialTraitsCallback traits,
+        DefaultMaterialCallback defaultMaterial) {
+    materialTraitsCallback = traits;
+    defaultMaterialCallback = defaultMaterial;
 }
 
 void idParticleStage::SetStaticMesh(
@@ -150,51 +180,96 @@ void idParticleStage::CalculateBounds(const idLookupTable* tables) {
     bunchTime = systemProperties.emissionTime > 0.0f
         ? systemProperties.emissionTime : maxParticleLife;
 
-    idVec3 distributionExtent;
-    idVec3 offsetExtent;
-    idVec3 accelerationExtent;
-    float maximumSpeed = 0.0f;
-    for (int axis = 0; axis < 3; ++axis) {
-        distributionExtent[axis] = std::fabs(
-            distribution.size[axis].GetMaxParmVal(tables));
-        offsetExtent[axis] = std::fabs(
-            offset.offset[axis].GetMaxParmVal(tables))
-            + std::fabs(spawnLocation.spawnLocation[axis]
-                .GetMaxParmVal(tables));
-        maximumSpeed = (std::max)(maximumSpeed,
-            std::fabs(speed.speed[axis].GetMaxParmVal(tables)));
-        accelerationExtent[axis] = std::fabs(
-            acceleration.acceleration[axis].GetMaxParmVal(tables));
-    }
+    bounds[0].Set(1.0e30f, 1.0e30f, 1.0e30f);
+    bounds[1].Set(-1.0e30f, -1.0e30f, -1.0e30f);
 
-    const float gravityExtent = std::fabs(
-        gravity.gravity.GetMaxParmVal(tables));
-    const float travel = maximumSpeed * maxParticleLife
-        + 0.5f * (std::max)({ accelerationExtent.x,
-            accelerationExtent.y, accelerationExtent.z, gravityExtent })
-            * maxParticleLife * maxParticleLife;
-    const float particleSize = (std::max)({
-        std::fabs(size.size[0].GetMaxParmVal(tables)),
-        std::fabs(size.size[1].GetMaxParmVal(tables)),
-        std::fabs(size.size[2].GetMaxParmVal(tables)) });
-    const float expansion = particleSize
-        + std::fabs(systemProperties.boundsExpansion) + travel;
+    particleInput_t input{};
+    input.stage = this;
+    input.tables = tables;
+    input.globalAxis = idMat3(1.0f);
+    input.stageAxis = idMat3(1.0f);
+    input.localViewLeft.Set(0.0f, 1.0f, 0.0f);
+    input.localViewUp.Set(0.0f, 0.0f, 1.0f);
+    input.distribScale.Set(1.0f, 1.0f, 1.0f);
+    input.entityColor.Set(1.0f, 1.0f, 1.0f, 1.0f);
+    input.sizeScale = 1.0f;
+    input.fade = 1.0f;
+    input.shadow = 1.0f;
+    input.alphaScaleOverride = 1.0f;
+    input.totalParticles = systemProperties.totalParticles;
 
-    for (int axis = 0; axis < 3; ++axis) {
-        const float extent = distributionExtent[axis]
-            + offsetExtent[axis] + expansion;
-        bounds[0][axis] = -extent;
-        bounds[1][axis] = extent;
-    }
+    const int lifeMilliseconds = static_cast<int>(maxParticleLife * 1000.0f);
+    std::uint32_t diversitySeed = 0;
+    bool sampledOrigin = false;
+    for (int sample = 0; sample < 100 && lifeMilliseconds > 0; ++sample) {
+        diversitySeed = diversitySeed * 1664525u + 1013904223u;
+        const int diversity = static_cast<int>(
+            (diversitySeed >> 10) & 0x7FFFu);
+        input.stageAxis = ParticleStageAxis(this, diversity);
 
-    if (staticVerts != nullptr && numStaticVerts > 0) {
-        for (int vertex = 0; vertex < numStaticVerts; ++vertex) {
+        particleGen_t particle;
+        particle.index = 0;
+        particle.particleLife = maxParticleLife;
+        particle.random.SetSeed(diversitySeed);
+        particle.originalRandom = particle.random;
+        for (int milliseconds = 0; milliseconds < lifeMilliseconds;
+                milliseconds += 16) {
+            const int time = (std::min)(milliseconds,
+                lifeMilliseconds - 1);
+            particle.cycleAge = time * 0.001f;
+            particle.totalAge = particle.cycleAge;
+            particle.frac = time / static_cast<float>(lifeMilliseconds);
+            particle.parmVal = particle.frac;
+            const idVec3 origin = ParticleOrigin(input, particle);
             for (int axis = 0; axis < 3; ++axis) {
-                bounds[0][axis] = (std::min)(bounds[0][axis],
-                    staticVerts[vertex].xyz[axis] - expansion);
-                bounds[1][axis] = (std::max)(bounds[1][axis],
-                    staticVerts[vertex].xyz[axis] + expansion);
+                bounds[0][axis] = (std::min)(bounds[0][axis], origin[axis]);
+                bounds[1][axis] = (std::max)(bounds[1][axis], origin[axis]);
+            }
+            sampledOrigin = true;
+            if (milliseconds + 16 >= lifeMilliseconds &&
+                    milliseconds != lifeMilliseconds - 1) {
+                milliseconds = lifeMilliseconds - 17;
             }
         }
+    }
+    if (!sampledOrigin) {
+        bounds[0].Zero();
+        bounds[1].Zero();
+    }
+
+    idVec3 maximumSize(0.0f, 0.0f, 0.0f);
+    idRandom2 sizeRandom(diversitySeed);
+    for (int sample = 0; sample <= 64; ++sample) {
+        const float fraction = sample * (1.0f / 64.0f);
+        idVec3 sampledSize;
+        if (staticData != nullptr) {
+            for (int axis = 0; axis < 3; ++axis) {
+                sampledSize[axis] = size.size[axis].Compute(tables,
+                    fraction, sizeRandom);
+            }
+        } else {
+            float baseSize = size.size[0].Compute(tables, fraction,
+                sizeRandom);
+            const float aspect = size.aspectRatio.Compute(tables,
+                fraction, sizeRandom);
+            if (orientation.type == POR_AIMED) {
+                sampledSize.Set(baseSize,
+                    orientation.segmentLength * aspect, baseSize);
+            } else {
+                if (aspect > 1.0f) baseSize *= aspect;
+                sampledSize.Set(baseSize, baseSize, baseSize);
+            }
+        }
+        for (int axis = 0; axis < 3; ++axis) {
+            maximumSize[axis] = (std::max)(maximumSize[axis],
+                sampledSize[axis]);
+        }
+    }
+
+    for (int axis = 0; axis < 3; ++axis) {
+        const float expansion = maximumSize[axis] + 8.0f +
+            systemProperties.boundsExpansion;
+        bounds[0][axis] -= expansion;
+        bounds[1][axis] += expansion;
     }
 }

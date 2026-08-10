@@ -1,93 +1,135 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\vehicleai\vehiclefsm.h
-// Recovered logical types: 4
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../fsm/aifsm.h"
+#include "../fsm/aifsmmanager.h"
+#include "idlib/containers/staticlist.h"
 
+#include <string>
 
-// IDA Local Type ordinal 15770; PDB kind: class.
-class idVehicleBaseFSM : public idFiniteStateMachine
-{
+class idEntity;
+class idTypeInfo;
+class idVehicleAI;
+
+static constexpr int VEHICLE_INVALID_OWNER_SPAWN_ID = 0x1FFF;
+
+// The retail transition result is a twelve-byte state/transition/code tuple.
+// Its interpretation stays with the central FSM implementation.
+class idStateData {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15779.
-  virtual idTypeInfo *GetType();
-  virtual ~idVehicleBaseFSM();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual bool CanUse(idFiniteStateMachine *, const int);
-  virtual idState *GetErrorState();
-  virtual idState *GetDoneState();
-  virtual void Save(idFile_String *, const char *);
-  virtual void Restart(idFiniteStateMachine *, const int);
-  virtual void AddState(idState *);
-  virtual int GetUpdateInterval();
-  virtual void InitStates(const idFiniteStateMachineParams *);
-  virtual void AppendDefaultTransitions(idState *);
-  virtual void SetNextState(const idStateData::transResult_t *, const int);
-  virtual void SetState(const idStateData::transResult_t *, const int, const bool);
-  virtual void SetState_2(idState *, int, bool);
-  virtual void SetState_3(const idTypeInfo *, int, bool);
-
-  idStaticList<idVehicleState *,4> stateStack;
-  idState *dataState;
-  idVS_Idle s_Idle;
-  idVS_Wait s_Wait;
+    struct transResult_t {
+        unsigned char opaque[12] = {};
+    };
 };
 
-// IDA Local Type ordinal 15780; PDB kind: class.
-class idVehicleFSM : public idVehicleBaseFSM
-{
+class idVehicleState : public idState {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15781.
-  virtual idTypeInfo *GetType();
-  virtual ~idVehicleFSM();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual bool CanUse(idFiniteStateMachine *, const int);
-  virtual idState *GetErrorState();
-  virtual idState *GetDoneState();
-  virtual void Save(idFile_String *, const char *);
-  virtual void Restart(idFiniteStateMachine *, const int);
-  virtual void AddState(idState *);
-  virtual int GetUpdateInterval();
-  virtual void InitStates(const idFiniteStateMachineParams *);
-  virtual void AppendDefaultTransitions(idState *);
-  virtual void SetNextState(const idStateData::transResult_t *, const int);
-  virtual void SetState(const idStateData::transResult_t *, const int, const bool);
-  virtual void SetState_2(idState *, int, bool);
-  virtual void SetState_3(const idTypeInfo *, int, bool);
+    idVehicleState();
+    virtual ~idVehicleState() = default;
+    virtual void InternalWork(idFiniteStateMachine*, int) {}
 
+    const std::string& GetDebugName() const { return debugName; }
+    const std::string& GetDebugInfo() const { return debugInfo; }
+
+    bool stacked;
+    std::string debugName;
+    std::string debugInfo;
+    idVehicleAI* ai;
 };
 
-// IDA Local Type ordinal 15783; PDB kind: class.
-class idVehicleFSMManager : public idFSMManager
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 15784.
-  virtual idTypeInfo *GetType();
-  virtual ~idVehicleFSMManager();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual idFiniteStateMachine *AllocFSM(const idTypeInfo *, const idFiniteStateMachineParams *);
-  virtual const idFiniteStateMachine *FindFSM(const idTypeInfo *);
-  virtual const idFiniteStateMachine *FindFSM_2(const char *);
-  virtual idFiniteStateMachine *FindFSM_3(const idTypeInfo *);
-  virtual idFiniteStateMachine *FindFSM_4(const char *);
-  virtual void FreeFSM(const idTypeInfo *);
-  virtual void FreeFSM_2(const char *);
+class idVS_Idle : public idVehicleState {};
 
-  idList<idVehicleFSM *,5> fsms;
+class idVS_Wait : public idVehicleState {
+public:
+    idVS_Wait() : waitTime(0), waitNextState(nullptr) {}
+    void InternalWork(idFiniteStateMachine* baseFSM, int currentTime) override;
+
+    int waitTime;
+    idState* waitNextState;
 };
 
-// IDA Local Type ordinal 21734; PDB kind: class.
-class idVehicleBaseFSM::idVehicleFSMParams : public idFiniteStateMachineParams
-{
-public:
+enum idVehicleDefaultTransitionKind : int {
+    VEHICLE_TRANSITION_UNHANDLED_CHILD_ERROR = 0,
+    VEHICLE_TRANSITION_STATE_ERROR = 1
 };
+
+class idVehicleBaseFSM : public idFiniteStateMachine {
+public:
+    idVehicleBaseFSM();
+    explicit idVehicleBaseFSM(const char* name);
+    ~idVehicleBaseFSM() override = default;
+
+    virtual void AppendDefaultTransitions(idState* state);
+    virtual void SetState(const idStateData::transResult_t* result,
+        int currentTime, bool forcingStack);
+    virtual void SetState(const idTypeInfo* stateType,
+        int delayTime, bool stacked);
+    virtual void AddState(idState* state);
+    virtual void InitStates(const idFiniteStateMachineParams* params);
+    idState* GetErrorState() override;
+    idState* GetDoneState() override;
+    virtual void SetState(idState* state, int delayTime, bool stacked);
+
+    void PopState(bool setPoppedState);
+    void PushState(const idTypeInfo* stateType, int delayTime);
+
+    idStaticList<idVehicleState*, 4> stateStack;
+    idState* dataState;
+    idVS_Idle s_Idle;
+    idVS_Wait s_Wait;
+};
+
+class idVehicleFSM : public idVehicleBaseFSM {
+public:
+    idVehicleFSM();
+    ~idVehicleFSM() override;
+};
+
+class idVehicleFSMManager : public idFSMManager {
+public:
+    idVehicleFSMManager();
+    ~idVehicleFSMManager() override;
+
+    idFiniteStateMachine* AllocFSM(const idTypeInfo* type,
+        const idFiniteStateMachineParams* params);
+    idVehicleFSM* FindFSM(const idTypeInfo* type) const;
+    const idVehicleFSM* FindFSM(const char* name) const;
+    void Init(idEntity* ownerEntity);
+    void AddFSM(idVehicleFSM* fsm, const char* name);
+
+    idList<idVehicleFSM*, 5> fsms;
+};
+
+// Runtime boundaries for the central FSM registry/current-state engine,
+// generated type hierarchy, game clock, entity table, and vehicle AI layout.
+int Tungsten_GetVehicleFSMTime(int referenceTime);
+void Tungsten_SetBaseFSMState(idFiniteStateMachine& fsm, idState* state,
+    int delayTime, bool stacked);
+void Tungsten_AddVehicleDefaultTransition(idState& state,
+    idVehicleBaseFSM& fsm, idVehicleDefaultTransitionKind kind,
+    idState* destination);
+void Tungsten_SetBaseFSMTransitionResult(idFiniteStateMachine& fsm,
+    const idStateData::transResult_t* result, int currentTime,
+    bool forcingStack);
+void Tungsten_AddBaseFSMState(idFiniteStateMachine& fsm, idState* state);
+idState* Tungsten_FindVehicleFSMState(idVehicleBaseFSM& fsm,
+    const idTypeInfo* stateType);
+bool Tungsten_IsVehicleFSMStateRegistered(const idVehicleBaseFSM& fsm,
+    const idState& state);
+idVehicleAI* Tungsten_GetVehicleFSMOwner(idVehicleFSM& fsm);
+void Tungsten_InitVehicleBaseFSM(idVehicleBaseFSM& fsm,
+    const idFiniteStateMachineParams* params);
+void Tungsten_SetVehicleFSMDefaultState(idVehicleBaseFSM& fsm,
+    idState* state);
+void Tungsten_SetVehicleFSMCurrentState(idVehicleBaseFSM& fsm,
+    idState* state, int currentTime);
+const char* Tungsten_GetVehicleStateClassname(const idState& state);
+void Tungsten_VehicleFSMWarning(const char* stateClassname);
+void Tungsten_InitVehicleBaseFSMRuntime(idVehicleBaseFSM& fsm,
+    const char* name);
+bool Tungsten_VehicleFSMIsType(const idVehicleFSM& fsm,
+    const idTypeInfo& type);
+bool Tungsten_AIFSMIsType(const idAIFSM& fsm, const idTypeInfo& type);
+const char* Tungsten_GetVehicleFSMName(const idVehicleFSM& fsm);
+void Tungsten_InitRegisteredVehicleFSM(idVehicleFSM& fsm,
+    const idFiniteStateMachineParams& params);
+void Tungsten_SetVehicleFSMName(idVehicleFSM& fsm, const char* name);

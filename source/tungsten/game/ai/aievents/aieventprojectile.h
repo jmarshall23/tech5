@@ -1,24 +1,20 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\aievents\aieventprojectile.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "aieventtrace.h"
 
+bool Tungsten_GetAIEventEntityLinearVelocity(
+    int spawnId, idVec3& velocity);
 
-// IDA Local Type ordinal 21490; PDB kind: class.
-class idAIEventProjectile : public idAIEventTrace
-{
+class idAIEventProjectile : public idAIEventTrace {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21491.
-  virtual idTypeInfo *GetType();
-  virtual ~idAIEventProjectile();
-  virtual void Clear();
-  virtual idAIEvent::aiEventUpdateResult_t InternalUpdate(const int);
-  virtual idAIEvent::aiEventUpdateResult_t InternalUpdateAttached(const int);
-  virtual bool InternalIsTouching(const idEntity *, const int);
-  virtual void InternalDrawDebug(const int, const int, const int);
-  virtual float InternalGetIntensity(const idEntity *);
-  virtual float GetDistance();
+    idAIEventProjectile();
+    ~idAIEventProjectile() override = default;
 
+    aiEventUpdateResult_t InternalUpdateAttached(int currentTime) override;
+    float GetDistance() const override;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAIEventProjectile) == 208,
+    "Recovered projectile AI-event ABI changed");
+#endif

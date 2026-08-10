@@ -1,19 +1,12 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\superscript\shared\math.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../lib/vector.h"
 
-
-// IDA Local Type ordinal 12522; PDB kind: class.
-class idMath
-{
+class math {
 public:
-};
+    static void AngToVectors(const ssVector& angles, ssVector* forward,
+        ssVector* right, ssVector* up);
 
-// IDA Local Type ordinal 13856; PDB kind: class.
-class math
-{
-public:
+    static const float TWO_PI;
+    static const float ONE_OVER_TWO_PI;
 };

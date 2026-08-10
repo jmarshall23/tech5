@@ -1,44 +1,68 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\targetting\targetfilter.h
-// Recovered logical types: 3
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../entities/entityptr.h"
+#include "targetinfo.h"
 
+class idBotTargetRecord;
+class idEntity;
 
-// IDA Local Type ordinal 14955; PDB kind: class.
-class idBotTargetFilter
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 14959.
-  virtual ~idBotTargetFilter();
-  virtual const char *GetDebugName();
-  virtual void PreCheckTargets(const int);
-  virtual void CheckTarget(const int, idBotTargetRecord *);
-  virtual void SortTargets();
-  virtual void Reset();
-
-  int bestTargetIndex;
-  idEntityPtr<idEntity> bestTarget;
+enum aiAwareness_t : int {
+    AIAWARE_UNAWARE = 0,
+    AIAWARE_LOST = 1,
+    AIAWARE_SUSPECTED = 2,
+    AIAWARE_CONFIRMED = 3,
+    AIAWARE_MAX = 4
 };
 
-// IDA Local Type ordinal 18990; PDB kind: class.
-class idTargetFilter
-{
+class idBotTargetFilter {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 18991.
-  virtual ~idTargetFilter();
-  virtual bool InternalFilter(const idEntity *, const idTargetInfo *);
+    virtual ~idBotTargetFilter() = default;
+    virtual const char* GetDebugName();
+    virtual void PreCheckTargets(int playerIndex);
+    virtual void CheckTarget(int playerIndex, idBotTargetRecord* record);
+    virtual void SortTargets();
+    virtual void Reset();
 
-  aiAwareness_t minAwareness;
+    int bestTargetIndex;
+    idEntityPtr<idEntity> bestTarget;
 };
 
-// IDA Local Type ordinal 20487; PDB kind: class.
-class idAvoidTargetFilter : public idTargetFilter
-{
+class idTargetFilter {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20488.
-  virtual ~idAvoidTargetFilter();
-  virtual bool InternalFilter(const idEntity *, const idTargetInfo *);
+    virtual ~idTargetFilter() = default;
+    virtual bool InternalFilter(
+        const idEntity* owner, const idTargetInfo* target) const = 0;
 
+    bool Filter(const idEntity* owner, const idTargetInfo& target) const;
+
+    aiAwareness_t minAwareness;
 };
+
+class idAvoidTargetFilter : public idTargetFilter {
+public:
+    explicit idAvoidTargetFilter(aiAwareness_t minimumAwareness);
+    ~idAvoidTargetFilter() override = default;
+    bool InternalFilter(
+        const idEntity* owner, const idTargetInfo* target) const override;
+};
+
+bool Tungsten_IsDeadAIEntityState(const idAIEntityState* entityState);
+bool Tungsten_IsDyingAIEntityState(const idAIEntityState* entityState);
+bool Tungsten_IsActorAIEntityState(const idAIEntityState* entityState);
+int Tungsten_GetAIEntityType(const idAIEntityState* entityState);
+int Tungsten_GetDyingAIAlertAgeMilliseconds(
+    const idAIEntityState* entityState);
+int Tungsten_GetAIAwareness(const idAIEntityState* entityState);
+const idEntity* Tungsten_GetAIEntity(const idAIEntityState* entityState);
+bool Tungsten_IsSpectatingPlayerEntity(const idEntity* entity);
+bool Tungsten_IsDeadTurretEntity(const idEntity* entity);
+bool Tungsten_IsDeadVehicleMountedTurretEntity(const idEntity* entity);
+bool Tungsten_IsHiddenFakeEnemyEntity(const idEntity* entity);
+const idEntity* Tungsten_GetCaptureTheFlagTurretOwner(
+    const idEntity* owner);
+const idEntity* Tungsten_GetVehicleDriver(const idEntity* entity);
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idTargetFilter) == 8,
+    "Recovered target-filter ABI changed");
+#endif

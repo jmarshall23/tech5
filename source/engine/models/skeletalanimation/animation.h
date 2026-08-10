@@ -105,6 +105,9 @@ public:
     bool LoadBinary(const char* fileName);
     bool WriteBinary(const char* fileName) const;
     void GenerateChecksum();
+    static void MakeDefault(const char* fileName,
+        const idList<idStr, 5>* jointNames,
+        const idList<idStr, 5>* userChannelNames);
 
     jointConversionHandle_t handle;
     idList<jointHandle_t, 5> tableJoints;

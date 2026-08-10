@@ -59,6 +59,10 @@ public:
         return len;
     }
 
+    bool IsEmpty() const {
+        return len == 0;
+    }
+
     void Clear() {
         len = 0;
         data[0] = '\0';

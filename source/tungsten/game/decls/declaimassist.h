@@ -1,32 +1,23 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\decls\declaimassist.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../engine/decls/decltypeinfo.h"
+#include "../player/aimassistdata.h"
 
-
-// IDA Local Type ordinal 20212; PDB kind: class.
-class idDeclAimAssist : public idDeclTypeInfo
-{
+class idDeclAimAssist : public idDeclTypeInfo {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20213.
-  virtual ~idDeclAimAssist();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    idDeclAimAssist() = default;
+    ~idDeclAimAssist() override = default;
 
-  aimAssistData_t baseData;
+    // Retail symbol: ?GetDeclInfo@idDeclAimAssist@@UBAPAVidDeclInfo@@XZ
+    // EA: 0x82BCC868, RVA: 0x00BCC868
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    aimAssistData_t baseData;
+
+    static idDeclInfoTemplate<idDeclAimAssist> resourceList;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclAimAssist) == 180,
+    "Recovered aim-assist declaration ABI changed");
+#endif

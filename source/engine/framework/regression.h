@@ -1,31 +1,24 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\framework\regression.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/list.h"
+#include "idlib/text/str.h"
 
+class idCmdArgs;
+class idTestReport;
 
-// IDA Local Type ordinal 17424; PDB kind: class.
-class idRegression
-{
+class idRegression {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 17434.
-  virtual ~idRegression();
-  virtual void MakeTest(const idCmdArgs *);
-  virtual void MakeTestLoadGame(const idCmdArgs *);
-  virtual void StopTest();
-  virtual void PlayTest(const char *, bool);
-  virtual void NextTest();
-  virtual void DisplayTextScreen(const char *, int);
-  virtual idTestReport *GetTestReport();
-  virtual void SetName(const char *);
-  virtual const char *GetName();
-  virtual void QueueEventString(const char *);
-  virtual bool ProcessQueuedEvents();
-  virtual void SetTestInProgress(bool);
-  virtual bool GetTestInProgress();
-  virtual void UpdateCurrentTestFile(const char *);
-  virtual void SetForceIgnoreNextTestCommands(bool);
-
+    virtual ~idRegression() = default;
+    virtual void MakeTest(const idCmdArgs*) = 0;
+    virtual void MakeTestLoadGame(const idCmdArgs*) = 0;
+    virtual void StopTest() = 0;
+    virtual void PlayTest(const char*, bool) = 0;
+    virtual void NextTest() = 0;
+    virtual idTestReport* GetTestReport() = 0;
+    virtual void SetName(const char*) = 0;
+    virtual const char* GetName() = 0;
+    virtual void QueueEventString(const char*) = 0;
+    virtual bool ProcessQueuedEvents() = 0;
+    virtual void SetTestInProgress(bool) = 0;
+    virtual bool GetTestInProgress() = 0;
 };

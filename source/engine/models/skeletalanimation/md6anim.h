@@ -3,6 +3,7 @@
 #include "framework/resource.h"
 #include "framework/resourcelist.h"
 #include "idlib/bv/boundsshort.h"
+#include "idlib/containers/list.h"
 #include "idlib/handle.h"
 #include "idlib/hashing/crc8.h"
 #include "idlib/math/vector.h"
@@ -10,6 +11,7 @@
 #include "models/skeletalanimation/md6phasetrack.h"
 
 enum invalidJointConversionHandle_t : int;
+class idDeclMD6;
 class idMD6Model;
 class idMD6Skel;
 
@@ -51,6 +53,8 @@ public:
     idResourceList* GetResourceList() override;
 
     bool AnimIsOkForModel(const idMD6Model* model) const;
+    bool VerifyBoundingBoxes(const idDeclMD6* declaration,
+        float epsilon, float jointRadius) const;
     void GetAnimationDelta(idVec3* deltaTranslation,
         idMat3* deltaAxis) const;
     bool LoadBinary(const char* fileName);
@@ -90,6 +94,22 @@ public:
     static idTypedResourceList<idMD6Anim> resourceList;
 
 private:
+    bool CompressAnim(const idMD6Skel* skeleton, int numFrames,
+        int frameRate, const float* rotations, const float* scales,
+        const float* translations, const float* userChannels,
+        const animationSettings_t& settings, bool additive,
+        bool ignoreBounds);
+    bool LoadFacetracksComposite(const char* basePath,
+        const idMD6Skel* skeleton, const animationSettings_t& settings);
+    void VerifyRLEData(const char* animationName,
+        const idList<unsigned char, 5>& rotationRLE,
+        const idList<unsigned char, 5>& scaleRLE,
+        const idList<unsigned char, 5>& translationRLE,
+        const idList<unsigned char, 5>& userRLE,
+        const idList<unsigned char, 5>& rotationBits,
+        const idList<unsigned char, 5>& scaleBits,
+        const idList<unsigned char, 5>& translationBits,
+        const idList<unsigned char, 5>& userBits) const;
     static JointConversionFindCallback jointConversionFindCallback;
     static JointConversionNameCallback jointConversionNameCallback;
     static TextLoadCallback textLoadCallback;

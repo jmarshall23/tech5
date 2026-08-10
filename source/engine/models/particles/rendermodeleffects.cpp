@@ -1,7 +1,9 @@
 #include "models/particles/rendermodeleffects.h"
 
 #include "models/particles/declparticle.h"
+#include "models/particles/jobs/particlegen.h"
 #include "models/particles/jobs/particlestage.h"
+#include "models/transparency/rendermodeltransparency.h"
 
 #include <algorithm>
 #include <cmath>
@@ -9,8 +11,85 @@
 #include <new>
 #include <vector>
 
+namespace {
+
+constexpr int MAX_EFFECT_FRAME_VERTS = 8192;
+constexpr int MAX_EFFECT_FRAME_INDICES = 12288;
+
+struct effectFrameStorage_t {
+    std::vector<idDrawVert> vertices[2];
+    std::vector<std::uint16_t> indices;
+    int mappedBufferIndex = 0;
+    int vertOffset = 0;
+    int indexOffset = 0;
+    bool initialized = false;
+};
+
+effectFrameStorage_t effectFrameStorage;
+
+idVec3 Normalize(const idVec3& value, const idVec3& fallback) {
+    const float lengthSquared = value.LengthSqr();
+    return lengthSquared > 1.0e-20f
+        ? value * (1.0f / std::sqrt(lengthSquared)) : fallback;
+}
+
+void InitializeEffectVertex(idDrawVert& vertex, const idVec3& position,
+        const float s, const float t, const idVec3& normal,
+        const idVec3& tangent, const std::uint8_t alpha = 255) {
+    std::memset(&vertex, 0, sizeof(vertex));
+    vertex.xyz = position;
+    vertex.st.Set(s, t);
+    vertex.SetNormal(normal);
+    vertex.SetTangent(tangent);
+    vertex.SetBiTangent(normal.Cross(tangent));
+    vertex.color[0] = 255;
+    vertex.color[1] = 255;
+    vertex.color[2] = 255;
+    vertex.color[3] = alpha;
+}
+
+bool AllocateEffectGeometry(const int numVertices, const int numIndices,
+        int& firstVertex, int& firstIndex) {
+    if (!effectFrameStorage.initialized || numVertices <= 0 ||
+        numIndices <= 0 ||
+        effectFrameStorage.vertOffset + numVertices >
+            MAX_EFFECT_FRAME_VERTS ||
+        effectFrameStorage.indexOffset + numIndices >
+            MAX_EFFECT_FRAME_INDICES) {
+        return false;
+    }
+    firstVertex = effectFrameStorage.vertOffset;
+    firstIndex = effectFrameStorage.indexOffset;
+    effectFrameStorage.vertOffset += numVertices;
+    effectFrameStorage.indexOffset += numIndices;
+    return true;
+}
+
+void WriteQuadIndices(std::uint16_t* const output,
+        const int relativeVertex) {
+    const std::uint16_t base = static_cast<std::uint16_t>(relativeVertex);
+    output[0] = base;
+    output[1] = static_cast<std::uint16_t>(base + 2);
+    output[2] = static_cast<std::uint16_t>(base + 3);
+    output[3] = base;
+    output[4] = static_cast<std::uint16_t>(base + 3);
+    output[5] = static_cast<std::uint16_t>(base + 1);
+}
+
+} // namespace
+
 idRenderModelEffects::UpdateCallback idRenderModelEffects::updateCallback =
     nullptr;
+idRenderModelEffects::ViewExtractor idRenderModelEffects::viewExtractor =
+    nullptr;
+idRenderModelEffects::VisibleSpheresResolver
+    idRenderModelEffects::visibleSpheresResolver = nullptr;
+idRenderModelEffects::ParticleJobSubmitCallback
+    idRenderModelEffects::particleJobSubmitCallback = nullptr;
+idRenderModelEffects::BufferReferenceCallback
+    idRenderModelEffects::bufferReferenceCallback = nullptr;
+idRenderModelEffects::ShadowSampleCallback
+    idRenderModelEffects::shadowSampleCallback = nullptr;
 
 idRenderModelEffects::idRenderModelEffects()
     : particles(nullptr), particleTrails(nullptr), tracers(nullptr),
@@ -30,6 +109,7 @@ idRenderModelEffects::idRenderModelEffects()
     std::memset(sortedParticleStages, 0, sizeof(sortedParticleStages));
     g.noInteractions = 1;
     g.noShadow = 1;
+    g.addAlways = 1;
 
     particles = new (std::nothrow)
         effectParticleParms_t[MAX_EFFECT_PARTICLES]();
@@ -61,8 +141,62 @@ idRenderModelEffects::~idRenderModelEffects() {
     delete[] triangles;
 }
 
+void idRenderModelEffects::Init() {
+    if (effectFrameStorage.initialized) return;
+    for (std::vector<idDrawVert>& vertices :
+            effectFrameStorage.vertices) {
+        vertices.resize(MAX_EFFECT_FRAME_VERTS);
+        std::memset(vertices.data(), 0,
+            vertices.size() * sizeof(vertices[0]));
+    }
+    effectFrameStorage.indices.resize(MAX_EFFECT_FRAME_INDICES);
+    effectFrameStorage.mappedBufferIndex = 0;
+    effectFrameStorage.vertOffset = 0;
+    effectFrameStorage.indexOffset = 0;
+    effectFrameStorage.initialized = true;
+}
+
+void idRenderModelEffects::Shutdown() {
+    for (std::vector<idDrawVert>& vertices :
+            effectFrameStorage.vertices) {
+        vertices.clear();
+        vertices.shrink_to_fit();
+    }
+    effectFrameStorage.indices.clear();
+    effectFrameStorage.indices.shrink_to_fit();
+    effectFrameStorage.vertOffset = 0;
+    effectFrameStorage.indexOffset = 0;
+    effectFrameStorage.initialized = false;
+}
+
+void idRenderModelEffects::StartFrame() {
+    Init();
+    effectFrameStorage.mappedBufferIndex =
+        (effectFrameStorage.mappedBufferIndex + 1) & 1;
+    effectFrameStorage.vertOffset = 0;
+    effectFrameStorage.indexOffset = 0;
+}
+
+void idRenderModelEffects::EndFrame() {
+    // The portable backing store remains mapped.  A renderer integration
+    // can upload/reference it through bufferReferenceCallback.
+}
+
 void idRenderModelEffects::SetUpdateCallback(UpdateCallback callback) {
     updateCallback = callback;
+}
+
+void idRenderModelEffects::SetRuntimeCallbacks(
+        const ViewExtractor extractor,
+        const VisibleSpheresResolver spheresResolver,
+        const ParticleJobSubmitCallback jobSubmit,
+        const BufferReferenceCallback bufferReference,
+        const ShadowSampleCallback shadowSample) {
+    viewExtractor = extractor;
+    visibleSpheresResolver = spheresResolver;
+    particleJobSubmitCallback = jobSubmit;
+    bufferReferenceCallback = bufferReference;
+    shadowSampleCallback = shadowSample;
 }
 
 int idRenderModelEffects::EstimateQuadAllocation(
@@ -122,6 +256,16 @@ void idRenderModelEffects::AddDecal(const idMaterial* const material,
     decalVerts[slot].verts[1] = v1;
     decalVerts[slot].verts[2] = v2;
     decalVerts[slot].verts[3] = v3;
+    if (shadowSampleCallback != nullptr) {
+        for (idDrawVert& vertex : decalVerts[slot].verts) {
+            const int shadow = static_cast<int>((std::max)(0.0f,
+                (std::min)(1.0f, shadowSampleCallback(this, vertex.xyz)))
+                * 255.0f + 0.5f);
+            vertex.color[0] = static_cast<std::uint8_t>(shadow);
+            vertex.color[1] = static_cast<std::uint8_t>(shadow);
+            vertex.color[2] = static_cast<std::uint8_t>(shadow);
+        }
+    }
 }
 
 void idRenderModelEffects::AddTracer(const idMaterial* const material,
@@ -387,7 +531,280 @@ void idRenderModelEffects::SortEffectParticles() {
 
 bool idRenderModelEffects::UpdateInView(const idRenderView* currentView,
     const idRenderView* nextView, idRenderModelUpdateTools* tools) {
-    return updateCallback != nullptr
-        ? updateCallback(this, currentView, nextView, tools)
-        : false;
+    if (updateCallback != nullptr) {
+        return updateCallback(this, currentView, nextView, tools);
+    }
+    Init();
+    surfaces.Clear();
+    if (triangles == nullptr) return false;
+
+    idVec3 currentViewOrigin;
+    currentViewOrigin.Zero();
+    if (particleRenderView != nullptr) {
+        std::memset(particleRenderView, 0, sizeof(*particleRenderView));
+        particleRenderView->renderTime = latchedTime;
+        particleRenderView->deltaTime = deltaTime;
+        particleRenderView->atlasWidth = 1;
+        particleRenderView->atlasHeight = 1;
+        if (viewExtractor != nullptr) {
+            viewExtractor(currentView, nextView, *particleRenderView,
+                currentViewOrigin);
+        }
+    }
+
+    auto appendSurface = [&](const idMaterial* material,
+            idDrawVert* vertices, std::uint16_t* indices,
+            const int firstVertex, const int numVertices,
+            const int firstIndex, const int numIndices,
+            const unsigned int vertexMask, const int frameBufferIndex) {
+        if (surfaces.Num() >= MAX_EFFECT_TRIANGLES ||
+            numVertices <= 0 || numIndices <= 0) {
+            return false;
+        }
+        idTriangles& geometry = triangles[surfaces.Num()];
+        geometry.numVerts = numVertices;
+        geometry.numIndexes = numIndices;
+        geometry.vertexMask = vertexMask;
+        geometry.cpuVertexMask = vertexMask;
+        geometry.verts = vertices;
+        geometry.indexes = indices;
+        geometry.allowGpuHosting = true;
+        idRenderModelSurface surface{};
+        surface.material = material;
+        surface.materialNum = surfaces.Num();
+        surface.geometry = &geometry;
+        surface.geometryIsReference = true;
+        AddSurface(surface);
+        if (bufferReferenceCallback != nullptr) {
+            bufferReferenceCallback(&geometry, frameBufferIndex,
+                firstVertex, firstIndex);
+        }
+        return true;
+    };
+
+    const int frameBufferIndex = effectFrameStorage.mappedBufferIndex;
+    std::vector<idDrawVert>& frameVertices =
+        effectFrameStorage.vertices[frameBufferIndex];
+
+    std::vector<const idMaterial*> tracerMaterials;
+    for (int absolute = latchedTracerRange[0];
+            absolute < latchedTracerRange[1]; ++absolute) {
+        const tracerParms_t& tracer =
+            tracers[absolute & (MAX_TRACERS - 1)];
+        if (std::find(tracerMaterials.begin(), tracerMaterials.end(),
+                tracer.mat) == tracerMaterials.end()) {
+            tracerMaterials.push_back(tracer.mat);
+        }
+    }
+    for (const idMaterial* const material : tracerMaterials) {
+        const int surfaceFirstVertex = effectFrameStorage.vertOffset;
+        const int surfaceFirstIndex = effectFrameStorage.indexOffset;
+        int surfaceVertices = 0;
+        int surfaceIndices = 0;
+        for (int absolute = latchedTracerRange[0];
+                absolute < latchedTracerRange[1]; ++absolute) {
+            const tracerParms_t& tracer =
+                tracers[absolute & (MAX_TRACERS - 1)];
+            if (tracer.mat != material) continue;
+            int firstVertex = 0;
+            int firstIndex = 0;
+            if (!AllocateEffectGeometry(8, 12, firstVertex, firstIndex))
+                break;
+            const float age = (std::max)(0.0f,
+                static_cast<float>(latchedTime - deltaTime -
+                    tracer.startTime) * 0.001f);
+            const idVec3 forward = Normalize(tracer.dir,
+                idVec3(1.0f, 0.0f, 0.0f));
+            const idVec3 head = tracer.origin +
+                forward * (age * tracer.speed);
+            const idVec3 tail = head - forward * tracer.length;
+            const idVec3 center = (head + tail) * 0.5f;
+            const idVec3 toView = Normalize(currentViewOrigin - center,
+                idVec3(0.0f, 0.0f, 1.0f));
+            const idVec3 side = Normalize(forward.Cross(toView),
+                idVec3(0.0f, 1.0f, 0.0f)) * (tracer.height * 0.5f);
+            const idVec3 up = Normalize(forward.Cross(side), toView) *
+                (tracer.height * 0.5f);
+            const float lifeFraction = tracer.lifeTime > 0
+                ? (std::max)(0.0f, (std::min)(1.0f,
+                    1.0f - age * 1000.0f / tracer.lifeTime)) : 1.0f;
+            const std::uint8_t alpha = static_cast<std::uint8_t>(
+                lifeFraction * 255.0f + 0.5f);
+            idDrawVert* const output =
+                frameVertices.data() + firstVertex;
+            InitializeEffectVertex(output[0], tail - side, 0.0f, 0.0f,
+                toView, forward, alpha);
+            InitializeEffectVertex(output[1], tail + side, 0.0f, 1.0f,
+                toView, forward, alpha);
+            InitializeEffectVertex(output[2], head - side, 1.0f, 0.0f,
+                toView, forward, alpha);
+            InitializeEffectVertex(output[3], head + side, 1.0f, 1.0f,
+                toView, forward, alpha);
+            InitializeEffectVertex(output[4], tail - up, 0.0f, 0.0f,
+                side, forward, alpha);
+            InitializeEffectVertex(output[5], tail + up, 0.0f, 1.0f,
+                side, forward, alpha);
+            InitializeEffectVertex(output[6], head - up, 1.0f, 0.0f,
+                side, forward, alpha);
+            InitializeEffectVertex(output[7], head + up, 1.0f, 1.0f,
+                side, forward, alpha);
+            const int relativeVertex = firstVertex - surfaceFirstVertex;
+            WriteQuadIndices(effectFrameStorage.indices.data() + firstIndex,
+                relativeVertex);
+            WriteQuadIndices(effectFrameStorage.indices.data() +
+                firstIndex + 6, relativeVertex + 4);
+            surfaceVertices += 8;
+            surfaceIndices += 12;
+        }
+        appendSurface(material,
+            frameVertices.data() + surfaceFirstVertex,
+            effectFrameStorage.indices.data() + surfaceFirstIndex,
+            surfaceFirstVertex, surfaceVertices, surfaceFirstIndex,
+            surfaceIndices, 31, frameBufferIndex);
+    }
+
+    std::vector<const idMaterial*> decalMaterials;
+    for (int absolute = latchedDecalRange[0];
+            absolute < latchedDecalRange[1]; ++absolute) {
+        const decalParms_t& decal = decals[absolute & (MAX_DECALS - 1)];
+        if (std::find(decalMaterials.begin(), decalMaterials.end(),
+                decal.mat) == decalMaterials.end()) {
+            decalMaterials.push_back(decal.mat);
+        }
+    }
+    for (const idMaterial* const material : decalMaterials) {
+        const int surfaceFirstVertex = effectFrameStorage.vertOffset;
+        const int surfaceFirstIndex = effectFrameStorage.indexOffset;
+        int surfaceVertices = 0;
+        int surfaceIndices = 0;
+        for (int absolute = latchedDecalRange[0];
+                absolute < latchedDecalRange[1]; ++absolute) {
+            const int slot = absolute & (MAX_DECALS - 1);
+            const decalParms_t& decal = decals[slot];
+            if (decal.mat != material) continue;
+            int firstVertex = 0;
+            int firstIndex = 0;
+            if (!AllocateEffectGeometry(4, 6, firstVertex, firstIndex))
+                break;
+            idDrawVert* const output =
+                frameVertices.data() + firstVertex;
+            std::memcpy(output, decalVerts[slot].verts,
+                sizeof(decalVerts[slot].verts));
+            const int age = latchedTime - decal.startTime;
+            float visibility = 1.0f;
+            if (decal.fadeInEndTime > decal.startTime &&
+                latchedTime < decal.fadeInEndTime) {
+                visibility = static_cast<float>(age) /
+                    (decal.fadeInEndTime - decal.startTime);
+            }
+            const int endTime = decal.startTime + decal.lifeTime;
+            if (decal.fadeOutStartTime < endTime &&
+                latchedTime > decal.fadeOutStartTime) {
+                visibility = (std::min)(visibility,
+                    static_cast<float>(endTime - latchedTime) /
+                    (endTime - decal.fadeOutStartTime));
+            }
+            visibility = (std::max)(0.0f, (std::min)(1.0f, visibility));
+            for (int vertex = 0; vertex < 4; ++vertex) {
+                for (int channel = 0; channel < 4; ++channel) {
+                    output[vertex].color[channel] =
+                        static_cast<std::uint8_t>(
+                            output[vertex].color[channel] * visibility);
+                }
+            }
+            WriteQuadIndices(effectFrameStorage.indices.data() + firstIndex,
+                firstVertex - surfaceFirstVertex);
+            surfaceVertices += 4;
+            surfaceIndices += 6;
+        }
+        appendSurface(material,
+            frameVertices.data() + surfaceFirstVertex,
+            effectFrameStorage.indices.data() + surfaceFirstIndex,
+            surfaceFirstVertex, surfaceVertices, surfaceFirstIndex,
+            surfaceIndices, 31, frameBufferIndex);
+    }
+
+    const int transparencyBuffer =
+        idRenderModelTransparency::GetCurrentFrameBufferIndex();
+    const int displayBuffer = (transparencyBuffer + 2) % 3;
+    idTransparencyVert* const displayVertices =
+        idRenderModelTransparency::GetUnsortedVertices(displayBuffer);
+    const std::uint16_t* const unsortedIndices =
+        idRenderModelTransparency::GetUnsortedIndices();
+    for (int index = 0; index < deferredStages[displayBuffer].Num();
+            ++index) {
+        const deferredStage_t& deferred =
+            deferredStages[displayBuffer][index];
+        const int firstVertex = (deferred.indexOffset / 6) * 4;
+        appendSurface(deferred.mtr,
+            reinterpret_cast<idDrawVert*>(displayVertices),
+            const_cast<std::uint16_t*>(unsortedIndices +
+                deferred.indexOffset), firstVertex,
+            firstVertex + deferred.vertCount, deferred.indexOffset,
+            6 * (deferred.vertCount / 4), 3167, displayBuffer);
+    }
+    deferredStages[displayBuffer].Clear();
+    deferredStages[transparencyBuffer].Clear();
+
+    SortEffectParticles();
+    const visibleInfluenceSpheres_t* const visibleSpheres =
+        visibleSpheresResolver != nullptr
+            ? visibleSpheresResolver() : nullptr;
+    int generationParm = 0;
+    for (int group = 0; group < numSortedParticleStages &&
+            generationParm < MAX_PARTICLE_GEN_PARMS; ++group) {
+        const sortedParticleStage_t& sorted = sortedParticleStages[group];
+        for (int item = 0; item < sorted.num &&
+                generationParm < MAX_PARTICLE_GEN_PARMS; ++item) {
+            effectParticleParms_t& effect = particles[
+                (sorted.first + item) & (MAX_EFFECT_PARTICLES - 1)];
+            effect.currTime = latchedTime;
+            const int numQuads = EstimateQuadAllocation(effect.stage,
+                &effect, latchedTime);
+            if (numQuads <= 0 || effect.stage == nullptr) continue;
+
+            deferredParticleGenParms_t& generation =
+                particleGenParms[generationParm];
+            std::memset(&generation, 0, sizeof(generation));
+            generation.renderView = particleRenderView;
+            generation.effectParticleParms = &effect;
+            generation.stage = effect.stage;
+            generation.tables = effect.tables;
+            generation.staticVerts = effect.stage->staticVerts;
+            generation.visibleInfluenceSpheres = visibleSpheres;
+            generation.numEffectParticleParms = 1;
+            generation.numTables = effect.numTables;
+            generation.staticVertsSize = effect.stage->numStaticVerts;
+            generation.deadTime = effect.stage->maxDeadTime;
+            generation.maxVertsToGen = numQuads * 4;
+
+            bool allocated = false;
+            if (effect.stage->isTransparencySorted) {
+                allocated = idRenderModelTransparency::AllocateQuadSegment(
+                    numQuads, generation.verts, generation.quadDepth,
+                    generation.quadsUsed,
+                    effect.stage->hasEmissivePass != 0);
+            } else {
+                int indexOffset = 0;
+                int vertCount = 0;
+                allocated = idRenderModelTransparency::
+                    AllocateUnsortedQuadSegment(numQuads,
+                        generation.verts, indexOffset, vertCount);
+                if (allocated) {
+                    deferredStage_t deferred{};
+                    deferred.mtr = effect.stage->systemProperties.material;
+                    deferred.vertCount = vertCount;
+                    deferred.indexOffset = indexOffset;
+                    deferredStages[transparencyBuffer].Append(deferred);
+                }
+            }
+            if (!allocated) continue;
+            if (particleJobSubmitCallback == nullptr ||
+                !particleJobSubmitCallback(&generation, tools)) {
+                ParticleGenJob(&generation);
+            }
+            ++generationParm;
+        }
+    }
+    return true;
 }

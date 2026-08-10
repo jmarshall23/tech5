@@ -457,6 +457,30 @@ public:
         return idQuat(x * scale, y * scale, z * scale, w * scale);
     }
 
+    idMat3 ToMat3() const {
+        const float x2 = x + x;
+        const float y2 = y + y;
+        const float z2 = z + z;
+        const float xx = x * x2;
+        const float xy = x * y2;
+        const float xz = x * z2;
+        const float yy = y * y2;
+        const float yz = y * z2;
+        const float zz = z * z2;
+        const float wx = w * x2;
+        const float wy = w * y2;
+        const float wz = w * z2;
+
+        return idMat3(
+            1.0f - (yy + zz), xy - wz, xz + wy,
+            xy + wz, 1.0f - (xx + zz), yz - wx,
+            xz - wy, yz + wx, 1.0f - (xx + yy));
+    }
+
+    idVec3 ToForward() const {
+        return ToMat3()[0];
+    }
+
     // Materialized in the authoritative shared/idlib/math/quat.h dump.
     idQuat& Normalize() {
         const float lengthSqr = x * x + y * y + z * z + w * w;

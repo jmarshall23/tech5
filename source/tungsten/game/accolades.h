@@ -1,21 +1,29 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\accolades.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/declaccolades.h"
 
+class idLocalUser;
 
-// IDA Local Type ordinal 18370; PDB kind: class.
-class idAccolade
-{
+class idAccolade {
 public:
-  int count;
-  const idDeclAccolade *decl;
+    idAccolade(const idDeclAccolade& declaration, int count);
+
+    const char* Icon() const;
+    const char* Name() const;
+    const char* Description() const;
+
+    int count;
+    const idDeclAccolade* decl;
 };
 
-// IDA Local Type ordinal 18444; PDB kind: class.
-class idAccolades
-{
+class idAccolades {
 public:
+    static int Num();
+    static idAccolade GetLifetime(idLocalUser& user, int index);
+    static idAccolade GetSession(int playerId, int index);
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAccolade) == 8,
+    "Recovered accolade result ABI changed");
+#endif

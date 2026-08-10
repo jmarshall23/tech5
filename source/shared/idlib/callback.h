@@ -1,9 +1,13 @@
 #pragma once
 
+#include "containers/list.h"
 #include "math/vector.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
 #endif
 #include <Windows.h>
 #include <cstdint>
@@ -100,6 +104,25 @@ class idAAS2;
 class idFiniteStateMachine;
 class idTypeInfo;
 
+class idFSMLogEntry {
+public:
+    enum fsmLogEntry_t : int {
+        LOGENTRY_NONE = 0,
+        LOGENTRY_TRANSITION = 1,
+        LOGENTRY_RESTART = 2,
+        LOGENTRY_ERROR = 3,
+        LOGENTRY_MAX = 4
+    };
+
+    fsmLogEntry_t type;
+    int time;
+    const idFiniteStateMachine* fsm;
+    const idTypeInfo* curStateType;
+    const idTypeInfo* nextStateType;
+    const idTypeInfo* transitionType;
+    int transCode;
+};
+
 class idAAS2Callback {
 public:
     virtual ~idAAS2Callback() = default;
@@ -125,19 +148,27 @@ public:
         const idTypeInfo*, int) {}
 };
 
-struct idFSMLog {
-    void* list;
-    int num;
-    int size;
-    short granularity;
-    std::uint8_t memTag;
-    std::uint8_t listStatic;
+class idFSMLog {
+public:
+    explicit idFSMLog(int maximumSize);
+    ~idFSMLog();
+
+    const idFSMLogEntry* FromLast(int index) const;
+    idFSMLogEntry* Alloc();
+
+    void Clear() {
+        list.Clear();
+        first = 0;
+    }
+
+    idList<idFSMLogEntry, 5> list;
     int first;
     int maxSize;
 };
 
 class idAIFSMCallback : public idFSMCallback {
 public:
+    idAIFSMCallback() : log(64) {}
     ~idAIFSMCallback() override = default;
     void OnTransition(const idFiniteStateMachine*, const idTypeInfo*,
         const idTypeInfo*, const idTypeInfo*, int) override {}
@@ -152,6 +183,8 @@ using D3DCALLBACK = void (*)(unsigned int);
 using guiCallBack_t = void (*)(bool);
 
 #if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(idFSMLogEntry) == 28,
+    "Recovered idFSMLogEntry ABI changed");
 static_assert(sizeof(idCallback) == 4, "Recovered idCallback ABI changed");
 static_assert(sizeof(idCallbackStatic) == 8,
     "Recovered idCallbackStatic ABI changed");

@@ -434,6 +434,9 @@ void idEarClipTriangulate::RemoveZeroAreas() {
 void idEarClipTriangulate::CreateVertices() {
     vertices.Clear();
     vertices.SetNum(indices.Num());
+    headConvex = tailConvex = -1;
+    headReflex = tailReflex = -1;
+    headEar = tailEar = -1;
     for (int index = 0; index < indices.Num(); ++index) {
         Vertex_t& vertex = vertices[index];
         vertex = {};
@@ -446,6 +449,15 @@ void idEarClipTriangulate::CreateVertices() {
         vertex.prevShared.value = vertex.nextShared.value = -1;
         vertex.isConvex = Cross(positions[indices[vertex.prevVertex]],
             positions[indices[index]], positions[indices[vertex.nextVertex]]) >= 0.0f;
+        int& head = vertex.isConvex ? headConvex : headReflex;
+        int& tail = vertex.isConvex ? tailConvex : tailReflex;
+        if (head == -1) {
+            head = index;
+        } else {
+            vertices[tail].nextShared.value = static_cast<std::int16_t>(index);
+            vertex.prevShared.value = static_cast<std::int16_t>(tail);
+        }
+        tail = index;
     }
 }
 
@@ -453,20 +465,87 @@ void idEarClipTriangulate::RemapIndices() {
     maxIndex = positions.Num() - 1;
 }
 
-void idEarClipTriangulate::RemoveReflex(int) {
+void idEarClipTriangulate::RemoveReflex(const int index) {
+    if (index < 0 || index >= vertices.Num()) return;
+    Vertex_t& vertex = vertices[index];
+    const int previous = vertex.prevShared.reflex;
+    const int next = vertex.nextShared.reflex;
+
+    if (previous != -1 && previous < vertices.Num()) {
+        vertices[previous].nextShared.reflex = static_cast<std::int16_t>(next);
+    } else if (headReflex == index) {
+        headReflex = next;
+    }
+    if (next != -1 && next < vertices.Num()) {
+        vertices[next].prevShared.reflex = static_cast<std::int16_t>(previous);
+    } else if (tailReflex == index) {
+        tailReflex = previous;
+    }
+    vertex.prevShared.reflex = -1;
+    vertex.nextShared.reflex = -1;
 }
 
-bool idEarClipTriangulate::UpdateEar(int) {
-    return false;
+bool idEarClipTriangulate::UpdateEar(const int vertexIndex) {
+    if (vertexIndex < 0 || vertexIndex >= vertices.Num()) return false;
+    Vertex_t& vertex = vertices[vertexIndex];
+    if (!vertex.isConvex) {
+        vertex.isEar = 0;
+        return false;
+    }
+
+    vertex.isEar = 1;
+    if (headReflex == -1) return true;
+
+    const int previousVertex = vertex.prevVertex;
+    const int nextVertex = vertex.nextVertex;
+    if (previousVertex < 0 || previousVertex >= vertices.Num() ||
+            nextVertex < 0 || nextVertex >= vertices.Num()) {
+        vertex.isEar = 0;
+        return false;
+    }
+    const idVec2& previous = positions[vertices[previousVertex].index];
+    const idVec2& current = positions[vertex.index];
+    const idVec2& next = positions[vertices[nextVertex].index];
+    constexpr float epsilon = 1.1920929e-7f;
+
+    for (int reflex = headReflex; reflex != -1;) {
+        if (reflex < 0 || reflex >= vertices.Num()) break;
+        const Vertex_t& reflexVertex = vertices[reflex];
+        const int following = reflexVertex.nextShared.reflex;
+        if (reflex != previousVertex && reflex != vertexIndex &&
+                reflex != nextVertex) {
+            const idVec2& point = positions[reflexVertex.index];
+            const auto samePoint = [&](const idVec2& other) {
+                return std::fabs(point.x - other.x) <= epsilon &&
+                    std::fabs(point.y - other.y) <= epsilon;
+            };
+            if (!samePoint(previous) && !samePoint(current) &&
+                    !samePoint(next) &&
+                    TriangleQuery(point, previous, current, next) <= 0) {
+                vertex.isEar = 0;
+                return false;
+            }
+        }
+        reflex = following;
+    }
+    return true;
 }
 
 int idEarClipTriangulate::LineTest(const idVec2& point, const idVec2& v0,
         const idVec2& v1) {
-    const float value = Cross(v0, v1, point);
+    // The recovered helper returns the opposite sign of the conventional
+    // cross product: positive is to the right of the directed edge.
+    const float value = (v1.y - v0.y) * (point.x - v0.x) -
+        (point.y - v0.y) * (v1.x - v0.x);
     return value > 0.0f ? 1 : value < 0.0f ? -1 : 0;
 }
 
 int idEarClipTriangulate::TriangleQuery(const idVec2& point,
         const idVec2& v0, const idVec2& v1, const idVec2& v2) const {
-    return PointInTriangle(point, v0, v1, v2) ? 1 : 0;
+    const int side0 = LineTest(point, v0, v1);
+    const int side1 = LineTest(point, v1, v2);
+    const int side2 = LineTest(point, v2, v0);
+    if (side0 > 0 || side1 > 0 || side2 > 0) return 1;
+    if (side0 == 0 || side1 == 0 || side2 == 0) return 0;
+    return -1;
 }

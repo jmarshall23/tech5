@@ -1,37 +1,35 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\framework\gamesystem.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/staticlist.h"
 
+class idFile;
+class idFile_SaveGame;
+class idGame;
+class mgHttpServer;
+struct idGameSpawnInfo;
 
-// IDA Local Type ordinal 18667; PDB kind: class.
-class idGameSystem
-{
+class idGameSystem {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 18668.
-  virtual ~idGameSystem();
-  virtual void Init();
-  virtual void Shutdown();
-  virtual bool AllocGame(idGame **, const idGameSpawnInfo *, idFile *);
-  virtual void FreeGame(idGame **);
-  virtual void MinimalGameCleanup(idGame **);
-
+    virtual ~idGameSystem() = default;
+    virtual void Init() = 0;
+    virtual void Shutdown() = 0;
+    virtual bool AllocGame(idGame**, const idGameSpawnInfo*, idFile*) = 0;
+    virtual void FreeGame(idGame**) = 0;
+    virtual void MinimalGameCleanup(idGame**) = 0;
 };
 
-// IDA Local Type ordinal 18679; PDB kind: class.
-class idGameSystemLocal : public idGameSystem
-{
+class idGameSystemLocal : public idGameSystem {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 18680.
-  virtual ~idGameSystemLocal();
-  virtual void Init();
-  virtual void Shutdown();
-  virtual bool AllocGame(idGame **, const idGameSpawnInfo *, idFile *);
-  virtual void FreeGame(idGame **);
-  virtual void MinimalGameCleanup(idGame **);
-
-  idStaticList<idFile_SaveGame *,2> retainedFiles;
-  mgHttpServer *httpServer;
+    idGameSystemLocal();
+    ~idGameSystemLocal() override;
+    void Init() override;
+    void Shutdown() override;
+    bool AllocGame(idGame**, const idGameSpawnInfo*, idFile*) override;
+    void FreeGame(idGame** game) override;
+    void MinimalGameCleanup(idGame**) override;
+    idStaticList<idFile_SaveGame*, 2> retainedFiles;
+    mgHttpServer* httpServer;
 };
+
+extern idGameSystemLocal gameSystemLocalObject;
+extern idGameSystem* gameSystem;

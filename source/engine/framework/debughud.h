@@ -1,100 +1,98 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\framework\debughud.h
-// Recovered logical types: 4
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/color.h"
+#include "idlib/containers/list.h"
+#include "idlib/text/str.h"
 
+#include <cstdarg>
 
-// IDA Local Type ordinal 3207; PDB kind: enum.
-enum idDebugHUDLocal::debugTextFlags_t : __int32
-{
-  DTFL_COLOR = 0x1,
-  DTFL_SCALE = 0x2,
-  DTFL_XY = 0x4,
-  DTFL_RIGHTALIGN = 0x8,
-  DTFL_PERSIST = 0x10,
-  DTFL_BACKGROUNDCOLOR = 0x20,
-};
+class idMaterial;
+class idRenderModelGui;
 
-// IDA Local Type ordinal 17441; PDB kind: class.
-class idDebugHUD
-{
+class idDebugHUD {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 17442.
-  virtual ~idDebugHUD();
-  virtual void Render(idRenderModelGui *);
-  virtual void Frame();
-  virtual void Clear(bool);
-  virtual void Printf(const char *, ...);
-  virtual void Printf_2(int, int, const char *, char *);
-  virtual void Printf_3(int, int, const char *, ...);
-  virtual void Printf_4(int, int, const idColor *, const idColor *, const char *, char *);
-  virtual void Printf_5(int, int, const idColor *, const idColor *, const char *, ...);
-  virtual void Printf_6(int, int, const idColor *, const char *, char *);
-  virtual void Printf_7(int, int, const idColor *, const char *, ...);
-  virtual void Printf_8(int, int, const idColor *, const float, const char *, ...);
-  virtual void Printf_9(int, int, const idColor *, const float, const int, const char *, char *);
-  virtual void Printf_10(int, int, const idColor *, const idColor *, const float, const char *, ...);
-  virtual void Printf_11(int, int, const idColor *, const idColor *, const float, const int, const char *, char *);
-  virtual void AddPersistentText(int, int, const idColor *, const float, const char *, ...);
-  virtual void RemovePersistentText(int, int);
-  virtual void SetLeftAlign();
-  virtual void SetRightAlign();
-  virtual void SetTextPosition(const int, const int);
-  virtual void SetTextScale(const float);
-  virtual void SetTextColor(const idColor *);
-
+    virtual ~idDebugHUD() = default;
+    virtual void Render(idRenderModelGui*) = 0;
+    virtual void Frame() = 0;
+    virtual void Clear(bool) = 0;
+    virtual void Printf(const char*, ...) = 0;
+    virtual void VPrintf(int, int, const char*, va_list) = 0;
+    virtual void Printf(int, int, const char*, ...) = 0;
+    virtual void VPrintf(int, int, const idColor&, const idColor&,
+        const char*, va_list) = 0;
+    virtual void Printf(int, int, const idColor&, const idColor&,
+        const char*, ...) = 0;
+    virtual void VPrintf(int, int, const idColor&, const char*, va_list) = 0;
+    virtual void Printf(int, int, const idColor&, const char*, ...) = 0;
+    virtual void Printf(int, int, const idColor&, float, const char*, ...) = 0;
+    virtual void VPrintf(int, int, const idColor&, float, int,
+        const char*, va_list) = 0;
+    virtual void Printf(int, int, const idColor&, const idColor&, float,
+        const char*, ...) = 0;
+    virtual void VPrintf(int, int, const idColor&, const idColor&, float,
+        int, const char*, va_list) = 0;
+    virtual void AddPersistentText(int, int, const idColor&, float,
+        const char*, ...) = 0;
+    virtual void RemovePersistentText(int, int) = 0;
+    virtual void SetLeftAlign() = 0;
+    virtual void SetRightAlign() = 0;
+    virtual void SetTextPosition(int, int) = 0;
+    virtual void SetTextScale(float) = 0;
+    virtual void SetTextColor(const idColor&) = 0;
 };
 
-// IDA Local Type ordinal 23611; PDB kind: struct.
-struct idDebugHUDLocal::debugText_t
-{
-  idStr text;
-  int len;
-  int x;
-  int y;
-  idColor color;
-  int flags;
-  float scale;
-  idColor backgroundColor;
-};
-
-// IDA Local Type ordinal 23613; PDB kind: class.
-class idDebugHUDLocal : public idDebugHUD
-{
+class idDebugHUDLocal : public idDebugHUD {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 23614.
-  virtual ~idDebugHUDLocal();
-  virtual void Render(idRenderModelGui *);
-  virtual void Frame();
-  virtual void Clear(bool);
-  virtual void Printf(const char *, ...);
-  virtual void Printf_2(int, int, const char *, char *);
-  virtual void Printf_3(int, int, const char *, ...);
-  virtual void Printf_4(int, int, const idColor *, const idColor *, const char *, char *);
-  virtual void Printf_5(int, int, const idColor *, const idColor *, const char *, ...);
-  virtual void Printf_6(int, int, const idColor *, const char *, char *);
-  virtual void Printf_7(int, int, const idColor *, const char *, ...);
-  virtual void Printf_8(int, int, const idColor *, const float, const char *, ...);
-  virtual void Printf_9(int, int, const idColor *, const float, const int, const char *, char *);
-  virtual void Printf_10(int, int, const idColor *, const idColor *, const float, const char *, ...);
-  virtual void Printf_11(int, int, const idColor *, const idColor *, const float, const int, const char *, char *);
-  virtual void AddPersistentText(int, int, const idColor *, const float, const char *, ...);
-  virtual void RemovePersistentText(int, int);
-  virtual void SetLeftAlign();
-  virtual void SetRightAlign();
-  virtual void SetTextPosition(const int, const int);
-  virtual void SetTextScale(const float);
-  virtual void SetTextColor(const idColor *);
+    enum debugTextFlags_t : int { DTFL_COLOR=1, DTFL_SCALE=2, DTFL_XY=4,
+        DTFL_RIGHTALIGN=8, DTFL_PERSIST=16, DTFL_BACKGROUNDCOLOR=32 };
+    struct debugText_t { idStr text; int len; int x; int y; idColor color;
+        int flags; float scale; idColor backgroundColor; };
 
-  idList<idDebugHUDLocal::debugText_t,5> debugText;
-  idList<idDebugHUDLocal::debugText_t,5> persistentText;
-  idColor curColor;
-  float curScale;
-  int curX;
-  int curY;
-  int startX;
-  bool alignRight;
-  const idMaterial *white;
+    idDebugHUDLocal();
+    ~idDebugHUDLocal() override = default;
+    void Render(idRenderModelGui*) override;
+    void Frame() override;
+    void Clear(bool) override;
+    void Printf(const char*, ...) override;
+    void VPrintf(int, int, const char*, va_list) override;
+    void Printf(int, int, const char*, ...) override;
+    void VPrintf(int, int, const idColor&, const idColor&, const char*,
+        va_list) override;
+    void Printf(int, int, const idColor&, const idColor&, const char*,
+        ...) override;
+    void VPrintf(int, int, const idColor&, const char*, va_list) override;
+    void Printf(int, int, const idColor&, const char*, ...) override;
+    void Printf(int, int, const idColor&, float, const char*, ...) override;
+    void VPrintf(int, int, const idColor&, float, int, const char*,
+        va_list) override;
+    void Printf(int, int, const idColor&, const idColor&, float,
+        const char*, ...) override;
+    void VPrintf(int, int, const idColor&, const idColor&, float, int,
+        const char*, va_list) override;
+    void AddPersistentText(int, int, const idColor&, float, const char*,
+        ...) override;
+    void RemovePersistentText(int, int) override;
+    void SetLeftAlign() override;
+    void SetRightAlign() override;
+    void SetTextPosition(int, int) override;
+    void SetTextScale(float) override;
+    void SetTextColor(const idColor&) override;
+
+    idList<debugText_t, 5> debugText;
+    idList<debugText_t, 5> persistentText;
+    idColor curColor;
+    float curScale;
+    int curX;
+    int curY;
+    int startX;
+    bool alignRight;
+    const idMaterial* white;
+
+private:
+    void AppendFormatted(idList<debugText_t, 5>& destination, int x, int y,
+        const idColor& color, const idColor& background, float scale,
+        int flags, const char* format, va_list arguments);
 };
+
+extern idDebugHUDLocal debugHUDLocal;
+extern idDebugHUD* debugHUD;

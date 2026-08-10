@@ -37,6 +37,7 @@ std::int16_t ClampShort(const float value) {
 idTypedResourceList<idFoliageModel>
     idFoliageModel::resourceList("foliageModel");
 idFoliageModel::AtlasResolver idFoliageModel::atlasResolver = nullptr;
+idFoliageModel::WorldLoadCallback idFoliageModel::worldLoadCallback = nullptr;
 
 idFoliageModel::idFoliageModel()
     : foliageModelData{0, 0, nullptr, nullptr}, stats{0, 0, 0} {
@@ -48,6 +49,16 @@ idFoliageModel::~idFoliageModel() {
 
 void idFoliageModel::SetAtlasResolver(AtlasResolver resolver) {
     atlasResolver = resolver;
+}
+
+void idFoliageModel::SetWorldLoadCallback(WorldLoadCallback callback) {
+    worldLoadCallback = callback;
+}
+
+void idFoliageModel::LoadFoliageForWorld(
+        idRenderWorldLocal* renderWorld) {
+    if (renderWorld != nullptr && worldLoadCallback != nullptr)
+        worldLoadCallback(renderWorld);
 }
 
 idResourceList* idFoliageModel::GetResourceList() {
@@ -141,25 +152,40 @@ void idFoliageModel::InitializeAttributes(const std::uint32_t binaryMagic) {
             foliageModelData.subTrees[subTreeIndex].data;
         fm_subTreeDataPtrs_t pointers{};
         SetupFoliageSubTreeDataPointers(pointers, data);
-        for (int index = 0; index < data->numAttributes; ++index) {
-            fm_attribute_t& attribute = pointers.attributes[index];
-            idVec4 scaleBias(1.0f, 1.0f, 0.0f, 0.0f);
-            if (attribute.declIdx < sharedAttributes.Num()
-                && atlasResolver != nullptr) {
-                atlasResolver(sharedAttributes[attribute.declIdx], scaleBias);
+        for (int index = 0; index < data->numFoliage; ++index) {
+            fm_foliage_t& foliage = pointers.foliage[index];
+            if (foliage.attribIdx < data->numAttributes) {
+                fm_attribute_t& attribute =
+                    pointers.attributes[foliage.attribIdx];
+                idVec4 scaleBias(1.0f, 1.0f, 0.0f, 0.0f);
+                if (attribute.declIdx < sharedAttributes.Num()
+                    && atlasResolver != nullptr) {
+                    atlasResolver(sharedAttributes[attribute.declIdx],
+                        scaleBias);
+                }
+                attribute.sortScaleBias[0] = scaleBias.x;
+                attribute.sortScaleBias[1] = scaleBias.y;
+                attribute.sortScaleBias[2] = scaleBias.z;
+                attribute.sortScaleBias[3] = scaleBias.w;
             }
-            attribute.sortScaleBias[0] = scaleBias.x;
-            attribute.sortScaleBias[1] = scaleBias.y;
-            attribute.sortScaleBias[2] = scaleBias.z;
-            attribute.sortScaleBias[3] = scaleBias.w;
-        }
-        if (binaryMagic <= FOLIAGE_MAGIC_6) {
-            for (int index = 0; index < data->numFoliage; ++index) {
-                pointers.foliage[index].upVec[0] = 128;
-                pointers.foliage[index].upVec[1] = 128;
-                pointers.foliage[index].upVec[2] = 255;
+            if (binaryMagic <= FOLIAGE_MAGIC_6) {
+                foliage.upVec[0] = 128;
+                foliage.upVec[1] = 128;
+                foliage.upVec[2] = 255;
             }
         }
+    }
+}
+
+void idFoliageModel::SwapModelSubTrees(fm_subTreeData_t* const data,
+        fm_subTreeTreeNodes_t* const treeNodes) {
+    if (data == nullptr || treeNodes == nullptr) return;
+    fm_subTreeDataPtrs_t pointers{};
+    SetupFoliageSubTreeDataPointers(pointers, data);
+    for (int index = 0; index < data->numAttributes; ++index) {
+        // These bytes were transient generator state in the recovered format.
+        pointers.attributes[index].flipHoriz = 0;
+        pointers.attributes[index].pad = 0;
     }
 }
 
@@ -246,10 +272,13 @@ bool idFoliageModel::LoadBinary(const char* const foliageFileName) {
                 + static_cast<std::uint64_t>(subTree.treeNodes->numLeafInfo)
                     * sizeof(fm_leafInfo_t) > subTree.totalTreeNodeSize)
             return false;
+        SwapModelSubTrees(subTree.data, subTree.treeNodes);
     }
     std::uint32_t endMagic = 0;
-    if (!ReadExact(file.file, endMagic) || endMagic != magic) return false;
-    InitializeAttributes(magic);
+    if (!ReadExact(file.file, endMagic)
+        || (endMagic != FOLIAGE_MAGIC_6 && endMagic != FOLIAGE_MAGIC_7))
+        return false;
+    InitializeAttributes(endMagic);
     int total = 0;
     for (int index = 0; index < foliageModelData.numSubTrees; ++index)
         total += foliageModelData.subTrees[index].data->numFoliage;

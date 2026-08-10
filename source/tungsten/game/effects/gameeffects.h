@@ -1,23 +1,57 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\effects\gameeffects.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/math/vector.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 15191; PDB kind: class.
-class __declspec(align(4)) idDamageEffect : public idClass
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 15192.
-  virtual idTypeInfo *GetType();
-  virtual ~idDamageEffect();
+class idDeclParticle;
+class idPresentable;
+class idTreeAnimator;
 
-  const idDeclParticle *type;
-  idDamageEffect *next;
-  idVec3 localOrigin;
-  idVec3 localNormal;
-  int time;
-  idIndex<short,enum invalidJointIndex_t> jointNum;
+struct tagData_t {
+    idVec3 trans;
+    idQuat rot;
+    std::uint16_t parentJoint;
 };
+
+bool Tungsten_GetSmokeEmitterTransform(const idTreeAnimator* animator,
+    const tagData_t& tag, idVec3& origin, idMat3& axis);
+unsigned int Tungsten_GetClientRandomSeed();
+void Tungsten_SetClientRandomSeed(unsigned int seed);
+int Tungsten_GetScaledGameMilliseconds();
+int Tungsten_GetScaledGameMillisecondsPerFrame();
+bool Tungsten_AddSmokeParticles(const idDeclParticle* particle,
+    int systemStartTime, int gameMillisecondsPerFrame, float diversity,
+    const idVec3& origin, const idMat3& axis, const idVec3& velocity);
+void Tungsten_ApplyPresentableFade(
+    idPresentable* presentable, float value, bool setModelFade);
+
+class idSmokeEmitter {
+public:
+    bool Emit(const idVec3& velocity);
+
+    const idDeclParticle* particle;
+    idTreeAnimator* ta;
+    tagData_t tag;
+};
+
+class idFadeHelper {
+public:
+    void Fade(const float& from, const float& to, const int& time,
+        bool noStippleFade);
+    bool Update(idPresentable* presentable);
+
+    int fadeStartTime;
+    int fadeEndTime;
+    float fadeFrom;
+    float fadeTo;
+    bool noStippleFade;
+};
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(tagData_t) == 32, "Recovered tag-data ABI changed");
+static_assert(sizeof(idSmokeEmitter) == 40,
+    "Recovered smoke-emitter ABI changed");
+static_assert(sizeof(idFadeHelper) == 20,
+    "Recovered fade-helper ABI changed");
+#endif

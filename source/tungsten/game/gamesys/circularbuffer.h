@@ -1,34 +1,48 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\gamesys\circularbuffer.h
-// Recovered logical types: 3
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../shared/idlib/math/vector.h"
 
-
-// IDA Local Type ordinal 14496; PDB kind: class.
-class idCircularBuffer<idVec3,5>
-{
+template<typename type, int capacity>
+class idCircularBuffer {
 public:
-  idVec3 buffer[5];
-  int num;
-  int head;
+    static_assert(capacity > 0, "idCircularBuffer requires storage");
+
+    idCircularBuffer()
+        : buffer{}
+        , num(0)
+        , head(0) {
+    }
+
+    int Add(const type& object) {
+        const int index = (num + head) % capacity;
+        buffer[index] = object;
+        ++num;
+        if (num >= capacity) {
+            num = capacity;
+            head = (head + 1) % capacity;
+        }
+        return index;
+    }
+
+    type buffer[capacity];
+    int num;
+    int head;
 };
 
-// IDA Local Type ordinal 15576; PDB kind: class.
-class idCircularBuffer<idSpawnManager::Command,128>
-{
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idCircularBuffer<idVec3, 5>) == 68,
+    "Recovered five-vector circular-buffer ABI changed");
+#endif
+
+// The unrelated engine-owned allocation helper shared this PDB header.
+class CircularBuffer {
 public:
-  idSpawnManager::Command buffer[128];
-  int num;
-  int head;
+    unsigned int size;
+    void** buffer;
+    void* unalignedPointer;
 };
 
-// IDA Local Type ordinal 24084; PDB kind: class.
-class CircularBuffer
-{
-public:
-  unsigned int size;
-  void **buffer;
-  void *unalignedPointer;
-};
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(CircularBuffer) == 12,
+    "Recovered allocation circular-buffer ABI changed");
+#endif

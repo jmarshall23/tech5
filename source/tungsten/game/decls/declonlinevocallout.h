@@ -1,77 +1,65 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\decls\declonlinevocallout.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../engine/decls/decltypeinfo.h"
+#include "../../../shared/idlib/langdict.h"
+#include "../sound/soundshaderparms_recovery.h"
 
+class idMaterial;
+class idSoundShader;
+class idDeclVoiceOver;
 
-// IDA Local Type ordinal 15306; PDB kind: class.
-class idDeclOnlineScoringCallout : public idDeclTypeInfo
-{
+class idDeclOnlineScoringCallout : public idDeclTypeInfo {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15307.
-  virtual ~idDeclOnlineScoringCallout();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    idDeclOnlineScoringCallout();
+    ~idDeclOnlineScoringCallout() override = default;
 
-  const idSoundShader *sound;
-  idStrId text;
-  const idMaterial *icon;
-  int priority;
+    // Retail symbol: ?GetDeclInfo@idDeclOnlineScoringCallout@@UBAPAVidDeclInfo@@XZ
+    // EA: 0x82BC9468, RVA: 0x00BC9468
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    const idSoundShader* sound;
+    idStrId text;
+    const idMaterial* icon;
+    int priority;
+
+    static idDeclInfoTemplate<idDeclOnlineScoringCallout> resourceList;
 };
 
-// IDA Local Type ordinal 15553; PDB kind: class.
-class idDeclOnlineVOCallout : public idDeclTypeInfo
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 15554.
-  virtual ~idDeclOnlineVOCallout();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclOnlineScoringCallout) == 80,
+    "Recovered online scoring-callout ABI changed");
+#endif
 
-  soundShaderParms_t parms;
-  const idDeclVoiceOver *takenLead;
-  const idDeclVoiceOver *tiedLead;
-  const idDeclVoiceOver *lostLead;
-  const idDeclVoiceOver *impressive;
-  const idDeclVoiceOver *doubleKill;
-  const idDeclVoiceOver *tripleKill;
-  const idDeclVoiceOver *quadKill;
-  const idDeclVoiceOver *slaughter;
-  const idDeclVoiceOver *revenge;
-  const idDeclVoiceOver *airMail;
-  const idDeclVoiceOver *pull;
-  const idDeclVoiceOver *afterLife;
-  const idDeclVoiceOver *maxChain;
-  const idDeclVoiceOver *chainBreaker;
-  const idDeclVoiceOver *denial;
-  const idDeclVoiceOver *closeCall;
-  const idDeclVoiceOver *airRally;
+class idDeclOnlineVOCallout : public idDeclTypeInfo {
+public:
+    idDeclOnlineVOCallout();
+    ~idDeclOnlineVOCallout() override = default;
+
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    TungstenSoundShaderParms parms;
+    const idDeclVoiceOver* takenLead;
+    const idDeclVoiceOver* tiedLead;
+    const idDeclVoiceOver* lostLead;
+    const idDeclVoiceOver* impressive;
+    const idDeclVoiceOver* doubleKill;
+    const idDeclVoiceOver* tripleKill;
+    const idDeclVoiceOver* quadKill;
+    const idDeclVoiceOver* slaughter;
+    const idDeclVoiceOver* revenge;
+    const idDeclVoiceOver* airMail;
+    const idDeclVoiceOver* pull;
+    const idDeclVoiceOver* afterLife;
+    const idDeclVoiceOver* maxChain;
+    const idDeclVoiceOver* chainBreaker;
+    const idDeclVoiceOver* denial;
+    const idDeclVoiceOver* closeCall;
+    const idDeclVoiceOver* airRally;
+
+    static idDeclInfoTemplate<idDeclOnlineVOCallout> resourceList;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclOnlineVOCallout) == 280,
+    "Recovered online voice-over callout ABI changed");
+#endif

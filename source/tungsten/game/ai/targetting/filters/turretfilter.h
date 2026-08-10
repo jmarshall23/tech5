@@ -1,17 +1,20 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\targetting\filters\turretfilter.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../targetfilter.h"
 
+bool Tungsten_IsProjectileAIEntityState(const idAIEntityState* entityState);
+bool Tungsten_IsStaticWeaponAIEntityState(const idAIEntityState* entityState);
 
-// IDA Local Type ordinal 20481; PDB kind: class.
-class idTurretFilter : public idTargetFilter
-{
+class idTurretFilter : public idTargetFilter {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20482.
-  virtual ~idTurretFilter();
-  virtual bool InternalFilter(const idEntity *, const idTargetInfo *);
+    idTurretFilter();
+    ~idTurretFilter() override = default;
 
+    bool InternalFilter(
+        const idEntity* owner, const idTargetInfo* target) const override;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idTurretFilter) == 8,
+    "Recovered turret target-filter ABI changed");
+#endif

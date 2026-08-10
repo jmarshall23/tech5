@@ -1,24 +1,38 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\splines\navsplinepathpos.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../../shared/idlib/containers/staticlist.h"
+#include "../../../../shared/idlib/math/vector.h"
 
+class idNavSpline;
+struct navSplinePathNode_t;
 
-// IDA Local Type ordinal 15653; PDB kind: struct.
-struct navSplinePathNode_t
-{
-  idVec3 position;
-  idStaticList<navSplineLink_t,16> links;
-  int index;
-  navSplinePathNode_t::navSplineSearch_t search;
+struct navSplineLink_t {
+    navSplinePathNode_t* node;
+    float nodeDistance;
+    idNavSpline* navSpline;
+    float splineDistance;
 };
 
-// IDA Local Type ordinal 15657; PDB kind: struct.
-struct navSplinePathNode_t::navSplineSearch_t
-{
-  float distance;
-  navSplinePathNode_t *parent;
-  idNavSpline *spline;
+struct navSplinePathNode_t {
+    struct navSplineSearch_t {
+        float distance;
+        navSplinePathNode_t* parent;
+        idNavSpline* spline;
+    };
+
+    navSplinePathNode_t();
+    void Init();
+
+    idVec3 position;
+    idStaticList<navSplineLink_t, 16> links;
+    int index;
+    navSplineSearch_t search;
 };
+
+static_assert(sizeof(navSplineLink_t) == 16,
+    "Recovered navigation-spline link ABI changed");
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(navSplinePathNode_t) == 300,
+    "Recovered navigation-spline path-node ABI changed");
+#endif

@@ -1,209 +1,262 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\framework\game.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "framework/gametimemanager.h"
+#include "idlib/containers/list.h"
+#include "idlib/math/vector.h"
+#include "idlib/text/str.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 1277; PDB kind: unknown.
-enum idGame::<unnamed_tag> : __int32
-{
-  GAMEFLAG_MAINMENU = 0x1,
-  GAMEFLAG_TOOL = 0x2,
-  GAMEFLAG_AAS = 0x4,
-  GAMEFLAG_SCRIPT = 0x8,
-  GAMEFLAG_AIGAMESTATE = 0x10,
-  GAMEFLAG_PRELOAD = 0x20,
-  GAMEFLAG_NOENTITIES = 0x40,
-  GAMEFLAG_ALLLAYERS = 0x80,
-  GAMEFLAG_MAIN = 0x100,
-  GAMEFLAG_CLIENTONLY = 0x200,
-  GAMEFLAG_DEFAULT = 0x1C,
-};
+class idAngles;
+class idBitMsg;
+class idColor;
+class idCmdArgs;
+class idDecl;
+class idDeclEntityDef;
+class idDeclEnv;
+class idEntity;
+class idEntityInterface;
+class idFile;
+class idFile_SaveGame;
+struct idGameSpawnInfo;
+class idGameTimeManager;
+class idMapEntity;
+class idMapFile;
+class idMat3;
+class idMenuManager_Shell;
+class idPlayerProfile;
+class idRenderLight;
+class idRenderModel;
+class idRenderModelGui;
+class idRenderWorld;
+class idSaveGameDetails;
+class idSaveLoadParms;
+class idSnapShot;
+class idSoundEmitter;
+class idSoundWorld;
+class idStr;
+class idSWF;
+class idTreeAnimator;
+class idTypeInfoFile;
+class idTypeInfoSettings;
+class idTypeInfoTools;
+class idUserCmdMgr;
+class idViewCallbacks;
+class usercmd_t;
+struct classMetaDataInfo_t;
+struct enumTypeInfo_t;
+struct gameReturn_t;
+struct netInterpolationInfo_t;
+struct renderView_t;
+struct sysEvent_t;
+struct trace_t;
 
-// IDA Local Type ordinal 15128; PDB kind: class.
-class idGame
-{
+// Complete vtable order recovered from framework/game.h PDB type 15128.
+// This interface is the ABI boundary used by the separately allocated game.
+class idGame {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15170.
-  virtual ~idGame();
-  virtual int GetGameVersion();
-  virtual void MinimalCleanup();
-  virtual bool IsGameActive();
-  virtual idRenderWorld *GetRenderWorld();
-  virtual idSoundWorld *GetSoundWorld();
-  virtual idSoundWorld *GetMenuSoundWorld();
-  virtual const char *GetMapName();
-  virtual const idGameSpawnInfo *GetGameSpawnInfo();
-  virtual void LoadDevMenuDataGame();
-  virtual idPlayerProfile *CreatePlayerProfile(int);
-  virtual void Playtest_SaveAndClear();
-  virtual void Playtest_SaveNoClear();
-  virtual void Playtest_CreateMeta();
-  virtual void GetTransitionInformation(idList<idStr,5> *);
-  virtual void RunFrame(idUserCmdMgr *, gameReturn_t *, bool);
-  virtual void UpdateAimAssist(const int, idAngles *);
-  virtual void UpdateWeaponKick(const int, idAngles *);
-  virtual void NetReceiveReliable(int, idBitMsg *, int);
-  virtual bool HandleGuiEvent(const sysEvent_t *, int);
-  virtual bool LoadGame(const char *);
-  virtual bool SaveGame(const char *, bool, bool);
-  virtual bool NextMap(const idCmdArgs *);
-  virtual bool GetGameStartInfoFromSaveLoadParms(idSaveLoadParms *, idFile **, idGameSpawnInfo *);
-  virtual void OnSaveCompleted(idSaveLoadParms *);
-  virtual void OnLoadCompleted(idSaveLoadParms *, const idStr *);
-  virtual void OnEnumerationCompleted(idSaveLoadParms *);
-  virtual void OnDeleteCompleted(idSaveLoadParms *);
-  virtual void LoadMostRecentGame(idSWF *);
-  virtual idFile_SaveGame *GetCheckpointInfoFile();
-  virtual idFile_SaveGame *GetMapStartInfoFile();
-  virtual void SaveCheckpointInfo(idFile *, const idGameSpawnInfo *);
-  virtual void LoadCheckpointInfo(idFile *, idGameSpawnInfo *);
-  virtual void CancelLevelTransition();
-  virtual void RestartPassMainMenu(const idCmdArgs *);
-  virtual idGameTimeManager *GetGameTimeManager();
-  virtual int GetGameHz(const gameTimeType_t);
-  virtual int GetGameFrame();
-  virtual void SetGameMs(const int);
-  virtual int GetGameMs(const gameTimeType_t);
-  virtual int GetPreviousGameMs(const gameTimeType_t);
-  virtual int GetGameMsPerFrame(const gameTimeType_t);
-  virtual float GetGameSecPerFrame(const gameTimeType_t);
-  virtual float GetRealMsPerFrame(const gameTimeType_t);
-  virtual float GetRealSecPerFrame(const gameTimeType_t);
-  virtual int GetGameMsPerRealSec();
-  virtual void SetServerGameTimeMs(const int);
-  virtual int GetServerGameTimeMs();
-  virtual void SetSSTimes(int, int);
-  virtual int GetSSEndTime();
-  virtual int GetSSStartTime();
-  virtual void SetLastInputTime(int);
-  virtual int GetLastInputTime();
-  virtual void Shell_Init(const char *);
-  virtual void Shell_Show(bool);
-  virtual void Shell_CreateMenu(bool);
-  virtual struct idMenuManager_Shell *Shell_GetShell();
-  virtual bool Shell_IsActive();
-  virtual bool Shell_HandleGuiEvent(const sysEvent_t *);
-  virtual idRenderModelGui *Shell_Render();
-  virtual void Shell_ResetMenu();
-  virtual void Shell_SyncWithSession();
-  virtual bool Shell_CanSave(const bool);
-  virtual void Shell_ShowNewContentAvailable();
-  virtual void Shell_RestartMenuMusic();
-  virtual void Shell_AddSaveGameItem(const idSaveGameDetails *);
-  virtual void Shell_WarningShown(const bool);
-  virtual void Shell_RefreshMapNameForLoadScreen();
-  virtual void Shell_ClearBenchmarkCheck();
-  virtual void Shell_SetupMultiplayerMenu();
-  virtual bool Shell_IgnoreSplitScreenEvent(const sysEvent_t *);
-  virtual bool GetGamePaused();
-  virtual void WriteToSnapshot(idSnapShot *, const idSnapShot *);
-  virtual void ReadFromSnapshot(idSnapShot *, const idSnapShot *);
-  virtual bool ForceNonDeferred();
-  virtual void SetInterpolation(const float, const int, const int, const int);
-  virtual const netInterpolationInfo_t *GetInterpolationInfo();
-  virtual void OnCloseSnapshot();
-  virtual idRenderModelGui *RenderLocalViewForPlayer(int, int, const renderView_t *, idRenderWorld *);
-  virtual idRenderModelGui *RenderLocalViewForGame(int, idRenderWorld *);
-  virtual bool IsPlayerControlInhibited(int);
-  virtual int GenerateInputToPlayerIndexRouting();
-  virtual int GetPlayerIndexFromInputDevice(int);
-  virtual int GetPlayerPresentableCmds(int, usercmd_t **, const int);
-  virtual void GetPlayerPredictionData(int, usercmd_t **, const int, bool *);
-  virtual void SmoothIncomingUserCmds(usercmd_t *, usercmd_t *, const int);
-  virtual const idList<idViewCallbacks *,5> *GetViewCallbacks();
-  virtual void DrawClientGameDebugHUD();
-  virtual const idTypeInfoTools *GetTypeInfoTools();
-  virtual void GetEntityEditState(idEntity *, idTypeInfoFile *, bool);
-  virtual void SetEntityEditState(idEntity *, idTypeInfoFile *, bool);
-  virtual void GetLayerList(idList<idStr,5> *);
-  virtual void AddNewLayer(idDecl *, const char *);
-  virtual idEntityInterface *AllocEntityInterface(idEntity *);
-  virtual void FreeEntityInterface(idEntityInterface *);
-  virtual void UnloadDLL();
-  virtual void LoadDLL();
-  virtual void GetSuperScriptObjectNames(idList<idStr,5> *);
-  virtual const classMetaDataInfo_t *GetSuperScriptMetaDataForType(const char *);
-  virtual void GetScriptObjectNames(idList<idStr,5> *);
-  virtual bool LoadScriptForMapFile(const char *);
-  virtual bool CompileScriptText(const char *, const char *, const bool, const bool);
-  virtual idStr *GetScriptCompileError(idStr *result);
-  virtual bool FunctionExists(const char *, const char *);
-  virtual bool TracePoint(trace_t *, const idVec3 *, const idVec3 *, int, const idEntity *);
-  virtual void GetBinaryAnimationStates(idList<idTreeAnimator *,5> *, idList<idStr,5> *);
-  virtual idRenderLight *GetEntityRenderLight(idEntity *);
-  virtual const idDeclEnv *GetEnvSettings();
-  virtual bool AF_SpawnEntity(const char *);
-  virtual void AF_UpdateEntities(const char *);
-  virtual void AF_UndoChanges();
-  virtual void ClearEntitySelection();
-  virtual int GetSelectedEntities(idEntity **, int);
-  virtual void AddSelectedEntity(idEntity *);
-  virtual void TriggerSelected();
-  virtual idEntity *CreateClass(const char *);
-  virtual bool CanCreateClass(const char *);
-  virtual void InitEntityWithDef(idEntity *, const idDeclEntityDef *, const idTypeInfoSettings *);
-  virtual idEntity *CreateEntityFromDef(const idDeclEntityDef *, const idTypeInfoSettings *);
-  virtual idEntity *SpawnEntityFromDef(const idDeclEntityDef *, int, int, int);
-  virtual idEntity *RespawnEntityFromDef(idEntity *, const idDeclEntityDef *);
-  virtual bool ActivateEntityFromEditor(idEntity *);
-  virtual void SpawnEntity(idEntity *, int, int, int);
-  virtual void DeleteEntity(idEntity *);
-  virtual void DeleteEntityAndSubEntities(idEntity *);
-  virtual idEntity *FindEntity(const char *);
-  virtual idEntity *GetEntity(int);
-  virtual const char *GetEntityName(idEntity *);
-  virtual void SetEntityName(idEntity *, const char *);
-  virtual const char *GetEntityType(idEntity *);
-  virtual const char *GetUniqueEntityName(const char *);
-  virtual idEntity *FindEntityUsingClass(idEntity *, const char *);
-  virtual void EntityGetOrigin(idEntity *, idVec3 *);
-  virtual void EntitySetOrigin(idEntity *, const idVec3 *);
-  virtual void EntitySetAxis(idEntity *, const idMat3 *);
-  virtual void EntityGetViewAngles(idEntity *, idAngles *);
-  virtual void EntityGetEyePosition(idEntity *, idVec3 *);
-  virtual void EntitySetViewPosition(idEntity *, const idVec3 *, const idAngles *);
-  virtual void EntityTranslate(idEntity *, const idVec3 *, bool);
-  virtual void EntityUpdateVisuals(idEntity *);
-  virtual void EntityUpdateModifiedProperties(idEntity *);
-  virtual bool EntityGetSoundDistances(idEntity *, float *, float *);
-  virtual void EntityStopSound(idEntity *);
-  virtual const idColor *EntityGetColor(const idColor *result, idEntity *);
-  virtual idSoundEmitter *EntityGetSoundEmitter(idEntity *);
-  virtual idRenderModel *EntityGetRenderModel(idEntity *);
-  virtual bool EntityIsNameUnique(const char *, const idEntity *);
-  virtual const idVec3 *EntityGetSpawnPosition(idEntity *);
-  virtual const idMat3 *EntityGetSpawnOrientation(idEntity *);
-  virtual idVec3 *EntityGetScale(idVec3 *result, idEntity *);
-  virtual void EntitySetScale(idEntity *, const idVec3 *);
-  virtual idStr *EntitySetScriptObject(idStr *result, idEntity *, const char *, int, bool);
-  virtual bool EntityIsHidden(idEntity *);
-  virtual const idDeclEntityDef *EntityGetEntityDef(idEntity *);
-  virtual void MapAddEntity(idEntity *);
-  virtual void MapUpdateEntity(idEntity *, bool, idList<idStr,5> *);
-  virtual void MapRemoveEntity(const char *);
-  virtual bool MapSave(const char *, bool);
-  virtual bool MapSaveReference(const char *, const char *, bool);
-  virtual idMapEntity *MapFindEntity(const char *);
-  virtual idMapEntity *MapFindEntity_2(idEntity *);
-  virtual void MapGetEntityLayers(idList<idStr,5> *);
-  virtual void MapSetEntityReferenceId(idEntity *, const char *);
-  virtual idMapFile *GetLevelMap();
-  virtual void UpdateMapFileEntity(idMapFile *, idEntity *, bool, idList<idStr,5> *);
-  virtual int SP_BuildGuardSplineList(idVec3, float, float *);
-  virtual void SP_GetGuardSplineEntry(int, idStr *, float *, float *);
-  virtual float SP_GetSplineLength(idStr);
-  virtual const enumTypeInfo_t *SS_FindEnumTypeInfo(const char *);
-  virtual int GetGameDifficulty();
-  virtual void GetGameDifficultySettingsForTransition(int *, int *);
-  virtual void SetGameDifficultySettingsForTransition(const int, const int);
-  virtual void SetPlayerLoadedGameDifficulty(bool);
-  virtual bool GetPlayerLoadedGameDifficulty();
-  virtual __int64 GetMinSaveStorageRequired(bool);
-  virtual void OnReloadDecls();
-  virtual bool GetConsoleUsed();
-  virtual void SetConsoleUsed(const bool);
+    enum gameFlags_t : int {
+        GAMEFLAG_MAINMENU = 0x001,
+        GAMEFLAG_TOOL = 0x002,
+        GAMEFLAG_AAS = 0x004,
+        GAMEFLAG_SCRIPT = 0x008,
+        GAMEFLAG_AIGAMESTATE = 0x010,
+        GAMEFLAG_PRELOAD = 0x020,
+        GAMEFLAG_NOENTITIES = 0x040,
+        GAMEFLAG_ALLLAYERS = 0x080,
+        GAMEFLAG_MAIN = 0x100,
+        GAMEFLAG_CLIENTONLY = 0x200,
+        GAMEFLAG_DEFAULT = 0x01C
+    };
 
+    virtual ~idGame() = default;
+    virtual int GetGameVersion() = 0;
+    virtual void MinimalCleanup() = 0;
+    virtual bool IsGameActive() = 0;
+    virtual idRenderWorld* GetRenderWorld() = 0;
+    virtual idSoundWorld* GetSoundWorld() = 0;
+    virtual idSoundWorld* GetMenuSoundWorld() = 0;
+    virtual const char* GetMapName() = 0;
+    virtual const idGameSpawnInfo* GetGameSpawnInfo() = 0;
+    virtual void LoadDevMenuDataGame() = 0;
+    virtual idPlayerProfile* CreatePlayerProfile(int) = 0;
+    virtual void Playtest_SaveAndClear() = 0;
+    virtual void Playtest_SaveNoClear() = 0;
+    virtual void Playtest_CreateMeta() = 0;
+    virtual void GetTransitionInformation(idList<idStr>*) = 0;
+    virtual void RunFrame(idUserCmdMgr*, gameReturn_t*, bool) = 0;
+    virtual void UpdateAimAssist(int, idAngles*) = 0;
+    virtual void UpdateWeaponKick(int, idAngles*) = 0;
+    virtual void NetReceiveReliable(int, idBitMsg*, int) = 0;
+    virtual bool HandleGuiEvent(const sysEvent_t*, int) = 0;
+    virtual bool LoadGame(const char*) = 0;
+    virtual bool SaveGame(const char*, bool, bool) = 0;
+    virtual bool NextMap(const idCmdArgs*) = 0;
+    virtual bool GetGameStartInfoFromSaveLoadParms(idSaveLoadParms*, idFile**,
+        idGameSpawnInfo*) = 0;
+    virtual void OnSaveCompleted(idSaveLoadParms*) = 0;
+    virtual void OnLoadCompleted(idSaveLoadParms*, const idStr*) = 0;
+    virtual void OnEnumerationCompleted(idSaveLoadParms*) = 0;
+    virtual void OnDeleteCompleted(idSaveLoadParms*) = 0;
+    virtual void LoadMostRecentGame(idSWF*) = 0;
+    virtual idFile_SaveGame* GetCheckpointInfoFile() = 0;
+    virtual idFile_SaveGame* GetMapStartInfoFile() = 0;
+    virtual void SaveCheckpointInfo(idFile*, const idGameSpawnInfo*) = 0;
+    virtual void LoadCheckpointInfo(idFile*, idGameSpawnInfo*) = 0;
+    virtual void CancelLevelTransition() = 0;
+    virtual void RestartPassMainMenu(const idCmdArgs*) = 0;
+    virtual idGameTimeManager* GetGameTimeManager() = 0;
+    virtual int GetGameHz(gameTimeType_t) = 0;
+    virtual int GetGameFrame() = 0;
+    virtual void SetGameMs(int) = 0;
+    virtual int GetGameMs(gameTimeType_t) = 0;
+    virtual int GetPreviousGameMs(gameTimeType_t) = 0;
+    virtual int GetGameMsPerFrame(gameTimeType_t) = 0;
+    virtual float GetGameSecPerFrame(gameTimeType_t) = 0;
+    virtual float GetRealMsPerFrame(gameTimeType_t) = 0;
+    virtual float GetRealSecPerFrame(gameTimeType_t) = 0;
+    virtual int GetGameMsPerRealSec() = 0;
+    virtual void SetServerGameTimeMs(int) = 0;
+    virtual int GetServerGameTimeMs() = 0;
+    virtual void SetSSTimes(int, int) = 0;
+    virtual int GetSSEndTime() = 0;
+    virtual int GetSSStartTime() = 0;
+    virtual void SetLastInputTime(int) = 0;
+    virtual int GetLastInputTime() = 0;
+    virtual void Shell_Init(const char*) = 0;
+    virtual void Shell_Show(bool) = 0;
+    virtual void Shell_CreateMenu(bool) = 0;
+    virtual idMenuManager_Shell* Shell_GetShell() = 0;
+    virtual bool Shell_IsActive() = 0;
+    virtual bool Shell_HandleGuiEvent(const sysEvent_t*) = 0;
+    virtual idRenderModelGui* Shell_Render() = 0;
+    virtual void Shell_ResetMenu() = 0;
+    virtual void Shell_SyncWithSession() = 0;
+    virtual bool Shell_CanSave(bool) = 0;
+    virtual void Shell_ShowNewContentAvailable() = 0;
+    virtual void Shell_RestartMenuMusic() = 0;
+    virtual void Shell_AddSaveGameItem(const idSaveGameDetails*) = 0;
+    virtual void Shell_WarningShown(bool) = 0;
+    virtual void Shell_RefreshMapNameForLoadScreen() = 0;
+    virtual void Shell_ClearBenchmarkCheck() = 0;
+    virtual void Shell_SetupMultiplayerMenu() = 0;
+    virtual bool Shell_IgnoreSplitScreenEvent(const sysEvent_t*) = 0;
+    virtual bool GetGamePaused() = 0;
+    virtual void WriteToSnapshot(idSnapShot*, const idSnapShot*) = 0;
+    virtual void ReadFromSnapshot(idSnapShot*, const idSnapShot*) = 0;
+    virtual bool ForceNonDeferred() = 0;
+    virtual void SetInterpolation(float, int, int, int) = 0;
+    virtual const netInterpolationInfo_t* GetInterpolationInfo() = 0;
+    virtual void OnCloseSnapshot() = 0;
+    virtual idRenderModelGui* RenderLocalViewForPlayer(int, int,
+        const renderView_t*, idRenderWorld*) = 0;
+    virtual idRenderModelGui* RenderLocalViewForGame(int, idRenderWorld*) = 0;
+    virtual bool IsPlayerControlInhibited(int) = 0;
+    virtual int GenerateInputToPlayerIndexRouting() = 0;
+    virtual int GetPlayerIndexFromInputDevice(int) = 0;
+    virtual int GetPlayerPresentableCmds(int, usercmd_t**, int) = 0;
+    virtual void GetPlayerPredictionData(int, usercmd_t**, int, bool*) = 0;
+    virtual void SmoothIncomingUserCmds(usercmd_t*, usercmd_t*, int) = 0;
+    virtual const idList<idViewCallbacks*>* GetViewCallbacks() = 0;
+    virtual void DrawClientGameDebugHUD() = 0;
+    virtual const idTypeInfoTools* GetTypeInfoTools() = 0;
+    virtual void GetEntityEditState(idEntity*, idTypeInfoFile*, bool) = 0;
+    virtual void SetEntityEditState(idEntity*, idTypeInfoFile*, bool) = 0;
+    virtual void GetLayerList(idList<idStr>*) = 0;
+    virtual void AddNewLayer(idDecl*, const char*) = 0;
+    virtual idEntityInterface* AllocEntityInterface(idEntity*) = 0;
+    virtual void FreeEntityInterface(idEntityInterface*) = 0;
+    virtual void UnloadDLL() = 0;
+    virtual void LoadDLL() = 0;
+    virtual void GetSuperScriptObjectNames(idList<idStr>*) = 0;
+    virtual const classMetaDataInfo_t* GetSuperScriptMetaDataForType(
+        const char*) = 0;
+    virtual void GetScriptObjectNames(idList<idStr>*) = 0;
+    virtual bool LoadScriptForMapFile(const char*) = 0;
+    virtual bool CompileScriptText(const char*, const char*, bool, bool) = 0;
+    virtual idStr* GetScriptCompileError(idStr*) = 0;
+    virtual bool FunctionExists(const char*, const char*) = 0;
+    virtual bool TracePoint(trace_t*, const idVec3*, const idVec3*, int,
+        const idEntity*) = 0;
+    virtual void GetBinaryAnimationStates(idList<idTreeAnimator*>*,
+        idList<idStr>*) = 0;
+    virtual idRenderLight* GetEntityRenderLight(idEntity*) = 0;
+    virtual const idDeclEnv* GetEnvSettings() = 0;
+    virtual bool AF_SpawnEntity(const char*) = 0;
+    virtual void AF_UpdateEntities(const char*) = 0;
+    virtual void AF_UndoChanges() = 0;
+    virtual void ClearEntitySelection() = 0;
+    virtual int GetSelectedEntities(idEntity**, int) = 0;
+    virtual void AddSelectedEntity(idEntity*) = 0;
+    virtual void TriggerSelected() = 0;
+    virtual idEntity* CreateClass(const char*) = 0;
+    virtual bool CanCreateClass(const char*) = 0;
+    virtual void InitEntityWithDef(idEntity*, const idDeclEntityDef*,
+        const idTypeInfoSettings*) = 0;
+    virtual idEntity* CreateEntityFromDef(const idDeclEntityDef*,
+        const idTypeInfoSettings*) = 0;
+    virtual idEntity* SpawnEntityFromDef(const idDeclEntityDef*, int, int,
+        int) = 0;
+    virtual idEntity* RespawnEntityFromDef(idEntity*,
+        const idDeclEntityDef*) = 0;
+    virtual bool ActivateEntityFromEditor(idEntity*) = 0;
+    virtual void SpawnEntity(idEntity*, int, int, int) = 0;
+    virtual void DeleteEntity(idEntity*) = 0;
+    virtual void DeleteEntityAndSubEntities(idEntity*) = 0;
+    virtual idEntity* FindEntity(const char*) = 0;
+    virtual idEntity* GetEntity(int) = 0;
+    virtual const char* GetEntityName(idEntity*) = 0;
+    virtual void SetEntityName(idEntity*, const char*) = 0;
+    virtual const char* GetEntityType(idEntity*) = 0;
+    virtual const char* GetUniqueEntityName(const char*) = 0;
+    virtual idEntity* FindEntityUsingClass(idEntity*, const char*) = 0;
+    virtual void EntityGetOrigin(idEntity*, idVec3*) = 0;
+    virtual void EntitySetOrigin(idEntity*, const idVec3*) = 0;
+    virtual void EntitySetAxis(idEntity*, const idMat3*) = 0;
+    virtual void EntityGetViewAngles(idEntity*, idAngles*) = 0;
+    virtual void EntityGetEyePosition(idEntity*, idVec3*) = 0;
+    virtual void EntitySetViewPosition(idEntity*, const idVec3*,
+        const idAngles*) = 0;
+    virtual void EntityTranslate(idEntity*, const idVec3*, bool) = 0;
+    virtual void EntityUpdateVisuals(idEntity*) = 0;
+    virtual void EntityUpdateModifiedProperties(idEntity*) = 0;
+    virtual bool EntityGetSoundDistances(idEntity*, float*, float*) = 0;
+    virtual void EntityStopSound(idEntity*) = 0;
+    virtual const idColor* EntityGetColor(const idColor*, idEntity*) = 0;
+    virtual idSoundEmitter* EntityGetSoundEmitter(idEntity*) = 0;
+    virtual idRenderModel* EntityGetRenderModel(idEntity*) = 0;
+    virtual bool EntityIsNameUnique(const char*, const idEntity*) = 0;
+    virtual const idVec3* EntityGetSpawnPosition(idEntity*) = 0;
+    virtual const idMat3* EntityGetSpawnOrientation(idEntity*) = 0;
+    virtual idVec3* EntityGetScale(idVec3*, idEntity*) = 0;
+    virtual void EntitySetScale(idEntity*, const idVec3*) = 0;
+    virtual idStr* EntitySetScriptObject(idStr*, idEntity*, const char*, int,
+        bool) = 0;
+    virtual bool EntityIsHidden(idEntity*) = 0;
+    virtual const idDeclEntityDef* EntityGetEntityDef(idEntity*) = 0;
+    virtual void MapAddEntity(idEntity*) = 0;
+    virtual void MapUpdateEntity(idEntity*, bool, idList<idStr>*) = 0;
+    virtual void MapRemoveEntity(const char*) = 0;
+    virtual bool MapSave(const char*, bool) = 0;
+    virtual bool MapSaveReference(const char*, const char*, bool) = 0;
+    virtual idMapEntity* MapFindEntity(const char*) = 0;
+    virtual idMapEntity* MapFindEntity_2(idEntity*) = 0;
+    virtual void MapGetEntityLayers(idList<idStr>*) = 0;
+    virtual void MapSetEntityReferenceId(idEntity*, const char*) = 0;
+    virtual idMapFile* GetLevelMap() = 0;
+    virtual void UpdateMapFileEntity(idMapFile*, idEntity*, bool,
+        idList<idStr>*) = 0;
+    virtual int SP_BuildGuardSplineList(idVec3, float, float*) = 0;
+    virtual void SP_GetGuardSplineEntry(int, idStr*, float*, float*) = 0;
+    virtual float SP_GetSplineLength(idStr) = 0;
+    virtual const enumTypeInfo_t* SS_FindEnumTypeInfo(const char*) = 0;
+    virtual int GetGameDifficulty() = 0;
+    virtual void GetGameDifficultySettingsForTransition(int*, int*) = 0;
+    virtual void SetGameDifficultySettingsForTransition(int, int) = 0;
+    virtual void SetPlayerLoadedGameDifficulty(bool) = 0;
+    virtual bool GetPlayerLoadedGameDifficulty() = 0;
+    virtual std::int64_t GetMinSaveStorageRequired(bool) = 0;
+    virtual void OnReloadDecls() = 0;
+    virtual bool GetConsoleUsed() = 0;
+    virtual void SetConsoleUsed(bool) = 0;
 };

@@ -4,12 +4,54 @@
 #include "models/transparency/jobs/influencespherecull.h"
 #include "models/transparency/jobs/transparencysort.h"
 
+struct transparencyViewParms_t {
+    idVec3 viewOrigin;
+    idMat3 viewAxis;
+    float fovX;
+    float fovY;
+};
+
 class alignas(16) idRenderModelTransparency : public idRenderModel {
 public:
     static constexpr int MAX_INFLUENCE_SPHERES = 1024;
+    static constexpr int MAX_SEGMENT_ALLOCATIONS = 1024;
+    static constexpr int MAX_UNSORTED_QUADS = 4096;
+
+    using MaterialResolver = const idMaterial* (*)(bool emissivePass);
+    using SortSubmitCallback = bool (*)(transSortParms_t* parms,
+        idRenderModelUpdateTools* tools);
+    using BufferReferenceCallback = void (*)(idTriangles* geometry,
+        int frameBufferIndex, bool emissivePass);
+    using ViewExtractor = bool (*)(const idRenderView* view,
+        transparencyViewParms_t& parms);
 
     idRenderModelTransparency();
     ~idRenderModelTransparency() override;
+
+    static void Init();
+    static void Shutdown();
+    static void StartFrame();
+    static void SetFrameCapacity(int maxSortedQuads);
+    static int GetFrameCapacity();
+    static void SetRuntimeCallbacks(MaterialResolver materialResolver,
+        SortSubmitCallback sortSubmit,
+        BufferReferenceCallback bufferReference);
+    static void SetViewExtractor(ViewExtractor extractor);
+    static void SetSortEnabled(bool enabled);
+    static void SetBinningEnabled(bool enabled);
+    static void SetEmissivePassEnabled(bool enabled);
+    static void SetInfluenceCullDistances(float nearDistance,
+        float farDistance);
+    static bool AllocateQuadSegment(int numQuads,
+        idTransparencyVert*& vertices, float*& quadDepths,
+        int*& quadsUsed, bool hasEmissivePass);
+    static bool AllocateUnsortedQuadSegment(int numQuads,
+        idTransparencyVert*& vertices, int& indexOffset, int& vertCount);
+    static const std::uint16_t* GetUnsortedIndices();
+    static idTransparencyVert* GetUnsortedVertices();
+    static idTransparencyVert* GetUnsortedVertices(int frameBufferIndex);
+    static int GetNumUnsortedVertices();
+    static int GetCurrentFrameBufferIndex();
 
     bool UpdateInView(const idRenderView* view,
         const idRenderView* previousView,
@@ -24,6 +66,11 @@ public:
     // these parameters in the renderer integration layer.
     void GenerateVisibleInfluenceSphereList(
         const influenceSphereCullParms_t& viewParms);
+    void GenerateVisibleInfluenceSphereList(
+        const idRenderView* currentView, const idRenderView* nextView,
+        idRenderModelUpdateTools* tools);
+    void AddTransparencySortJob(idRenderModelUpdateTools* tools);
+    void GenerateTransparencyRenderList(const idRenderView* currentView);
 
     const visibleInfluenceSpheres_t& GetVisibleInfluenceSpheres() const;
     int GetNumInfluenceSpheres() const;
@@ -43,4 +90,9 @@ private:
     idRenderModelTransparency(const idRenderModelTransparency&) = delete;
     idRenderModelTransparency& operator=(
         const idRenderModelTransparency&) = delete;
+
+    static MaterialResolver materialResolver;
+    static SortSubmitCallback sortSubmitCallback;
+    static BufferReferenceCallback bufferReferenceCallback;
+    static ViewExtractor viewExtractor;
 };

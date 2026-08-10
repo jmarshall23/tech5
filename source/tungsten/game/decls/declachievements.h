@@ -1,76 +1,79 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\decls\declachievements.h
-// Recovered logical types: 5
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../engine/decls/decltypeinfo.h"
+#include "../../../shared/idlib/langdict.h"
+#include "../ragestats.h"
+#include "../player/achievementids.h"
+#include "decljobref.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 14992; PDB kind: struct.
-struct idDeclAchievement::flags_t
-{
-  unsigned __int8 : 3;
-  __int8 sys_mac : 1;
-  __int8 sys_ps3 : 1;
-  __int8 sys_xbox : 1;
-  __int8 sys_pc : 1;
-  __int8 internalUse : 1;
-};
+enum triggerAchievementId_t : int;
+enum raceMemoryPlace_t : int;
+enum avatarAward_t : int;
 
-// IDA Local Type ordinal 14993; PDB kind: struct.
-struct idDeclAchievement::inventoryAchievement_t
-{
-  idStr itemDecl;
-  int count;
-};
-
-// IDA Local Type ordinal 14996; PDB kind: struct.
-struct idDeclAchievement::raceAchievement_t
-{
-  idStr raceName;
-  raceMemoryPlace_t place;
-};
-
-// IDA Local Type ordinal 14998; PDB kind: struct.
-struct idDeclAchievement::statConstraint_t
-{
-  rageStat_t stat;
-  int count;
-};
-
-// IDA Local Type ordinal 15001; PDB kind: class.
-class idDeclAchievement : public idDeclTypeInfo
-{
+class idDeclAchievement : public idDeclTypeInfo {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15002.
-  virtual ~idDeclAchievement();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    struct flags_t {
+        std::uint8_t reserved : 3;
+        std::uint8_t sys_mac : 1;
+        std::uint8_t sys_ps3 : 1;
+        std::uint8_t sys_xbox : 1;
+        std::uint8_t sys_pc : 1;
+        std::uint8_t internalUse : 1;
+    };
 
-  idStrId achievementName;
-  idStrId description;
-  achievementId_t id;
-  idDeclAchievement::flags_t flags;
-  idList<idDeclAchievement::inventoryAchievement_t,5> item;
-  idList<idDeclJobRef,5> jobDecl;
-  idList<enum triggerAchievementId_t,5> trigger;
-  idList<idDeclAchievement::raceAchievement_t,5> races;
-  bool allRacesRequired;
-  idList<idDeclAchievement::statConstraint_t,5> events;
-  bool allEventsRequired;
-  idList<enum achievementId_t,5> achievements;
-  avatarAward_t avatarAwardId;
+    struct inventoryAchievement_t {
+        idStr itemDecl;
+        int count;
+    };
+
+    struct raceAchievement_t {
+        idStr raceName;
+        raceMemoryPlace_t place;
+    };
+
+    struct statConstraint_t {
+        rageStat_t stat;
+        int count;
+    };
+
+    idDeclAchievement();
+    ~idDeclAchievement() override = default;
+
+    // Retail symbol: ?GetDeclInfo@idDeclAchievement@@UBAPAVidDeclInfo@@XZ
+    // EA: 0x82BBB488, RVA: 0x00BBB488
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    static void LoadAllDecls();
+
+    idStrId achievementName;
+    idStrId description;
+    achievementId_t id;
+    flags_t flags;
+    idList<inventoryAchievement_t, 5> item;
+    idList<idDeclJobRef, 5> jobDecl;
+    idList<triggerAchievementId_t, 5> trigger;
+    idList<raceAchievement_t, 5> races;
+    bool allRacesRequired;
+    idList<statConstraint_t, 5> events;
+    bool allEventsRequired;
+    idList<achievementId_t, 5> achievements;
+    avatarAward_t avatarAwardId;
+
+    static idDeclInfoTemplate<idDeclAchievement> resourceList;
 };
+
+static_assert(sizeof(idDeclAchievement::flags_t) == 1,
+    "Recovered achievement flags layout changed");
+static_assert(sizeof(idDeclAchievement::inventoryAchievement_t) == 36,
+    "Recovered inventory-achievement row layout changed");
+static_assert(sizeof(idDeclAchievement::raceAchievement_t) == 36,
+    "Recovered race-achievement row layout changed");
+static_assert(sizeof(idDeclAchievement::statConstraint_t) == 8,
+    "Recovered stat-constraint row layout changed");
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclAchievement) == 188,
+    "Recovered achievement declaration ABI changed");
+#endif

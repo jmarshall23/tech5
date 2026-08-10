@@ -1,68 +1,43 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\cover\coveractions.h
-// Recovered logical types: 4
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include <cstdint>
 
+struct aas2Cover_t;
 
-// IDA Local Type ordinal 1578; PDB kind: enum.
-enum coverAction_t : __int32
-{
-  COVERACTION_NONE = 0x0,
-  COVERACTION_FIRE_OVER = 0x1,
-  COVERACTION_FIRE_LEAN_LEFT = 0x2,
-  COVERACTION_FIRE_LEAN_RIGHT = 0x3,
-  COVERACTION_FIRE_STEP_LEFT = 0x4,
-  COVERACTION_FIRE_STEP_RIGHT = 0x5,
-  COVERACTION_BLINDFIRE_OVER = 0x6,
-  COVERACTION_BLINDFIRE_LEFT = 0x7,
-  COVERACTION_BLINDFIRE_RIGHT = 0x8,
-  COVERACTION_PEEK_OVER = 0x9,
-  COVERACTION_PEEK_LEFT = 0xA,
-  COVERACTION_PEEK_RIGHT = 0xB,
-  COVERACTION_HIDE = 0xC,
-  COVERACTION_RAIL_DOWN = 0xD,
-  COVERACTION_RAIL_UP = 0xE,
-  COVERACTION_RAIL_LEFT = 0xF,
-  COVERACTION_RAIL_RIGHT = 0x10,
-  COVERACTION_MAX = 0x11,
+enum coverAction_t : int {
+    COVERACTION_NONE = 0,
+    COVERACTION_FIRE_OVER = 1,
+    COVERACTION_FIRE_LEAN_LEFT = 2,
+    COVERACTION_FIRE_LEAN_RIGHT = 3,
+    COVERACTION_FIRE_STEP_LEFT = 4,
+    COVERACTION_FIRE_STEP_RIGHT = 5,
+    COVERACTION_BLINDFIRE_OVER = 6,
+    COVERACTION_BLINDFIRE_LEFT = 7,
+    COVERACTION_BLINDFIRE_RIGHT = 8,
+    COVERACTION_PEEK_OVER = 9,
+    COVERACTION_PEEK_LEFT = 10,
+    COVERACTION_PEEK_RIGHT = 11,
+    COVERACTION_HIDE = 12,
+    COVERACTION_RAIL_DOWN = 13,
+    COVERACTION_RAIL_UP = 14,
+    COVERACTION_RAIL_LEFT = 15,
+    COVERACTION_RAIL_RIGHT = 16,
+    COVERACTION_MAX = 17
 };
 
-// IDA Local Type ordinal 16658; PDB kind: class.
-class __declspec(align(4)) idCoverActions
-{
+class alignas(4) idCoverActions {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 16659.
-  virtual ~idCoverActions();
-  virtual void Clear();
+    idCoverActions() : actionBits(0) {}
+    virtual ~idCoverActions() = default;
+    virtual void Clear() { actionBits &= 0x07u; }
 
-  unsigned __int8 : 3;
-  __int8 fireStepRight : 1;
-  __int8 fireLeanRight : 1;
-  __int8 fireStepLeft : 1;
-  __int8 fireLeanLeft : 1;
-  __int8 fireOver : 1;
+    void Init(const aas2Cover_t& cover);
+
+    // Bits 3..7 are step-right, lean-right, step-left, lean-left, fire-over.
+    std::uint8_t actionBits;
 };
 
-// IDA Local Type ordinal 19842; PDB kind: class.
-class idCoverTransitions
-{
-public:
-  __int8 jumpover : 1;
-  __int8 wrapAroundRight : 1;
-  __int8 turnAroundRight : 1;
-  __int8 right : 1;
-  __int8 wrapAroundLeft : 1;
-  __int8 turnAroundLeft : 1;
-  __int8 left : 1;
-  __int8 forward : 1;
-};
-
-// IDA Local Type ordinal 20868; PDB kind: struct.
-struct __declspec(align(4)) coverOptions_t
-{
-  coverAction_t coverAction;
-  bool sameSide;
-  bool avoid;
-};
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idCoverActions) == 8,
+    "Recovered cover-action ABI changed");
+#endif

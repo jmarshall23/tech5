@@ -1,21 +1,22 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\spawnablepropmanager.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../shared/idlib/containers/staticlist.h"
 
+class idProp_Spawnable;
 
-// IDA Local Type ordinal 16494; PDB kind: struct.
-struct idSpawnablePropManager::spawnables_t
-{
-  idStaticList<idProp_Spawnable *,4> entity;
-  int next;
-};
-
-// IDA Local Type ordinal 16497; PDB kind: class.
-class idSpawnablePropManager
-{
+class idSpawnablePropManager {
 public:
-  idStaticList<idSpawnablePropManager::spawnables_t,8> spawnable;
+    struct spawnables_t {
+        spawnables_t();
+
+        idStaticList<idProp_Spawnable*, 4> entity;
+        int next;
+    };
+
+    idStaticList<spawnables_t, 8> spawnable;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idSpawnablePropManager::spawnables_t) == 36,
+    "Recovered spawnable-prop bucket ABI changed");
+#endif

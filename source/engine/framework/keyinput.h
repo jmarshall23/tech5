@@ -1,5 +1,8 @@
 #pragma once
 
+#include "framework/usercmdgen.h"
+#include "idlib/text/str.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\framework\keyinput.h
 // Recovered logical types: 2
@@ -177,7 +180,63 @@ enum keyNum_t : __int32
 };
 
 // IDA Local Type ordinal 21521; PDB kind: class.
-class idKeyInput
-{
-public:
+enum bindSet_t : int {
+  BIND_DEFAULT = 0,
+  BIND_SINGLEPLAYER_FIRST_PERSON = 0,
+  BIND_MULTIPLAYER_FIRST_PERSON = 1,
+  BIND_DRIVE = 2,
+  BIND_POSSESS = 3,
+  BIND_REMOTE = 4,
+  BIND_VEHICLE_GUNNER = 5,
+  BIND_VEHICLE_PASSENGER = 6,
+  BIND_MAX = 7
 };
+
+enum inputType_t : int {
+  INPUT_TYPE_KEYBOARD = 0,
+  INPUT_TYPE_MOUSE = 1,
+  INPUT_TYPE_GAMEPAD = 2
+};
+
+struct keyBindings_t {
+  idStr keyboard;
+  idStr mouse;
+  idStr gamepad;
+};
+
+class idKeyAction {
+public:
+  idKeyAction() : usercmdAction(UB_NONE) {}
+  cmdGenButton_t usercmdAction;
+  idStr binding;
+};
+
+int Key_CovertHIDCode(int hid);
+
+class idKeyInput {
+public:
+  static keyNum_t StringToKeyNum(const char* string);
+  static const char* KeyNumToString(keyNum_t key);
+  static const char* LocalizedKeyName(keyNum_t key);
+  static bool IsValidRebindKey(keyNum_t key);
+  static int GetUsercmdAction(int deviceNum, bindSet_t bindSet, keyNum_t key);
+  static void SetUserDeviceNumForBind(int deviceNum);
+  static void PreliminaryKeyEvent(int deviceNum, keyNum_t key, bool down);
+  static bool IsDown(int deviceNum, keyNum_t key);
+  static void ClearStates();
+  static void SetBinding(int deviceNum, bindSet_t bindSet, keyNum_t key,
+      const char* binding);
+  static const char* GetBinding(int deviceNum, bindSet_t bindSet, keyNum_t key);
+  static bool UnbindBinding(int deviceNum, bindSet_t bindSet,
+      const char* binding);
+  static void UnbindBinding(int deviceNum, bindSet_t bindSet,
+      const char* binding, inputType_t inputType);
+  static bool ExecKeyBinding(int deviceNum, bindSet_t bindSet, keyNum_t key);
+  static idStr GetUsercmdActionStr(int action);
+  static idStr KeysFromBinding(int deviceNum, bindSet_t bindSet,
+      const char* binding, bool localized);
+  static keyBindings_t KeyBindingsFromBinding(int deviceNum,
+      bindSet_t bindSet, const char* binding);
+};
+
+void RegisterKeyInputCommands();

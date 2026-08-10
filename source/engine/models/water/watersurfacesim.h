@@ -32,12 +32,17 @@ class idWaterSurfaceSim {
 public:
     using GlobalToLocalCallback = void (*)(const idRenderModel* model,
         const idVec3& globalPoint, idVec3& localPoint);
+    using LocalToGlobalCallback = void (*)(const idRenderModel* model,
+        const idVec3& localPoint, idVec3& globalPoint);
 
     idWaterSurfaceSim(const idBounds& bounds, float spacing, float damping,
         float speed, float timeStep);
     ~idWaterSurfaceSim() = default;
 
     static void SetGlobalToLocalCallback(GlobalToLocalCallback callback);
+    static void SetCoordinateTransformCallbacks(
+        GlobalToLocalCallback globalToLocal,
+        LocalToGlobalCallback localToGlobal);
 
     float GetTimeStep() const;
     void Swap();
@@ -87,9 +92,12 @@ private:
         idVec3& localPosition, const idRenderModel* renderModel) const;
     void LocalToGridSpacePos(const idVec3& localPosition,
         int& x, int& y) const;
+    void SetupLocalPos(idVec3& result, int gridX, int gridY,
+        const float* previousHeightMap) const;
     waterDisturbanceParms_t* AllocateDisturbance();
 
     static GlobalToLocalCallback globalToLocalCallback;
+    static LocalToGlobalCallback localToGlobalCallback;
 };
 
 static_assert(sizeof(waterDisturbanceParms_t) == 48,

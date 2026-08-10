@@ -1,43 +1,68 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\cover\formationcover.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "dynamiccovermgr.h"
 
-
-// IDA Local Type ordinal 17255; PDB kind: class.
-class idFormationCoverMgr : public idDynamicCoverMgr
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 17256.
-  virtual idTypeInfo *GetType();
-  virtual ~idFormationCoverMgr();
-  virtual int NumCoverPoints(const idAAS2 *);
-  virtual aas2Cover_t *GetCoverPoint(const idAAS2 *, const int);
-  virtual const aas2Cover_t *GetCoverPoint_2(const idAAS2 *, const int);
-  virtual const idEntity *GetReserver(const idAAS2 *, const int);
-  virtual void Reserve(const idAAS2 *, const int, const idEntity *);
-  virtual void Unreserve(const idAAS2 *, const int);
-  virtual int GetUsableTime(const idAAS2 *, const int);
-  virtual void SetUsableTime(const idAAS2 *, const int, const int);
-  virtual idDynamicCover *AllocCover(const idAAS2 *);
-  virtual void FreeCover(idDynamicCover *);
-
+enum idFormationCoverDebugResult : int {
+    FORMATION_DEBUG_SUBMITTED = 0,
+    FORMATION_DEBUG_CONTENTS_BLOCKED,
+    FORMATION_DEBUG_TRANSLATION_MISSED,
+    FORMATION_DEBUG_INVALID_AREA,
+    FORMATION_DEBUG_VALID
 };
 
-// IDA Local Type ordinal 21376; PDB kind: class.
-class idFormationCover : public idDynamicCover
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 21377.
-  virtual idTypeInfo *GetType();
-  virtual ~idFormationCover();
-  virtual void UpdateUsable(const idEntity *, const idAAS2 *, const int);
-  virtual void InternalUpdateCurrent(const idEntity *, const idAAS2 *, const int);
-  virtual void InternalUpdateUsable(const idEntity *, const idAAS2 *, const int);
-  virtual int InternalAppendUsableCover(const idEntity *, const idAAS2 *, idList<idAICover,5> *);
-  virtual void MarkAllUnusable();
-  virtual void MarkAllUsable();
-
+struct idFormationCoverUsableRuntime {
+    bool ownerStateValid;
+    bool clipModelValid;
+    bool tagTransformValid;
+    idVec3 origin;
+    idVec3 direction;
+    idVec3 up;
+    idClipQuery contentsQuery;
+    idClipQuery translationQuery;
 };
+
+struct idFormationCoverCurrentRuntime {
+    bool ownerStateValid;
+    bool tagTransformValid;
+    idVec3 origin;
+    idVec3 direction;
+    bool contentsReady;
+    int contentsFlags;
+    idVec3 contentsEndPosition;
+    bool translationReady;
+    float translationFraction;
+    idVec3 translationEndPosition;
+    int translationAreaNumber;
+};
+
+class idFormationCover : public idDynamicCover {
+public:
+    idFormationCover();
+    ~idFormationCover() override = default;
+
+    void UpdateUsable(
+        const idEntity* owner, const idAAS2* aas, int currentTime) override;
+    void InternalUpdateCurrent(
+        const idEntity* owner, const idAAS2* aas, int currentTime) override;
+    void InternalUpdateUsable(
+        const idEntity* owner, const idAAS2* aas, int currentTime) override;
+};
+
+class idFormationCoverMgr : public idDynamicCoverMgr {
+public:
+    idDynamicCover* AllocCover(const idAAS2* aas) override;
+    void FreeCover(idDynamicCover* cover) override;
+};
+
+bool Tungsten_IsFormationCoverOwnerDead(const idEntity& owner);
+bool Tungsten_GetFormationCoverUsableRuntime(const idEntity& owner,
+    const idAAS2& aas, int coverIndex,
+    idFormationCoverUsableRuntime& runtime);
+bool Tungsten_GetFormationCoverCurrentRuntime(const idEntity& owner,
+    const idAAS2& aas, int coverIndex,
+    const idClipQuery& contentsQuery,
+    const idClipQuery& translationQuery,
+    idFormationCoverCurrentRuntime& runtime);
+void Tungsten_DebugFormationCover(const idAAS2& aas,
+    int coverIndex, idFormationCoverDebugResult result,
+    const idVec3& position, float translationFraction);

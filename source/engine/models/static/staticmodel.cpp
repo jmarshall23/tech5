@@ -179,6 +179,13 @@ int idStaticModel::MaterialChecksum(const idMaterial* material) {
         ? materialChecksumCallback(material) : 0;
 }
 
+bool idStaticModel::GetMaterialTraits(const idMaterial* material,
+        materialGenerationTraits_t& traits) {
+    traits = {};
+    return materialTraitsCallback != nullptr && material != nullptr &&
+        materialTraitsCallback(material, traits);
+}
+
 void idStaticModel::FreeSurfaces() {
     ++reloadCount;
     if (!sharedSurfaces) {

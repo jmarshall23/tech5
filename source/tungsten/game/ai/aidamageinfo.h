@@ -1,98 +1,90 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\aidamageinfo.h
-// Recovered logical types: 7
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../entities/entityptr.h"
+#include "../../../shared/idlib/containers/staticlist.h"
+#include "../../../shared/idlib/index.h"
+#include "../../../shared/idlib/math/vector.h"
+#include "../../../shared/idlib/text/atomicstring.h"
 
+class idAI2;
+class idActor;
+class idDeclDamage;
+class idEntity;
 
-// IDA Local Type ordinal 3513; PDB kind: unknown.
-typedef CCalAudioMetadata::<unnamed_tag> CCalImageInfo::<unnamed_tag>;
+enum invalidJointIndex_t : int;
+using idJointIndex = idIndex<short, invalidJointIndex_t>;
 
-// IDA Local Type ordinal 14697; PDB kind: struct.
-struct damageInfo_t
-{
-  idEntityPtr<idEntity> inflictor;
-  idEntityPtr<idEntity> attacker;
-  const idDeclDamage *damageDef;
-  float damage;
-  int time;
-  idEntityPtr<idActor> actor;
-  int actorTime;
+struct damageInfo_t {
+    idEntityPtr<idEntity> inflictor;
+    idEntityPtr<idEntity> attacker;
+    const idDeclDamage* damageDef;
+    float damage;
+    int time;
+    idEntityPtr<idActor> actor;
+    int actorTime;
 };
 
-// IDA Local Type ordinal 16749; PDB kind: struct.
-struct idAIDamageInfo::recentDamager_t
-{
-  idSpawnId spawnId;
-  float recentDamage;
+struct idDamageImpulse {
+    const idDeclDamage* damageDecl;
+    idVec3 impactDir;
+    idVec3 impactPoint;
+    idJointIndex jointIndex;
+    float damage;
+    bool armorPoppedOff;
+    bool forceInjured;
 };
 
-// IDA Local Type ordinal 16752; PDB kind: class.
-class idAIDamageInfo
-{
+class idAIDamageInfo {
 public:
-  idStaticList<idDamageImpulse,8> impulses;
-  idEntityPtr<idEntity> inflictor;
-  idEntityPtr<idEntity> attacker;
-  idStaticList<idAIDamageInfo::recentDamager_t,4> recentDamagers;
-  idIndex<short,enum invalidJointIndex_t> jointIndex;
-  int deathImpulseIdx;
-  float frameDamage;
-  float frameArmorDamage;
-  float recentUnscaledDamage;
-  float recentBodyDamage;
-  int lastBloodSprayTime;
-  int mostDamagedIndex;
-  bool shouldPain;
-  idAtomicString injuryDamageGroup;
-  int injuryGoreLevelIndex;
+    struct recentDamager_t {
+        idEntityPtrSpawnId spawnId;
+        float recentDamage;
+    };
+
+    idAIDamageInfo();
+
+    bool Stunned() const;
+    idVec3 GetAverageImpactPoint() const;
+    idVec3 GetAverageImpactDir() const;
+    const idDamageImpulse* GetDeathImpulse() const;
+    idEntity* GetInflictor() const;
+    idEntity* GetAttacker() const;
+    void DecayRecentDamagers();
+    float GetRecentDamage(const idEntity* entity) const;
+    void EndFrame();
+    void AddRecentDamage(const idEntity* entity, float damage);
+    void Update(idAI2* ai, idEntity* inflictorEntity,
+        idEntity* attackerEntity, const idDeclDamage* damageDecl,
+        float damage, float unscaledDamage, float damageScale,
+        float armorDamage, const idVec3& impactPoint,
+        const idVec3& impactDir, idJointIndex impactJoint,
+        bool killed, bool armorPoppedOff, bool forceInjured);
+
+    idStaticList<idDamageImpulse, 8> impulses;
+    idEntityPtr<idEntity> inflictor;
+    idEntityPtr<idEntity> attacker;
+    idStaticList<recentDamager_t, 4> recentDamagers;
+    idJointIndex jointIndex;
+    int deathImpulseIdx;
+    float frameDamage;
+    float frameArmorDamage;
+    float recentUnscaledDamage;
+    float recentBodyDamage;
+    int lastBloodSprayTime;
+    int mostDamagedIndex;
+    bool shouldPain;
+    idAtomicString injuryDamageGroup;
+    int injuryGoreLevelIndex;
 };
 
-// IDA Local Type ordinal 17154; PDB kind: struct.
-struct idAIMoveInfo
-{
-  idEntityPtr<idEntity> destEntity;
-  idVec3 destPosition;
-  idMat3 destOrientation;
-  idVec3 destNormal;
-  bool useDestOrientation;
-  aiArrivalAction_t arrivalAction;
-  float arrivalRadius;
-  int moveFlags;
-};
+int Tungsten_GetEntitySpawnId(const idEntity* entity);
+const idEntity* Tungsten_ResolveEntitySpawnId(int spawnId);
+bool Tungsten_AIDamageDeclStuns(const idDeclDamage& damageDecl);
 
-// IDA Local Type ordinal 18492; PDB kind: struct.
-struct pageImageInfo_t
-{
-  void *bits;
-  int bytePitch;
-};
+static_assert(sizeof(idDamageImpulse) == 40,
+    "Recovered AI damage-impulse ABI changed");
 
-// IDA Local Type ordinal 25815; PDB kind: class.
-class CCalImageInfo : public CCalMediaInfo
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 25816.
-  virtual ~CCalImageInfo();
-  virtual unsigned int AddRef();
-  virtual unsigned int Release();
-  virtual HRESULT Lock();
-  virtual HRESULT TryLock();
-  virtual HRESULT Unlock();
-  virtual CCalBase *Enqueue(CCalBase **);
-  virtual CCalBase *Dequeue(CCalBase **);
-  virtual HRESULT GetHResult();
-  virtual void SetMediaType(CCalBase::MEDIA_TYPE);
-  virtual void SetCodecType(CCalBase::CODEC_TYPE);
-  virtual void SetCodecVersion(unsigned int);
-  virtual CCalBase::MEDIA_TYPE GetMediaType();
-  virtual CCalBase::CODEC_TYPE GetCodecType();
-  virtual unsigned int GetCodecVersion();
-  virtual void InitializeMemberVariables();
-
-  unsigned int m_ulWidth;
-  unsigned int m_ulHeight;
-  CCalBase::IMAGE_FORMAT_TYPE m_format;
-  CCalBase::ORIENTATION_MODE m_OrientationMode;
-};
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAIDamageInfo) == 436,
+    "Recovered AI damage-info ABI changed");
+#endif

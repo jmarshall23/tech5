@@ -1,55 +1,80 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\aievents\aieventtrace.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "aievent.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 16706; PDB kind: class.
-class idAIMoveInterface
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 16710.
-  virtual aiMoveStatus_t GetMoveStatus();
-  virtual const idVec3 *GetFinalPoint();
-  virtual bool RecentlyFailedMove(const aiMoveReason_t, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual void MoveFailed(const aiMoveReason_t, const aiMoveStatus_t, const idTypesafeNumber<int,enum gameTimeUnique_t>);
-  virtual bool PointInMovementRange(const idVec3 *, const idVec3 *, float, float *);
-  virtual bool ReachedPoint(const idVec3 *, const float);
-  virtual bool WillReachPoint(const idVec3 *, float, bool);
-  virtual float GetReachedEntityDist(const idEntity *, const float);
-  virtual bool ReachedEntity(const idEntity *, const float);
-  virtual bool WillReachEntity(const idEntity *, const float, const float);
-  virtual bool IsPlayingTraversalAnim();
-  virtual bool IsLineInNavGraph(const idVec3 *, const idVec3 *, idVec3 *);
-  virtual const idVec3 *GetNextPoint();
-  virtual const idObstacleInfo *GetObstacleInfo();
-  virtual idObstacleInfo *GetObstacleInfo_2();
-  virtual int GetLastTravelTime();
-  virtual const aas2Traversal_t *GetDestinationTraversal();
-  virtual void SetTranslationDeltaScale(const idVec3 *);
-  virtual aiMoveStatus_t TestMove(const idAIMoveParms *, idVec3 *, idVec3 *, int *);
+#ifndef ID_CLIP_QUERY_DEFINED
+#define ID_CLIP_QUERY_DEFINED
+struct idClipQuery {
+    std::uint64_t index;
+};
+#endif
 
+struct idAIEventTraceContact {
+    int type;
+    idVec3 point;
+    idVec3 normal;
+    float distance;
+    float separation;
+    int contentFlags;
+    int surfaceFlags;
+    int surfaceType;
+    int modelFeature;
+    int traceModelFeature;
+    int entityNum;
+    int physicsId;
+    int bodyId;
+    int selfId;
+    std::uint8_t flags;
+    std::uint8_t surfaceColor[3];
 };
 
-// IDA Local Type ordinal 21482; PDB kind: class.
-class __declspec(align(8)) idAIEventTrace : public idAIEvent
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 21483.
-  virtual idTypeInfo *GetType();
-  virtual ~idAIEventTrace();
-  virtual void Clear();
-  virtual idAIEvent::aiEventUpdateResult_t InternalUpdate(const int);
-  virtual idAIEvent::aiEventUpdateResult_t InternalUpdateAttached(const int);
-  virtual bool InternalIsTouching(const idEntity *, const int);
-  virtual void InternalDrawDebug(const int, const int, const int);
-  virtual float InternalGetIntensity(const idEntity *);
-  virtual float GetDistance();
-
-  idVec3 dir;
-  idClipQuery traceQuery;
-  int lastTraceFrame;
-  trace_t lastTraceResult;
+struct idAIEventTraceResult {
+    float fraction;
+    idVec3 endPosition;
+    idMat3 endAxis;
+    idAIEventTraceContact contact;
 };
+
+class idAIEventTrace : public idAIEvent {
+public:
+    idAIEventTrace();
+    ~idAIEventTrace() override = default;
+
+    const idBounds& GetBounds() const;
+    virtual float GetDistance() const;
+    void InternalDrawDebug(int level, int currentTime, int duration) override;
+    bool InternalIsTouching(const idEntity* entity, int currentTime) override;
+
+    idVec3 dir;
+    idClipQuery traceQuery;
+    int lastTraceFrame;
+    idAIEventTraceResult lastTraceResult;
+};
+
+int Tungsten_GetAIEventTraceFrame();
+int Tungsten_GetAIEventGameMillisecondsPerFrame();
+int Tungsten_GetAIEventEntityNumber(const idEntity* entity);
+bool Tungsten_FinishAIEventTrace(
+    idClipQuery& query, idAIEventTraceResult& result);
+void Tungsten_SubmitAIEventTrace(idClipQuery& query,
+    const idVec3& start, const idVec3& end, int clipMask,
+    int originatorSpawnId);
+idVec3 Tungsten_GetAIEventGravity();
+void Tungsten_DebugAIEventTracePoint(
+    const idVec3& point, int duration);
+void Tungsten_DebugAIEventTraceLine(
+    const idVec3& start, const idVec3& end, int duration);
+void Tungsten_DebugAIEventTraceBounds(const idBounds& bounds,
+    const idVec3& origin, const idMat3& axis, int duration);
+
+static_assert(sizeof(idAIEventTraceContact) == 76,
+    "Recovered AI-event trace contact ABI changed");
+static_assert(sizeof(idAIEventTraceResult) == 128,
+    "Recovered AI-event trace result ABI changed");
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAIEventTrace) == 208,
+    "Recovered trace AI-event ABI changed");
+#endif

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "framework/resource.h"
+#include "idlib/containers/list.h"
 
 class idResourceList {
 public:
@@ -13,10 +14,28 @@ public:
     idResource* Load(const char* name, bool makeDefault,
         bool skipStaleCheck = false);
     void Add(idResource* resource);
+    void ClearHashTable();
     idResource* FindExisting(const char* name,
         bool skipStaleCheck = false);
+    idResource* Lookup(const char* canonicalName) const;
     idResource* Index(int index) const;
     void Remove(idResource* resource);
+    bool ReloadStaleResources() const;
+    void GetLoadedResources(idList<idResource*>& resources) const;
+
+    static unsigned int GetNetworkChecksum();
+    static idResourceList* ForTypeName(const char* typeName);
+    static idResourceList* ForStaticID(int id);
+    static int GetNumNetworkResources();
+    static const idResource* GetNetworkResource(int networkID);
+    static bool ShouldPerformNetworkResourceExchange();
+    static void MarkAllStaticResources();
+    static void FreeAllDynamicResources();
+    static void ForceAllResourcesToReload();
+    static int AddNetworkResource(const idResource* resource);
+    static void ResetNetworkResources();
+    static void RegisterNetworkResource(const char* typeName,
+        const char* name, int networkID);
     static void UnRegisterNetworkResource(idResource* resource);
 
     const char* resourceTypeName;
@@ -24,7 +43,12 @@ public:
     int num;
     int staticID;
     idResource* hashTable[256];
+
+private:
+    void RemoveLocked(idResource* resource);
 };
+
+void RegisterResourceListCommands();
 
 template<class resourceType>
 class idTypedResourceList final : public idResourceList {
@@ -36,7 +60,6 @@ public:
     idResource* Alloc(const char* const name) override {
         resourceType* const resource = new resourceType();
         resource->SetName(name);
-        Add(resource);
         return resource;
     }
 

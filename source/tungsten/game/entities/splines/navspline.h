@@ -1,53 +1,67 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\splines\navspline.h
-// Recovered logical types: 4
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "navsplinevalue.h"
+#include "navsplinepathpos.h"
+#include "../entityptr.h"
+#include "../../../../shared/idlib/bv/bounds.h"
+#include "../../../../shared/idlib/containers/list.h"
+#include "../../../../shared/idlib/math/curve.h"
 
+class idEntity;
+class idNavSplinePath;
 
-// IDA Local Type ordinal 1522; PDB kind: enum.
-enum navSplineType_t : __int32
-{
-  NAV_SPLINE_TYPE_DEFAULT = 0x0,
-  NAV_SPLINE_TYPE_VEHICLE_AI = 0x1,
-  NAV_SPLINE_TYPE_QUEST = 0x2,
+enum navSplineType_t : int {
+    NAV_SPLINE_TYPE_DEFAULT = 0,
+    NAV_SPLINE_TYPE_VEHICLE_AI = 1,
+    NAV_SPLINE_TYPE_QUEST = 2,
 };
 
-// IDA Local Type ordinal 15650; PDB kind: class.
-class idNavSpline
-{
+struct navSplineConnection_t {
+    idNavSpline* navSpline;
+    idVec3 forward;
+};
+
+class idNavSpline {
 public:
-  idNavSplinePath *splinePath;
-  idCurve_Spline<idVec3> *curve;
-  float width;
-  float length;
-  bool traversed;
-  bool isTempSpline;
-  idList<navSplineConnection_t,5> next;
-  idList<navSplineConnection_t,5> prev;
-  idList<idEntityPtr<idEntity>,5> entityList;
-  navSplinePathNode_t *startNode;
-  navSplinePathNode_t *endNode;
-  idNavSpline *bestNext;
-  idNavSpline *bestPrev;
-  idBounds bounds;
-  int drawtime;
+    idNavSpline();
+    ~idNavSpline();
+
+    idVec3 GetWorldPos(float distance);
+    idVec3 GetForward(float distance);
+    idNavSpline* GetNextSplines(int num);
+    idNavSpline* GetPrevSplines(int num);
+    int GetDirFromLinkedSpline(idNavSpline* spline);
+    void CalcBounds();
+    bool IsDeadEnd();
+
+    idNavSplinePath* splinePath;
+    idCurve_Spline<idVec3>* curve;
+    float width;
+    float length;
+    bool traversed;
+    bool isTempSpline;
+    idList<navSplineConnection_t, 5> next;
+    idList<navSplineConnection_t, 5> prev;
+    idList<idEntityPtr<idEntity>, 5> entityList;
+    navSplinePathNode_t* startNode;
+    navSplinePathNode_t* endNode;
+    idNavSpline* bestNext;
+    idNavSpline* bestPrev;
+    idBounds bounds;
+    int drawtime;
 };
 
-// IDA Local Type ordinal 15654; PDB kind: struct.
-struct navSplineLink_t
-{
-  navSplinePathNode_t *node;
-  float nodeDistance;
-  idNavSpline *navSpline;
-  float splineDistance;
+struct navSplineTrav_t {
+    idNavSplinePosition pathPos;
+    float traversalDist;
+    int dir;
 };
 
-// IDA Local Type ordinal 19467; PDB kind: struct.
-struct navSplineTrav_t
-{
-  idNavSplinePosition pathPos;
-  float traversalDist;
-  int dir;
-};
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(navSplineConnection_t) == 16,
+    "Recovered navigation-spline connection ABI changed");
+static_assert(sizeof(idNavSpline) == 112,
+    "Recovered navigation-spline object ABI changed");
+static_assert(sizeof(navSplineTrav_t) == 20,
+    "Recovered navigation-spline traversal ABI changed");
+#endif

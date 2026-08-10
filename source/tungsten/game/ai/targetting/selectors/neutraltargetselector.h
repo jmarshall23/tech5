@@ -1,17 +1,10 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\targetting\selectors\neutraltargetselector.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../targetselector_core.h"
 
-
-// IDA Local Type ordinal 20477; PDB kind: class.
-class idNeutralTargetSelector : public idTargetSelector
-{
+class idNeutralTargetSelector : public idTargetSelector {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20478.
-  virtual ~idNeutralTargetSelector();
-  virtual float GetWeight(const idEntity *, const idTargetInfo *);
-
+    ~idNeutralTargetSelector() override = default;
+    float GetWeight(
+        const idEntity* owner, const idTargetInfo* target) const override;
 };

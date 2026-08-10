@@ -186,6 +186,8 @@ private:
     void FreeLink(Link_t* link);
     void FreeNode(Node_t* node);
     void FreeEdge(Edge_t* edge);
+    void AddInvalidNode(Node_t* node);
+    void ProcessLinks(Contour* contour, Node_t* node);
     Node_t* GenerateNode(const idVec3& pos3d, const idVec2i& pos,
         int threshold);
     void AddLink(Node_t* srcNode, Node_t* dstNode, Edge_t* edge);

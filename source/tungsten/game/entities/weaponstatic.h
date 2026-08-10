@@ -1,36 +1,12 @@
 #pragma once
 
+#include "../metrics/levelstats.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\tungsten\game\entities\weaponstatic.h
 // Recovered logical types: 3
 // Signatures retain Xbox 360 ABI evidence and may still require manual review.
 
-
-// IDA Local Type ordinal 15533; PDB kind: struct.
-struct weaponStats_t
-{
-  const idDecl *decl;
-  int fired;
-  int accHits;
-  int hitEnemy;
-  int killedEnemy;
-  float damageEnemy;
-  int headshotEnemy;
-  int headshotEnemyKills;
-  int hitFriendly;
-  int killedFriendly;
-  float damageFriendly;
-  int headshotFriendly;
-  int headshotFriendlyKills;
-  int actorsKilled;
-  int vehiclesKilled;
-  int breakablesDestroyed;
-  int directHit;
-  int hitObject;
-  int damageGeneral;
-  int hitVehicle;
-  int hitVehicleInAir;
-};
 
 // IDA Local Type ordinal 18835; PDB kind: class.
 class __declspec(align(8)) idProp_WeaponStatic : public idProp_Static

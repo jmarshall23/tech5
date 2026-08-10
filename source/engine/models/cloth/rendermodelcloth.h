@@ -4,6 +4,7 @@
 #include "models/rendermodel.h"
 
 class idDeclCloth;
+class idParallelJobList;
 
 class alignas(16) idRenderModelCloth : public idRenderModel {
 public:
@@ -51,6 +52,8 @@ public:
         const idMaterial* material);
     using SerializeCallback = void (*)(idRenderModelCloth* model,
         idSerializer* serializer, bool writing);
+    using JobSubmitCallback = bool (*)(idParallelJobList* jobList,
+        clothParms_t* parameters);
 
     idRenderModelCloth();
     explicit idRenderModelCloth(const idDeclCloth* clothSystem);
@@ -59,6 +62,7 @@ public:
     static void SetClothResolver(ClothResolver resolver);
     static void SetBuildCallback(BuildCallback callback);
     static void SetSerializeCallback(SerializeCallback callback);
+    static void SetJobSubmitCallback(JobSubmitCallback callback);
     void Save(idFile* file) override;
     bool Load(idFile* file) override;
     void SerializeSnapshot(idSerializer* serializer, bool writing) override;
@@ -91,10 +95,13 @@ public:
     float hSpacing;
 
 private:
+    void SetupClothJob(idParallelJobList* parallelJobList,
+        idDrawVert* vertices);
     static UpdateCallback updateCallback;
     static ClothResolver clothResolver;
     static BuildCallback buildCallback;
     static SerializeCallback serializeCallback;
+    static JobSubmitCallback jobSubmitCallback;
 };
 
 static_assert(sizeof(idRenderModelCloth::clothAttachInfo_t) == 28,

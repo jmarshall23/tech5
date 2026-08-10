@@ -1,38 +1,61 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\decls\declmetrics.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../engine/decls/decltypeinfo.h"
+#include "idlib/containers/list.h"
+#include "idlib/langdict.h"
+#include "idlib/text/str.h"
 
+class idDeclWeapon;
+enum rageStat_t : int;
 
-// IDA Local Type ordinal 15396; PDB kind: class.
-class idDeclMetric : public idDeclTypeInfo
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 15397.
-  virtual ~idDeclMetric();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
-
-  rageStat_t stat;
-  rageStatAggregationMethod aggregate;
-  idList<idStr,5> weaponDecls;
-  bool isWeaponStat;
-  int xp;
-  idList<rageStatXpBonus,5> xpBonus;
-  idStrId displayName;
+enum aggregationMethod_t : int {
+    AGGREGATE_MIN = 0,
+    AGGREGATE_MAX = 1,
+    AGGREGATE_SUM = 2,
+    AGGREGATE_LAST = 3
 };
+
+struct rageStatAggregationMethod {
+    rageStat_t stat;
+    aggregationMethod_t method;
+};
+
+struct rageStatXpBonus {
+    int min;
+    int xp;
+};
+
+const char* Tungsten_GetDeclWeaponName(const idDeclWeapon* weapon);
+
+class idDeclMetric : public idDeclTypeInfo {
+public:
+    idDeclMetric();
+    ~idDeclMetric() override = default;
+
+    int GetXPValue(int delta) const;
+    int GetXPBonus(int delta) const;
+    static const idDeclMetric* Find(rageStat_t stat);
+    bool IsWeaponListed(const idDeclWeapon& weapon) const;
+
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+    static void LoadAllDecls();
+
+    rageStat_t stat;
+    rageStatAggregationMethod aggregate;
+    idList<idStr, 5> weaponDecls;
+    bool isWeaponStat;
+    int xp;
+    idList<rageStatXpBonus, 5> xpBonus;
+    idStrId displayName;
+
+    static idDeclInfoTemplate<idDeclMetric> resourceList;
+};
+
+static_assert(sizeof(rageStatAggregationMethod) == 8,
+    "Recovered rage-stat aggregation ABI changed");
+static_assert(sizeof(rageStatXpBonus) == 8,
+    "Recovered rage-stat XP bonus ABI changed");
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclMetric) == 120,
+    "Recovered metric declaration ABI changed");
+#endif

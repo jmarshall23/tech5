@@ -14,10 +14,12 @@
 #include "models/skeletalanimation/jointgroup.h"
 #include "models/skeletalanimation/md6alias.h"
 #include "models/skeletalanimation/taginfo.h"
+#include "gamelib/animstack/animstacktypes.h"
 
 #include <cstdint>
 
 class idFile_String;
+class idJointMat;
 class idMD6Anim;
 class idMD6Model;
 enum invalidUserChannelIndex_t : int;
@@ -96,6 +98,42 @@ public:
     bool FindAnimEvents(const idMD6Anim* animation, int startFrame,
         int endFrame,
         idStaticList<const idMD6AnimEvent*, 16>& events) const;
+
+    aliasHandle_t StrongLoadAlias(const char* aliasName) const;
+    aliasHandle_t FindAliasHandle(const char* aliasName) const;
+    const idMD6Alias* FindAlias(aliasHandle_t aliasHandle,
+        bool includeInherited = true) const;
+    const idMD6Alias* FindAlias(const char* aliasName,
+        bool includeInherited = true) const;
+    const idMD6Anim* AnimForAlias(aliasHandle_t aliasHandle,
+        bool load = true) const;
+    bool GetJointsForAnimTime(idJointMat* joints,
+        const idMD6Anim* animation, int timeMS, const idVec3& offset,
+        bool removeOriginOffset) const;
+    idIndex<short, invalidJointIndex_t> GetJointIndex(
+        const char* jointName) const;
+    idIndex<short, invalidJointIndex_t> GetJointIndex(
+        jointHandle_t handle) const;
+    const char* GetJointName(
+        idIndex<short, invalidJointIndex_t> joint) const;
+    void GetJointList(const char* joints,
+        idList<idIndex<short, invalidJointIndex_t>, 5>& jointList) const;
+    const idVarArgs<6>* FindUserProp(const char* propName) const;
+    int GetHeadTrackGroupIndex(const char* groupName) const;
+    bool IsChildOf(const idDeclMD6* declaration) const;
+    md6WeightGroup_t GetUserChannelWeightGroup() const;
+    void GetAliases(idList<const idMD6Alias*, 5>& output,
+        bool includeInherited) const;
+    bool GetCachedJoints(int eventNumber, const idMD6Anim* animation,
+        idStaticList<const idCachedJoint*, 8>& joints) const;
+    aliasHandle_t AddAlias(const idMD6Alias& alias,
+        bool overload = false);
+    void IncludeAnimDataFrom(const idDeclMD6* declaration);
+    void InitUserChannelToAnimationAliasMap();
+    void InitHeadTrackGroups();
+    bool HasIncludedDecl(const idDeclMD6* declaration) const;
+
+    static const char* const meshKitGroupNames[3];
     bool FindAnimEvents(const idMD6Anim* animation, int startFrame,
         int endFrame, int eventNum,
         idStaticList<const idMD6AnimEvent*, 16>& events) const;

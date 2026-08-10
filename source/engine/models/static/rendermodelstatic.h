@@ -12,7 +12,7 @@ public:
         idRenderModelUpdateTools* tools);
 
     explicit idRenderModelStatic(const idStaticModel* staticModel = nullptr);
-    ~idRenderModelStatic() override = default;
+    ~idRenderModelStatic() override;
 
     static void SetTransparencyUpdateCallback(
         TransparencyUpdateCallback callback);

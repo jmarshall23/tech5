@@ -1,63 +1,21 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\clientgame\presentable\presentableptr.h
-// Recovered logical types: 8
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include <cstdint>
 
-
-// IDA Local Type ordinal 14596; PDB kind: class.
-class idPresentablePtr<idPresentablePlayer>
-{
+// Every recovered PDB specialization has the same one-word spawn identifier.
+// Resolution remains owned by idClientGame and is recovered with its callers.
+template<class presentableType>
+class idPresentablePtr {
 public:
-  unsigned int spawnId;
+    idPresentablePtr() : spawnId(0) {}
+    explicit idPresentablePtr(const std::uint32_t id) : spawnId(id) {}
+
+    presentableType* operator->() const;
+    presentableType* Get() const;
+    bool IsValid() const;
+
+    std::uint32_t spawnId;
 };
 
-// IDA Local Type ordinal 14597; PDB kind: class.
-class idPresentablePtr<idPresentable>
-{
-public:
-  unsigned int spawnId;
-};
-
-// IDA Local Type ordinal 15272; PDB kind: class.
-class idPresentablePtr<idPresentableProjectile>
-{
-public:
-  unsigned int spawnId;
-};
-
-// IDA Local Type ordinal 15278; PDB kind: class.
-class idPresentablePtr<idPresentableWeapon>
-{
-public:
-  unsigned int spawnId;
-};
-
-// IDA Local Type ordinal 15282; PDB kind: class.
-class idPresentablePtr<idPresentableActor>
-{
-public:
-  unsigned int spawnId;
-};
-
-// IDA Local Type ordinal 15390; PDB kind: class.
-class idPresentablePtr<idPresentableAnimatedEntity>
-{
-public:
-  unsigned int spawnId;
-};
-
-// IDA Local Type ordinal 15430; PDB kind: class.
-class idPresentablePtr<idPresentable const >
-{
-public:
-  unsigned int spawnId;
-};
-
-// IDA Local Type ordinal 15481; PDB kind: class.
-class idPresentablePtr<idPresentableVehicle>
-{
-public:
-  unsigned int spawnId;
-};
+static_assert(sizeof(idPresentablePtr<void>) == 4,
+    "Recovered presentable-pointer ABI changed");

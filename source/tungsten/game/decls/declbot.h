@@ -1,32 +1,24 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\decls\declbot.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../engine/decls/decltypeinfo.h"
+#include "../../../shared/idlib/text/str.h"
 
-
-// IDA Local Type ordinal 14983; PDB kind: class.
-class idDeclBot : public idDeclTypeInfo
-{
+class idDeclBot : public idDeclTypeInfo {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 14984.
-  virtual ~idDeclBot();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    idDeclBot();
+    ~idDeclBot() override;
 
-  idStr botName;
+    // Retail symbol: ?GetDeclInfo@idDeclBot@@UBAPAVidDeclInfo@@XZ
+    // EA: 0x82BBC9D0, RVA: 0x00BBC9D0
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    static void LoadAllDecls();
+
+    idStr botName;
+
+    static idDeclInfoTemplate<idDeclBot> resourceList;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclBot) == 96, "Recovered idDeclBot layout changed");
+#endif

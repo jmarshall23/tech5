@@ -16,6 +16,8 @@ idRenderModelCloth::ClothResolver idRenderModelCloth::clothResolver = nullptr;
 idRenderModelCloth::BuildCallback idRenderModelCloth::buildCallback = nullptr;
 idRenderModelCloth::SerializeCallback
     idRenderModelCloth::serializeCallback = nullptr;
+idRenderModelCloth::JobSubmitCallback
+    idRenderModelCloth::jobSubmitCallback = nullptr;
 
 namespace {
 
@@ -76,6 +78,18 @@ int ResolveAttachmentIndex(idRenderModelCloth::clothAttachInfo_t& attachment,
     return attachment.row * attachment.row + attachment.col;
 }
 
+void FreeOwnedSurfaceArrays(idRenderModelCloth& model) {
+    for (int index = 0; index < model.surfaces.Num(); ++index) {
+        idRenderModelSurface& surface = model.surfaces[index];
+        if (surface.geometry == nullptr || surface.geometryIsReference)
+            continue;
+        delete[] surface.geometry->verts;
+        delete[] surface.geometry->indexes;
+        surface.geometry->verts = nullptr;
+        surface.geometry->indexes = nullptr;
+    }
+}
+
 } // namespace
 
 idRenderModelCloth::idRenderModelCloth()
@@ -93,6 +107,7 @@ idRenderModelCloth::idRenderModelCloth(const idDeclCloth* system)
 }
 
 idRenderModelCloth::~idRenderModelCloth() {
+    FreeOwnedSurfaceArrays(*this);
     delete clothSimulation;
     delete[] deferredVerts;
     delete clothBounds;
@@ -113,6 +128,10 @@ void idRenderModelCloth::SetBuildCallback(BuildCallback callback) {
 
 void idRenderModelCloth::SetSerializeCallback(SerializeCallback callback) {
     serializeCallback = callback;
+}
+
+void idRenderModelCloth::SetJobSubmitCallback(JobSubmitCallback callback) {
+    jobSubmitCallback = callback;
 }
 
 void idRenderModelCloth::Save(idFile* file) {
@@ -238,6 +257,8 @@ void idRenderModelCloth::CreateClothSim(const idDeclCloth* clothDecl,
 void idRenderModelCloth::BuildClothModel() {
     if (clothSimulation == nullptr || clothSystem == nullptr ||
         clothSimulation->width <= 0 || clothSimulation->height <= 0) return;
+    FreeOwnedSurfaceArrays(*this);
+    FreeSurfaces();
     delete[] deferredVerts;
     deferredVerts = nullptr;
     delete clothBounds;
@@ -260,8 +281,8 @@ void idRenderModelCloth::BuildClothModel() {
                 const std::uint16_t c = static_cast<std::uint16_t>(
                     a + clothSimulation->width);
                 const std::uint16_t d = static_cast<std::uint16_t>(c + 1);
-                indexes.push_back(a); indexes.push_back(c); indexes.push_back(b);
-                indexes.push_back(b); indexes.push_back(c); indexes.push_back(d);
+                indexes.push_back(a); indexes.push_back(b); indexes.push_back(c);
+                indexes.push_back(b); indexes.push_back(d); indexes.push_back(c);
             }
         }
     } else {
@@ -303,22 +324,124 @@ void idRenderModelCloth::BuildClothModel() {
         const int column = rect ? index % clothSimulation->width
             : index - row * row;
         deferredVerts[index].st.Set(
-            clothSimulation->width > 1
-                ? static_cast<float>(column) /
-                    static_cast<float>(clothSimulation->width - 1) : 0.0f,
             clothSimulation->height > 1
                 ? static_cast<float>(row) /
-                    static_cast<float>(clothSimulation->height - 1) : 0.0f);
+                    static_cast<float>(clothSimulation->height - 1) : 0.0f,
+            clothSimulation->width > 1
+                ? static_cast<float>(column) /
+                    static_cast<float>(clothSimulation->width - 1) : 0.0f);
+        deferredVerts[index].color[0] = 255;
+        deferredVerts[index].color[1] = 255;
+        deferredVerts[index].color[2] = 255;
+        deferredVerts[index].color[3] = 255;
     }
+
+    idTriangles* const geometry = new (std::nothrow) idTriangles{};
+    if (geometry != nullptr) {
+        geometry->numVerts = numVerts;
+        geometry->numIndexes = static_cast<int>(indexes.size());
+        geometry->verts = new (std::nothrow) idDrawVert[numVerts];
+        geometry->indexes = indexes.empty() ? nullptr
+            : new (std::nothrow) std::uint16_t[indexes.size()];
+        if (geometry->verts != nullptr)
+            std::memcpy(geometry->verts, deferredVerts,
+                sizeof(idDrawVert) * numVerts);
+        if (geometry->indexes != nullptr)
+            std::memcpy(geometry->indexes, indexes.data(),
+                sizeof(std::uint16_t) * indexes.size());
+        geometry->vertexMask = geometry->cpuVertexMask = 0x1Fu;
+        geometry->allowGpuHosting = true;
+        geometry->bounds = *clothBounds;
+        idRenderModelSurface surface{};
+        surface.material = clothSystem->material;
+        surface.geometry = geometry;
+        surface.geometryIsReference = false;
+        AddSurface(surface);
+        FinishSurfaces();
+    }
+    if (clothSimulation->clothBoundsFromJob != nullptr)
+        *clothSimulation->clothBoundsFromJob = *clothBounds;
+    clothSimulation->clothBounds = *clothBounds;
+    referenceBounds = *clothBounds;
     if (buildCallback != nullptr) {
         buildCallback(this, deferredVerts, numVerts, indexes.data(),
             static_cast<int>(indexes.size()), clothSystem->material);
     }
 }
 
+void idRenderModelCloth::SetupClothJob(
+        idParallelJobList* const parallelJobList,
+        idDrawVert* const vertices) {
+    if (clothSimulation == nullptr || clothParms == nullptr
+        || clothBounds == nullptr
+        || clothSimulation->numClothParticles > 100) return;
+    const int deferred = clothSimulation->currentDeferred;
+    clothParms_t& parameters = *clothParms;
+    parameters = clothParms_t{};
+    parameters.type = CLOTH_FLAG;
+    parameters.numIterations = clothSimulation->numIterations;
+    clothSimulation->numIterations = 1;
+    idList<idSphere, 81>& collisions =
+        clothSimulation->temporaryCollisionSpheres[deferred];
+    for (int index = 0;
+            index < clothSimulation->permanentCollisionSpheres.Num();
+            ++index) {
+        collisions.Append(clothSimulation->permanentCollisionSpheres[index]);
+    }
+    parameters.cloth = clothSimulation->cloth;
+    parameters.numClothParticles = clothSimulation->numClothParticles;
+    parameters.springs = clothSimulation->springs.Ptr();
+    parameters.numSprings = clothSimulation->springs.Num();
+    parameters.collisions = collisions.Ptr();
+    parameters.numCollisions = collisions.Num();
+    parameters.collisionPlane = clothSimulation->collisionPlane[deferred];
+    parameters.hasCollisionPlane =
+        parameters.collisionPlane.Normal().LengthSqr() > 0.0f;
+    parameters.collisionFriction = clothSimulation->clothDecl != nullptr
+        ? clothSimulation->clothDecl->collisionFriction : 0.0f;
+    parameters.weaponTraces =
+        clothSimulation->weaponTraces[deferred].Ptr();
+    parameters.numWeaponTraces =
+        clothSimulation->weaponTraces[deferred].Num();
+    parameters.vertices = vertices;
+    parameters.bounds = clothBounds;
+    parameters.org = clothSimulation->origin;
+    parameters.axis = clothSimulation->axis;
+    parameters.friction = clothSystem != nullptr
+        ? clothSystem->friction : 0.0f;
+    parameters.gravity = clothSimulation->gravity;
+    parameters.windDirection = clothSimulation->windDirection;
+    parameters.width = clothSimulation->width;
+    parameters.height = clothSimulation->height;
+    parameters.vSpacing = clothSimulation->vSpacing;
+    parameters.hSpacing = clothSimulation->hSpacing;
+    parameters.timeDelta = clothSimulation->timeDelta;
+    parameters.rect = clothSimulation->isRect;
+
+    const bool submitted = parallelJobList != nullptr
+        && jobSubmitCallback != nullptr
+        && jobSubmitCallback(parallelJobList, &parameters);
+    if (!submitted) ClothGenJob(parameters);
+    if (clothSimulation->clothBoundsFromJob != nullptr)
+        *clothSimulation->clothBoundsFromJob = *clothBounds;
+    clothSimulation->Swap();
+}
+
 bool idRenderModelCloth::UpdateInView(const idRenderView* currentView,
     const idRenderView* nextView, idRenderModelUpdateTools* tools) {
-    return updateCallback != nullptr
-        ? updateCallback(this, currentView, nextView, tools)
-        : false;
+    if (updateCallback != nullptr)
+        return updateCallback(this, currentView, nextView, tools);
+    if (clothSimulation == nullptr || deferredVerts == nullptr
+        || surfaces.Num() == 0 || surfaces[0].geometry == nullptr)
+        return false;
+    SetupClothJob(nullptr, deferredVerts);
+    idTriangles* const geometry = surfaces[0].geometry;
+    if (geometry->verts != nullptr)
+        std::memcpy(geometry->verts, deferredVerts,
+            sizeof(idDrawVert) * numVerts);
+    geometry->bounds = *clothBounds;
+    referenceBounds = *clothBounds;
+    currentIndex = (currentIndex + 1) % 3;
+    CommitSurfaces();
+    return true;
 }

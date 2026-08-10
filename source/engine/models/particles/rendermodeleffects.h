@@ -20,11 +20,31 @@ public:
     using UpdateCallback = bool (*)(idRenderModelEffects* model,
         const idRenderView* currentView, const idRenderView* nextView,
         idRenderModelUpdateTools* tools);
+    using ViewExtractor = bool (*)(const idRenderView* currentView,
+        const idRenderView* nextView, particleRenderView_t& particleView,
+        idVec3& currentViewOrigin);
+    using VisibleSpheresResolver = const visibleInfluenceSpheres_t* (*)();
+    using ParticleJobSubmitCallback = bool (*)(
+        const deferredParticleGenParms_t* parms,
+        idRenderModelUpdateTools* tools);
+    using BufferReferenceCallback = void (*)(idTriangles* geometry,
+        int frameBufferIndex, int firstVertex, int firstIndex);
+    using ShadowSampleCallback = float (*)(
+        const idRenderModelEffects* model, const idVec3& position);
 
     idRenderModelEffects();
     ~idRenderModelEffects() override;
 
+    static void Init();
+    static void Shutdown();
+    static void StartFrame();
+    static void EndFrame();
     static void SetUpdateCallback(UpdateCallback callback);
+    static void SetRuntimeCallbacks(ViewExtractor viewExtractor,
+        VisibleSpheresResolver visibleSpheresResolver,
+        ParticleJobSubmitCallback particleJobSubmit,
+        BufferReferenceCallback bufferReference,
+        ShadowSampleCallback shadowSample);
     static int EstimateQuadAllocation(const idParticleStage* stage,
         const effectParticleParms_t* particle, int renderTime);
     bool CommitSubclass() override;
@@ -83,6 +103,11 @@ private:
     static constexpr int MAX_EFFECT_TRIANGLES = 1024;
 
     static UpdateCallback updateCallback;
+    static ViewExtractor viewExtractor;
+    static VisibleSpheresResolver visibleSpheresResolver;
+    static ParticleJobSubmitCallback particleJobSubmitCallback;
+    static BufferReferenceCallback bufferReferenceCallback;
+    static ShadowSampleCallback shadowSampleCallback;
 };
 
 #if INTPTR_MAX == INT32_MAX

@@ -24,8 +24,10 @@ class idRenderModelCommitted;
 class idRenderModelUpdateTools;
 class idRenderView;
 class idRenderWorld;
+class idRenderMatrix;
 class idSerializer;
 class idTriangles;
+struct approximateLighting_t;
 struct decalParams_t;
 
 enum invalidDecalHandle_t : int;
@@ -140,6 +142,29 @@ public:
         const idMaterial*& material);
     using SnapshotParmBlockCallback = void (*)(idSerializer* serializer,
         idParmBlock* block);
+    using ScheduleCommitCallback = bool (*)(idRenderModel* model);
+    using CommitCallback = void (*)(idRenderModel* model,
+        bool subclassChanged);
+    using WorldResolver = idRenderWorld* (*)(const idRenderModel* model);
+    using IntegerResolver = int (*)(const idRenderModel* model);
+    using VisibilityResolver = bool (*)(const idRenderModel* model);
+    using ClearOcclusionCallback = void (*)(idRenderModel* model);
+    using NameCommitCallback = void (*)(idRenderModel* model,
+        const char* name);
+    using SurfaceCommitCallback = void (*)(idRenderModel* model,
+        const idList<idRenderModelSurface, 85>& surfaces);
+    using ParmSetCallback = void (*)(idParmBlock* block,
+        const idDeclRenderParm* parm, const parmValue_t& value);
+    using SurfaceResourceFreeCallback = void (*)(idRenderModelSurface& surface);
+    using DecalCreateCallback = decalHandle_t (*)(idRenderModel* model,
+        const decalParams_t* parms, int startTime,
+        const idVec3& position, const idVec3& direction,
+        idMat3& decalWorldAxis);
+    using DecalPositionCallback = bool (*)(idRenderModel* model,
+        decalHandle_t handle, const idVec3& position,
+        const idMat3& axis);
+    using DecalRemoveCallback = bool (*)(idRenderModel* model,
+        decalHandle_t handle);
 
     struct alignas(4) decalData_t {
         decalHandle_t handle;
@@ -171,6 +196,8 @@ public:
     void SetMaxSurfaces(int maximum);
     void FinishSurfaces();
     void CommitThisFrame();
+    void Commit();
+    void CommitSurfaces();
     void SetViewport(int x, int y, int width, int height);
     void ClearOcclusionQuery();
     void SetParm(const idDeclRenderParm* parm, const parmValue_t& value);
@@ -184,12 +211,31 @@ public:
     static void SetSnapshotPersistenceCallbacks(
         SnapshotMaterialCallback material,
         SnapshotParmBlockCallback parmBlock);
+    static void SetRuntimeCallbacks(ScheduleCommitCallback scheduleCommit,
+        CommitCallback commit, WorldResolver worldResolver,
+        IntegerResolver indexResolver,
+        IntegerResolver referenceCountResolver,
+        VisibilityResolver visibilityResolver,
+        ClearOcclusionCallback clearOcclusion,
+        NameCommitCallback commitName,
+        SurfaceCommitCallback commitSurfaces);
+    static void SetDecalCallbacks(DecalCreateCallback create,
+        DecalPositionCallback position, DecalRemoveCallback remove);
+    static void SetModelResourceCallbacks(ParmSetCallback setParm,
+        SurfaceResourceFreeCallback freeSurfaceResources);
     idParmBlock* GetParmBlock();
     const idParmBlock* GetParmBlock() const;
     bool IsRendered() const;
     int GetNumReferences() const;
     int GetIndex() const;
     idRenderWorld* GetWorld() const;
+    const idRenderMatrix& GetModelMatrix() const;
+    idParmBlock* GetRenderParmBlock();
+    const idParmBlock* GetRenderParmBlock() const;
+    const approximateLighting_t& GetApproximateLighting() const;
+    void SetLitTransSortFlag();
+    bool SetDecalPosition(decalHandle_t handle,
+        const idVec3& worldPosition, const idMat3& worldAxis);
     void GlobalPointToLocal(const idVec3& input, idVec3& output) const;
     void LocalPointToGlobal(const idVec3& input, idVec3& output) const;
 
@@ -215,13 +261,32 @@ protected:
     idRenderModel();
 
 private:
+    void InitDecalData(decalData_t& decal, const decalParams_t* parms,
+        int startTime, const idVec3& position, const idVec3& direction);
+
     static MaterialNameCallback materialNameCallback;
     static MaterialResolver materialResolver;
     static ParmBlockSaveCallback parmBlockSaveCallback;
     static ParmBlockLoadCallback parmBlockLoadCallback;
     static SnapshotMaterialCallback snapshotMaterialCallback;
     static SnapshotParmBlockCallback snapshotParmBlockCallback;
+    static ScheduleCommitCallback scheduleCommitCallback;
+    static CommitCallback commitCallback;
+    static WorldResolver worldResolver;
+    static IntegerResolver indexResolver;
+    static IntegerResolver referenceCountResolver;
+    static VisibilityResolver visibilityResolver;
+    static ClearOcclusionCallback clearOcclusionCallback;
+    static NameCommitCallback nameCommitCallback;
+    static SurfaceCommitCallback surfaceCommitCallback;
+    static ParmSetCallback parmSetCallback;
+    static SurfaceResourceFreeCallback surfaceResourceFreeCallback;
+    static DecalCreateCallback decalCreateCallback;
+    static DecalPositionCallback decalPositionCallback;
+    static DecalRemoveCallback decalRemoveCallback;
 };
+
+bool CompareEqualMat3(const idMat3& left, const idMat3& right);
 
 class idStrRenderModel : public idStr {
 public:

@@ -2,6 +2,7 @@
 
 #include "idlib/filesystem/file.h"
 #include "idlib/filesystem/filesystem.h"
+#include "idlib/hashing/crc16.h"
 #include "idlib/text/parser.h"
 #include "models/skeletalanimation/declmd6.h"
 #include "models/skeletalanimation/md6alias.h"
@@ -78,14 +79,30 @@ idJointConversion::~idJointConversion() = default;
 idResourceList* idJointConversion::GetResourceList() { return &resourceList; }
 
 void idJointConversion::GenerateChecksum() {
-    std::uint16_t value = 0;
-    for (int index = 0; index < tableJoints.Num(); ++index)
-        value = static_cast<std::uint16_t>((value * 33u) ^
-            tableJoints[index].Get() ^ static_cast<unsigned int>(index));
-    for (int index = 0; index < tableUserChannels.Num(); ++index)
-        value = static_cast<std::uint16_t>((value * 33u) ^
-            tableUserChannels[index].Get() ^
-            static_cast<unsigned int>(index + 0x100));
+    std::uint16_t value = 0xFFFFu;
+    for (int index = 0; index < tableJoints.Num(); ++index) {
+        if (!tableJoints[index].IsValid()) continue;
+        const char* name = animationLocal.GetJointName(tableJoints[index]);
+        if (name != nullptr)
+            CRC16_UpdateChecksum(value, name,
+                static_cast<int>(std::strlen(name)));
+        const std::uint16_t conversionIndex =
+            static_cast<std::uint16_t>(index);
+        CRC16_UpdateChecksum(value, &conversionIndex,
+            sizeof(conversionIndex));
+    }
+    for (int index = 0; index < tableUserChannels.Num(); ++index) {
+        if (!tableUserChannels[index].IsValid()) continue;
+        const char* name = animationLocal.GetUserChannelName(
+            tableUserChannels[index]);
+        if (name != nullptr)
+            CRC16_UpdateChecksum(value, name,
+                static_cast<int>(std::strlen(name)));
+        const std::uint16_t conversionIndex =
+            static_cast<std::uint16_t>(index);
+        CRC16_UpdateChecksum(value, &conversionIndex,
+            sizeof(conversionIndex));
+    }
     checksum = value;
 }
 
@@ -142,19 +159,28 @@ bool idJointConversion::LoadBinary(const char* fileName) {
             !ReadExact(file.file, &jointCount, sizeof(jointCount)) ||
             jointCount > CONVERSION_TABLE_SIZE) return false;
     idList<jointHandle_t, 5> newJoints;
-    newJoints.SetNum(CONVERSION_TABLE_SIZE);
-    for (int index = 0; index < CONVERSION_TABLE_SIZE; ++index)
+    newJoints.SetNum(jointCount);
+    for (unsigned int index = 0; index < jointCount; ++index)
         newJoints[index].Invalidate();
-    if (!ReadExact(file.file, newJoints.Ptr(),
-            jointCount * sizeof(jointHandle_t)) ||
-            !ReadExact(file.file, &userCount, sizeof(userCount)) ||
+    idStr registeredName;
+    for (unsigned int index = 0; index < jointCount; ++index) {
+        file.file->ReadString(registeredName);
+        newJoints[index] = registeredName.Length() != 0
+            ? animationLocal.RegisterJoint(registeredName.c_str())
+            : jointHandle_t();
+    }
+    if (!ReadExact(file.file, &userCount, sizeof(userCount)) ||
             userCount > CONVERSION_TABLE_SIZE) return false;
     idList<userChannelHandle_t, 5> newUsers;
-    newUsers.SetNum(CONVERSION_TABLE_SIZE);
-    for (int index = 0; index < CONVERSION_TABLE_SIZE; ++index)
+    newUsers.SetNum(userCount);
+    for (unsigned int index = 0; index < userCount; ++index)
         newUsers[index].Invalidate();
-    if (!ReadExact(file.file, newUsers.Ptr(),
-            userCount * sizeof(userChannelHandle_t))) return false;
+    for (unsigned int index = 0; index < userCount; ++index) {
+        file.file->ReadString(registeredName);
+        newUsers[index] = registeredName.Length() != 0
+            ? animationLocal.RegisterUserChannel(registeredName.c_str())
+            : userChannelHandle_t();
+    }
     tableJoints.Swap(newJoints);
     tableUserChannels.Swap(newUsers);
     checksum = newChecksum;
@@ -168,16 +194,50 @@ bool idJointConversion::WriteBinary(const char* fileName) const {
     if (file.file == nullptr) return false;
     const unsigned int jointCount = tableJoints.Num();
     const unsigned int userCount = tableUserChannels.Num();
-    return WriteExact(file.file, &JOINT_CONVERSION_MAGIC,
-            sizeof(JOINT_CONVERSION_MAGIC)) &&
-        WriteExact(file.file, &timestamp, sizeof(timestamp)) &&
-        WriteExact(file.file, &checksum, sizeof(checksum)) &&
-        WriteExact(file.file, &jointCount, sizeof(jointCount)) &&
-        WriteExact(file.file, tableJoints.Ptr(),
-            jointCount * sizeof(jointHandle_t)) &&
-        WriteExact(file.file, &userCount, sizeof(userCount)) &&
-        WriteExact(file.file, tableUserChannels.Ptr(),
-            userCount * sizeof(userChannelHandle_t));
+    if (!WriteExact(file.file, &JOINT_CONVERSION_MAGIC,
+            sizeof(JOINT_CONVERSION_MAGIC))) return false;
+    if (!WriteExact(file.file, &timestamp, sizeof(timestamp)) ||
+            !WriteExact(file.file, &checksum, sizeof(checksum)) ||
+            !WriteExact(file.file, &jointCount, sizeof(jointCount)))
+        return false;
+    for (unsigned int index = 0; index < jointCount; ++index) {
+        const char* name = tableJoints[index].IsValid()
+            ? animationLocal.GetJointName(tableJoints[index]) : "";
+        file.file->WriteString(name != nullptr ? name : "");
+    }
+    if (!WriteExact(file.file, &userCount, sizeof(userCount))) return false;
+    for (unsigned int index = 0; index < userCount; ++index) {
+        const char* name = tableUserChannels[index].IsValid()
+            ? animationLocal.GetUserChannelName(tableUserChannels[index]) : "";
+        file.file->WriteString(name != nullptr ? name : "");
+    }
+    return true;
+}
+
+void idJointConversion::MakeDefault(const char* fileName,
+        const idList<idStr, 5>* jointNames,
+        const idList<idStr, 5>* userChannelNames) {
+    if (fileName == nullptr || fileSystem == nullptr) return;
+    char binaryName[1024];
+    if (!fileSystem->FixLongFilename("generated", "bmd6jointconversion",
+            fileName, binaryName, sizeof(binaryName))) return;
+    idJointConversion conversion;
+    conversion.timestamp = ~0u;
+    const int jointCount = jointNames != nullptr
+        ? (std::min)(jointNames->Num(), CONVERSION_TABLE_SIZE) : 0;
+    conversion.tableJoints.SetNum(jointCount);
+    for (int index = 0; index < jointCount; ++index)
+        conversion.tableJoints[index] = animationLocal.RegisterJoint(
+            (*jointNames)[index].c_str());
+    const int channelCount = userChannelNames != nullptr
+        ? (std::min)(userChannelNames->Num(), CONVERSION_TABLE_SIZE) : 0;
+    conversion.tableUserChannels.SetNum(channelCount);
+    for (int index = 0; index < channelCount; ++index)
+        conversion.tableUserChannels[index] =
+            animationLocal.RegisterUserChannel(
+                (*userChannelNames)[index].c_str());
+    conversion.GenerateChecksum();
+    conversion.WriteBinary(binaryName);
 }
 
 void idJointConversion::LoadResource() {
@@ -300,6 +360,7 @@ void idAnimationLocal::MakeDefaultJointConversion(const char* name,
         const idList<idStr, 5>* jointNames,
         const idList<idStr, 5>* channelNames) {
     if (name == nullptr) return;
+    idJointConversion::MakeDefault(name, jointNames, channelNames);
     idJointConversion* conversion = new idJointConversion;
     conversion->SetName(name);
     if (jointNames != nullptr) {

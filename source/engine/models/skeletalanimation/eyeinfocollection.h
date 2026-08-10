@@ -8,6 +8,10 @@
 
 #include <cstdint>
 
+class idDeclMD6;
+class idFile_String;
+class idParser;
+
 enum invalidEyeInfo_t : int;
 enum invalidJointIndex_t : int;
 using eyeInfoHandle_t = idHandle<unsigned short, invalidEyeInfo_t, 65535>;
@@ -25,6 +29,10 @@ public:
     };
 
     idEyeInfo();
+    void Parse(const idDeclMD6* declaration, idParser& parser,
+        int& loadErrors);
+    void Write(const idDeclMD6* declaration, idFile_String& file,
+        const char* indent) const;
 
     idStr name;
     eyeInfoHandle_t handle;
@@ -45,9 +53,20 @@ public:
     idEyeInfoCollection();
 
     void Free();
+    void Parse(const idDeclMD6* declaration, idParser& parser,
+        int& loadErrors);
+    void DuplicateInherited(const idDeclMD6* declaration,
+        const idEyeInfoCollection* parentCollection);
+    void Write(const idDeclMD6* declaration, idFile_String& file,
+        const char* indent) const;
     eyeInfoHandle_t AddEyeInfo(const idEyeInfo& info);
     const idEyeInfo* GetEyeInfo(eyeInfoHandle_t handle) const;
     eyeInfoHandle_t FindEyeInfoHandle(const char* name) const;
+
+    int FindEyeInfoIndex(const eyeInfoHandle_t& handle) const;
+    int FindEyeInfoIndex(const char* name) const;
+    bool IsInherited(const idEyeInfo& info,
+        const idEyeInfoCollection* parentCollection) const;
 
     std::uint16_t curHandle;
     idList<idEyeInfo, 5> eyeInfos;

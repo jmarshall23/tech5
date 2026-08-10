@@ -8,6 +8,8 @@
 #include <cstring>
 #include <new>
 
+idClothSim::DebugDrawCallback idClothSim::debugDrawCallback = nullptr;
+
 namespace {
 
 idVec3 TransformPoint(const idVec3& origin, const idMat3& axis,
@@ -146,6 +148,17 @@ idClothSim::~idClothSim() {
     delete[] cloth;
     delete clothBoundsFromJob;
     delete clothParms;
+}
+
+void idClothSim::SetDebugDrawCallback(DebugDrawCallback callback) {
+    debugDrawCallback = callback;
+}
+
+void idClothSim::DebugDraw(const idVec3& debugOrigin,
+        const idMat3& debugAxis, idRenderWorld* const world,
+        const int mode) {
+    if (debugDrawCallback != nullptr)
+        debugDrawCallback(*this, debugOrigin, debugAxis, world, mode);
 }
 
 void idClothSim::Reset() {

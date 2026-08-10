@@ -8,6 +8,8 @@
 #include "models/particles/declparticle.h"
 
 class idDeclCloth;
+class idRenderModelCloth;
+class idRenderWorld;
 
 enum clothType_t : int {
     CLOTH_NONE = 0,
@@ -81,12 +83,19 @@ struct alignas(4) clothParms_t {
 
 class idClothSim {
 public:
+    using DebugDrawCallback = void (*)(const idClothSim& simulation,
+        const idVec3& origin, const idMat3& axis,
+        idRenderWorld* world, int mode);
+
     idClothSim(const idDeclCloth* clothSystem);
     idClothSim(int width, int height, float horizontalSpacing,
         float verticalSpacing, const idDeclCloth* clothSystem, bool rect);
     ~idClothSim();
 
+    static void SetDebugDrawCallback(DebugDrawCallback callback);
     void Reset();
+    void DebugDraw(const idVec3& debugOrigin, const idMat3& debugAxis,
+        idRenderWorld* world, int mode);
     void SetOriginAxis(const idVec3& newOrigin, const idMat3& newAxis,
         bool updateParticles);
     void SetAnchor(int index, bool temporaryAnchor);
@@ -124,6 +133,7 @@ public:
     idPlane collisionPlane[2];
 
 private:
+    friend class idRenderModelCloth;
     void GenerateGeneric();
     void GenerateRope();
     void GenerateSquare();
@@ -131,6 +141,7 @@ private:
     void GenerateRect(const idDeclCloth* clothSystem);
     void Swap();
     int ResolveParticleIndex(int publicIndex) const;
+    static DebugDrawCallback debugDrawCallback;
 };
 
 static_assert(sizeof(idClothSpring) == 28,

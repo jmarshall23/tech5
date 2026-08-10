@@ -1,23 +1,31 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\framework\timemanager.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/list.h"
+#include "idlib/typesafenumber.h"
 
+enum gameTimeUnique_t : int;
 
-// IDA Local Type ordinal 14456; PDB kind: class.
-class idJobTimerManager
-{
+struct idJobTimerIteration;
+
+class idJobTimerManager {
 public:
-  bool active;
-  idList<idJobTimerIteration,5> iterations;
+    bool active;
+    idList<idJobTimerIteration, 5> iterations;
 };
 
-// IDA Local Type ordinal 17372; PDB kind: class.
-class idTimeManager
-{
+// PDB ordinal 17372.  The retail implementation accepts only positive rates
+// and truncates 1000 / hertz to the integer game tick used by the framework.
+class idTimeManager {
 public:
-  int gameHz;
-  idTypesafeNumber<int,enum gameTimeUnique_t> gameTimePerFrame;
+    idTimeManager() : gameHz(60), gameTimePerFrame(16) {}
+    void SetGameHz(int hertz);
+
+    int gameHz;
+    idTypesafeNumber<int, gameTimeUnique_t> gameTimePerFrame;
 };
+
+extern idTimeManager timeManager;
+
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(idTimeManager) == 8, "Recovered idTimeManager ABI changed");
+#endif

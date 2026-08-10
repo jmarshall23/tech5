@@ -1,47 +1,41 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\decls\decltrackingparms.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../engine/decls/decltypeinfo.h"
+#include "../../../shared/idlib/math/degrees.h"
 
-
-// IDA Local Type ordinal 15951; PDB kind: struct.
-struct trackingParms_t
-{
-  float kickScale;
-  idTypesafeNumber<float,enum DegreesUnique_t> rate;
-  idTypesafeNumber<float,enum DegreesUnique_t> acceleration;
-  idTypesafeNumber<float,enum DegreesUnique_t> deceleration;
-  float springMass;
-  float springTightness;
-  float springDampen;
-  float springMaxSpeed;
-  float springRestLength;
-  float springMaxLength;
+struct trackingParms_t {
+    float kickScale;
+    degrees_t rate;
+    degrees_t acceleration;
+    degrees_t deceleration;
+    float springMass;
+    float springTightness;
+    float springDampen;
+    float springMaxSpeed;
+    float springRestLength;
+    float springMaxLength;
 };
 
-// IDA Local Type ordinal 15953; PDB kind: class.
-class idDeclTrackingParms : public idDeclTypeInfo
-{
+class idDeclTrackingParms : public idDeclTypeInfo {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15954.
-  virtual ~idDeclTrackingParms();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    // Retail symbol: ??0idDeclTrackingParms@@QAA@XZ
+    // EA: 0x82BD3048, RVA: 0x00BD3048
+    idDeclTrackingParms() : parms(0) {}
+    ~idDeclTrackingParms() override = default;
 
-  idList<trackingParms_t,5> parms;
+    // Retail symbol: ?GetDeclInfo@idDeclTrackingParms@@UBAPAVidDeclInfo@@XZ
+    // EA: 0x82BD30E8, RVA: 0x00BD30E8
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    idList<trackingParms_t, 5> parms;
+
+    static idDeclInfoTemplate<idDeclTrackingParms> resourceList;
 };
+
+static_assert(sizeof(trackingParms_t) == 40,
+    "Recovered tracking-parameter row layout changed");
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclTrackingParms) == 80,
+    "Recovered tracking-parameter declaration ABI changed");
+#endif

@@ -1,38 +1,66 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\superscript\lib\string.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+struct ssVector;
+template<typename T> class ssList;
 
-
-// IDA Local Type ordinal 13080; PDB kind: class.
-class idFile_String : public idFile_Memory
-{
+// SuperScript's compact owning string. The instance layout is fixed by PDB
+// type 13285; the standalone recovery uses the CRT heap until the original
+// idGameSuperInterface allocator is reconstructed.
+class ssString {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 13081.
-  virtual ~idFile_String();
-  virtual const char *GetName();
-  virtual const char *GetFullPath();
-  virtual unsigned int Read(void *, unsigned int);
-  virtual unsigned int Write(const void *, unsigned int);
-  virtual unsigned int ReadOfs(__int64, void *, unsigned int);
-  virtual unsigned int WriteOfs(__int64, const void *, unsigned int);
-  virtual bool Lock(__int64, unsigned int, fsLock_t);
-  virtual bool Unlock(__int64, unsigned int);
-  virtual __int64 Length();
-  virtual void SetLength(unsigned int);
-  virtual __int64 Tell();
-  virtual int Seek(__int64, fsOrigin_t);
-  virtual unsigned int Printf(const char *, ...);
-  virtual unsigned int VPrintf(const char *, char *);
-  virtual unsigned int WriteFloatString(const char *, ...);
-  virtual unsigned int Timestamp();
-  virtual void Flush();
-  virtual void ForceFlush();
-  virtual int GetSectorSize();
-  virtual fsDevice_t GetDevice();
-  virtual bool IsOSNative();
-  virtual void Clear(bool);
+    ssString();
+    explicit ssString(const char* text);
+    explicit ssString(int value);
+    ssString(float value, int precision);
+    ssString(const ssVector& value, const char* format);
+    ssString(const ssList<int>& values, const char* separator);
+    ssString(const ssString& text);
+    ~ssString();
 
+    int Cmp(const char* text) const;
+    static int Icmp(const char* text, const char* text2);
+    int Find(char value, int start = 0) const;
+    int Find(const ssString& value, int start = 0) const;
+
+    void ToLower();
+    void ToUpper();
+    void Empty();
+    void Reverse();
+
+    void operator=(const ssString& text);
+    void operator=(const char* text);
+    void operator=(char value);
+    char& operator[](int index);
+    const char& operator[](int index) const;
+
+    ssString Left(int count) const;
+    ssString Right(int count) const;
+    ssString Skip(int count) const;
+    ssString Mid(int start, int count) const;
+
+    void Append(char value);
+    void Append(const ssString& value);
+    void Append(const char* value);
+
+    const char* c_str() const { return data != nullptr ? data : ""; }
+    int Length() const { return len; }
+
+    int len;
+    char* data;
+    int alloced;
+    int threadId;
+
+private:
+    void Init();
+    void Allocate(int count);
+    void EnsureAllocated(int count);
 };
+
+ssString operator+(const ssString& lhs, const ssString& rhs);
+ssString operator+(const ssString& lhs, const char* rhs);
+ssString operator+(const char* lhs, const ssString& rhs);
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(ssString) == 16,
+    "Recovered SuperScript string ABI changed");
+#endif

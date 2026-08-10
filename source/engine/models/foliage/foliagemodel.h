@@ -8,6 +8,7 @@
 #include <cstdint>
 
 class idDeclFoliage;
+class idRenderWorldLocal;
 
 struct fm_treeNode_t {
     std::uint16_t planeType;
@@ -135,6 +136,7 @@ class idFoliageModel : public idResource {
 public:
     using AtlasResolver = bool (*)(const idDeclFoliage* declaration,
         idVec4& scaleBias);
+    using WorldLoadCallback = void (*)(idRenderWorldLocal* renderWorld);
 
     idFoliageModel();
     ~idFoliageModel() override;
@@ -146,6 +148,8 @@ public:
     static int GetFoliageSubTreesForView(const fm_model_t& model,
         const foliageRenderView_t* viewData, int* subTreeNumbers);
     static void SetAtlasResolver(AtlasResolver resolver);
+    static void SetWorldLoadCallback(WorldLoadCallback callback);
+    static void LoadFoliageForWorld(idRenderWorldLocal* renderWorld);
 
     fm_model_t foliageModelData;
     idList<const idDeclFoliage*, 5> sharedAttributes;
@@ -158,7 +162,10 @@ private:
         const std::int16_t frustumVertices[3][8], int* subTreeNumbers,
         int& numSubTrees, int nodeNumber, int recursionDepth);
     void InitializeAttributes(std::uint32_t binaryMagic);
+    static void SwapModelSubTrees(fm_subTreeData_t* data,
+        fm_subTreeTreeNodes_t* treeNodes);
     static AtlasResolver atlasResolver;
+    static WorldLoadCallback worldLoadCallback;
 };
 
 #if INTPTR_MAX == INT32_MAX

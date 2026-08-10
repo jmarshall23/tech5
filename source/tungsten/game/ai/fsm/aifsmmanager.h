@@ -1,78 +1,58 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\fsm\aifsmmanager.h
-// Recovered logical types: 3
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "game/entities/entityptr.h"
+#include "idlib/containers/list.h"
 
+class idAIFSM;
+class idEntity;
 
-// IDA Local Type ordinal 15762; PDB kind: class.
-class idFSMManager : public idEventReceiver
-{
+class idFSMManager {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15769.
-  virtual idTypeInfo *GetType();
-  virtual ~idFSMManager();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual idFiniteStateMachine *AllocFSM(const idTypeInfo *, const idFiniteStateMachineParams *);
-  virtual const idFiniteStateMachine *FindFSM(const idTypeInfo *);
-  virtual const idFiniteStateMachine *FindFSM_2(const char *);
-  virtual idFiniteStateMachine *FindFSM_3(const idTypeInfo *);
-  virtual idFiniteStateMachine *FindFSM_4(const char *);
-  virtual void FreeFSM(const idTypeInfo *);
-  virtual void FreeFSM_2(const char *);
+    virtual ~idFSMManager() = default;
 
-  idEntityPtr<idEntity> owner;
+    idEntityPtr<idEntity> owner;
 };
 
-// IDA Local Type ordinal 16754; PDB kind: class.
-class __unaligned __declspec(align(4)) idAIFSMManager : public idFSMManager
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 16997.
-  virtual idTypeInfo *GetType();
-  virtual ~idAIFSMManager();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual idFiniteStateMachine *AllocFSM(const idTypeInfo *, const idFiniteStateMachineParams *);
-  virtual const idFiniteStateMachine *FindFSM(const idTypeInfo *);
-  virtual const idFiniteStateMachine *FindFSM_2(const char *);
-  virtual idFiniteStateMachine *FindFSM_3(const idTypeInfo *);
-  virtual idFiniteStateMachine *FindFSM_4(const char *);
-  virtual void FreeFSM(const idTypeInfo *);
-  virtual void FreeFSM_2(const char *);
-  virtual const idFiniteStateMachine *GetControllingFSM();
-  virtual idFiniteStateMachine *GetControllingFSM_2();
-
-  idList<idAIFSM *,92> fsms;
-  idAlertCycleFSM alertCycle;
-  idRelaxedFSM relaxed;
-  idCombatFSM combat;
-  idSearchFSM search;
-  idAvoidFSM avoid;
-  idTakeCoverFSM takeCover;
-  idOpenCombatFSM openCombat;
-  idMeleeFSM melee;
-  idAdvanceFSM advance;
-  idInCoverFSM inCover;
-  idBackStandFSM backStand;
-  idCombatScenePointFSM combatScenePointFSM;
-  idSearchScenePointFSM searchScenePointFSM;
-  idRoamScenePointFSM roamScenePointFSM;
-  idFollowFriendlyFSM followFriendly;
-  idPlayerInteractFSM playerInteract;
-  idIdleTrackFriendlyFSM idleTrackFriendly;
+enum idAIFSMKind : int {
+    AIFSM_ALERT_CYCLE = 0,
+    AIFSM_RELAXED,
+    AIFSM_COMBAT,
+    AIFSM_SEARCH,
+    AIFSM_AVOID,
+    AIFSM_TAKE_COVER,
+    AIFSM_OPEN_COMBAT,
+    AIFSM_MELEE,
+    AIFSM_ADVANCE,
+    AIFSM_IN_COVER,
+    AIFSM_BACK_STAND,
+    AIFSM_COMBAT_SCENE_POINT,
+    AIFSM_SEARCH_SCENE_POINT,
+    AIFSM_ROAM_SCENE_POINT,
+    AIFSM_FOLLOW_FRIENDLY,
+    AIFSM_PLAYER_INTERACT,
+    AIFSM_IDLE_TRACK_FRIENDLY,
+    AIFSM_COUNT
 };
 
-// IDA Local Type ordinal 21278; PDB kind: class.
-class idFSMManager::idFSMStack
-{
+class idAIFSMManager : public idFSMManager {
 public:
-  idList<idTypeInfo const *,5> fsms;
-  idList<idTypeInfo const *,5> states;
+    idAIFSMManager();
+    ~idAIFSMManager() override;
+
+    void Init(idEntity* newOwner);
+    const idAIFSM* FindFSM(const class idTypeInfo* type) const;
+
+    idList<idAIFSM*, 92> fsms;
+    idAIFSM* builtIn[AIFSM_COUNT];
 };
+
+// Each concrete FSM remains embedded in the retail manager.  These hooks
+// preserve its construction, destruction and state initialization until the
+// individual FSM class layouts have been recovered.
+idAIFSM* Tungsten_ConstructBuiltInAIFSM(
+    idAIFSMManager& manager, idAIFSMKind kind);
+void Tungsten_DestroyBuiltInAIFSM(
+    idAIFSMManager& manager, idAIFSMKind kind, idAIFSM* fsm);
+void Tungsten_InitBuiltInAIFSM(
+    idAIFSMManager& manager, idAIFSMKind kind, idAIFSM& fsm);
+int Tungsten_GetEntitySpawnId(const idEntity* entity);

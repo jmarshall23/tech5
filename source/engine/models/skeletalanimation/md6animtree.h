@@ -82,15 +82,18 @@ bool IsValid(const idMD6Node* node);
 
 void Clear(idMD6LeafPlay& leaf);
 void Init(idMD6LeafPlay& leaf, const idMD6Anim* animation, int gameTime,
-    int syncGroup, int syncEnabled, float rate,
+    int ticksPerSecond, int frame, float rate,
     idMD6Leaf::wrapMode_t wrapMode, md6WeightGroup_t weightGroup);
-void Restart(idMD6LeafPlay& leaf, int gameTime, int previousTime,
-    int startFrame, idMD6Leaf::wrapMode_t wrapMode);
+void Restart(idMD6LeafPlay& leaf, int gameTime, int ticksPerSecond,
+    int frame, idMD6Leaf::wrapMode_t wrapMode);
 int GetFrameRate(const idMD6Leaf& leaf);
 int GetLength(const idMD6Leaf& leaf, int ticksPerSecond = 1000);
-int GetFrameTime(const idMD6LeafPlay& leaf, int frame);
+void SetFrameTime(idMD6LeafPlay& leaf, int gameTime, int targetTime);
+int GetFrameTime(const idMD6LeafPlay& leaf, int gameTime);
+int GetFrameTicks(const idMD6LeafPlay& leaf, int gameTime);
 int GetAnimLength(const idMD6LeafPlay& leaf, int ticksPerSecond = 1000,
     bool scaled = true);
+int GetAnimTicks(const idMD6LeafPlay& leaf, int ticksPerSecond = 1000);
 float GetFloatFrame(const idMD6LeafPlay& leaf, int gameTime,
     int ticksPerSecond = 1000);
 unsigned short GetFrame(const idMD6LeafPlay& leaf, int gameTime,
@@ -101,10 +104,14 @@ void SetFrame(idMD6LeafPlay& leaf, int gameTime, int ticksPerSecond,
     unsigned short frame);
 void SetRateScale(idMD6LeafPlay& leaf, int gameTime, float scale,
     int ticksPerSecond = 1000);
-int GetLoopCount(const idMD6LeafPlay& leaf, int startTime, int endTime,
+int GetLoopCount(const idMD6LeafPlay& leaf, int gameTime,
     int ticksPerSecond = 1000);
-bool IsPlaying(const idMD6LeafPlay& leaf, int startTime, int endTime,
-    int ticksPerSecond = 1000, bool includeLastFrame = false);
+bool IsPlaying(const idMD6LeafPlay& leaf, int gameTime,
+    int ticksPerSecond = 1000);
+bool IsPlaying(const idMD6LeafPlay& leaf, int gameTime,
+    int ticksPerSecond, bool clampIgnoreExtraFrame);
+bool IsPlaying(const idMD6LeafPlay& leaf, int gameTime,
+    int ticksPerSecond, idMD6Leaf::wrapMode_t wrapMode);
 
 void Clear(idMD6LeafPause& leaf);
 void Init(idMD6LeafPause& leaf, const idMD6Anim* animation, float frame,
@@ -130,13 +137,25 @@ void Init(idMD6BlendAdditiveBranch& branch, idMD6Node* baseAnimation,
     const idList<idMD6Node*, 5>& animations, float coordinate,
     md6WeightGroup_t weightGroup);
 void Update(idMD6BlendAdditiveBranch& branch, bool force);
+void FindAnimation(const idMD6BlendAdditiveBranch& branch,
+    idMD6Node*& animation, float& alpha);
+void InitCoordinateNodePairs(idMD6BlendBranch_Base& branch,
+    int dimensions, const idList<float, 5>& coordinates,
+    const idList<idMD6Node*, 5>& animations, int flags);
 void Init(idMD6BlendBranch& branch, std::uint8_t dimensions,
     const idList<idUserChannelIndex, 5>& userChannelIndices,
     const idList<float, 5>& coordinates,
     const idList<idMD6Node*, 5>& animations,
     const idList<float, 5>& initialCoordinates,
     md6WeightGroup_t weightGroup, int flags);
-void Update(idMD6BlendBranch& branch, bool force, bool snap);
+void Update(idMD6BlendBranch& branch, bool force, bool isSorted);
+void FindAnimation(idMD6BlendBranch& branch, bool isSorted,
+    idMD6Node*& leftAnimation, idMD6Node*& rightAnimation, float& alpha);
+void FindBarycentric(idMD6BlendBranch& branch,
+    idList<idPair<float, idMD6Node*>, 5>& leaves);
+bool BuildPointList(idMD6BlendBranch& branch, idList<int, 5>& indices);
+bool SolveGaussian(int dimensions, float* matrix, float* values,
+    float* output);
 void Init(idMD6FusionBranch& branch, std::uint8_t dimensions,
     const idList<idUserChannelIndex, 5>& userChannelIndices,
     const idList<float, 5>& coordinates,
@@ -151,8 +170,8 @@ void Init(idMD6TagFilter& filter, std::uint8_t groupIndex,
     const idDeclAnimWebTagGroup* group);
 bool Filter(const idMD6TagFilter& filter, unsigned int tag,
     const idMD6DebugFilterLogicHelper_t& helper);
-void Init(idMD6BestLeaf& best, std::uint8_t groupIndex,
-    unsigned int desiredTag, std::uint8_t bias,
+void Init(idMD6BestLeaf& best, std::uint8_t tagBias,
+    unsigned int tagMask, std::uint8_t tagGroupIndex,
     const idList<idMD6Node*, 5>& leaves,
     const idList<unsigned int, 5>& tags,
     const idList<idMD6Filter*, 5>& filters, unsigned int defaultTag,

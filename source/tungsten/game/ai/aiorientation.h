@@ -1,42 +1,73 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\aiorientation.h
-// Recovered logical types: 3
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/math/vector.h"
 
+class idAI2;
 
-// IDA Local Type ordinal 2279; PDB kind: enum.
-enum aiArrivalOrientation_t : __int32
-{
-  AIARRIVAL_ORIENT_NONE = 0x0,
-  AIARRIVAL_ORIENT_ALIGN = 0x1,
+enum turnDirection_t : int {
+    TURN_NONE = 0,
+    TURN_LEFT = 1,
+    TURN_RIGHT = 2,
+    TURN_MAX = 3
 };
 
-// IDA Local Type ordinal 3067; PDB kind: enum.
-enum hdpOrientation_t : __int32
-{
-  O_NONE = 0x0,
-  O_FLIPV = 0x1,
-  O_FLIPH = 0x2,
-  O_FLIPVH = 0x3,
-  O_RCW = 0x4,
-  O_RCW_FLIPV = 0x5,
-  O_RCW_FLIPH = 0x6,
-  O_RCW_FLIPVH = 0x7,
-  O_MAX = 0x8,
+enum aiArrivalOrientation_t : int {
+    AIARRIVAL_ORIENT_NONE = 0,
+    AIARRIVAL_ORIENT_ALIGN = 1
 };
 
-// IDA Local Type ordinal 16712; PDB kind: class.
-class idAIOrientation
-{
+enum hdpOrientation_t : int {
+    O_NONE = 0,
+    O_FLIPV = 1,
+    O_FLIPH = 2,
+    O_FLIPVH = 3,
+    O_RCW = 4,
+    O_RCW_FLIPV = 5,
+    O_RCW_FLIPH = 6,
+    O_RCW_FLIPVH = 7,
+    O_MAX = 8
+};
+
+class idAIOrientation {
 public:
-  idVec3 idealDir;
-  idMat3 axis;
-  float lastTurnDelta;
-  float lastTurnRate;
-  float tolerance;
-  unsigned __int8 currentTurnDir;
-  unsigned __int8 previousTurnDir;
-  float turnVelocity;
+    idAIOrientation(float minimumTurnRate, float maximumTurnRate);
+
+    void UpdateStatic();
+    void Init(const idMat3& initialAxis);
+    void SetIdealDir(idAI2* ai, const idVec3& direction);
+    void SetIdealDirTowards(idAI2* ai, const idVec3& point);
+    void UpdateFromAnim(const idMat3& newAxis, float turnRate,
+        turnDirection_t turnDirection, bool updateIdealDirection);
+    turnDirection_t CalculateTurnDirection(const idVec3& normal) const;
+    float CalcTurnRateForTime(const idVec3& rotationAxis,
+        const idVec3& destinationDirection, float timeSeconds) const;
+    bool IsAligned() const;
+    bool IsAligned(const idVec3& testIdeal, float degrees) const;
+    void SetAxis(const idVec3& direction, const idVec3& gravityDirection);
+    void SetAxis(const idMat3& newAxis);
+    turnDirection_t UpdateAxis(const idVec3& normal,
+        float turnRate, float timeSeconds);
+    turnDirection_t UpdateBodyAxis(const idVec3& normal,
+        turnDirection_t turnDirection, float turnRate, float timeSeconds);
+    void Update(const idVec3& velocity, const idVec3& origin,
+        const idVec3& destination, const idVec3& gravityDirection,
+        float turnRate, float maximumTurnRate, float timeSeconds);
+    void SetAxis(idAI2* ai, const idVec3& direction);
+
+    idVec3 idealDir;
+    idMat3 axis;
+    float lastTurnDelta;
+    float lastTurnRate;
+    float tolerance;
+    unsigned char currentTurnDir;
+    unsigned char previousTurnDir;
+    float turnVelocity;
 };
+
+bool Tungsten_GetAIOrientationPhysics(const idAI2& ai,
+    idVec3& origin, idVec3& gravityNormal);
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAIOrientation) == 68,
+    "Recovered idAIOrientation ABI changed");
+#endif

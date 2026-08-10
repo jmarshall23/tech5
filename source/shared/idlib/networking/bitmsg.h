@@ -41,6 +41,8 @@ public:
     void WriteDeltaLongCounter(int oldValue, int newValue);
     int ReadDeltaShortCounter(int oldValue) const;
     int ReadDeltaLongCounter(int oldValue) const;
+    void WriteDelta(int oldValue, int newValue, int numBits);
+    int ReadDelta(int oldValue, int numBits) const;
 
     template<class vector_t, int maxValue, int numBits>
     void WriteQuantizedVector(const vector_t& value) {
@@ -95,8 +97,6 @@ public:
 private:
     bool CheckOverflow(int numBits);
     unsigned char* GetByteSpace(int length);
-    void WriteDelta(int oldValue, int newValue, int numBits);
-    int ReadDelta(int oldValue, int numBits) const;
 };
 
 class idFile_BitMsg : public idFile {
@@ -121,4 +121,3 @@ static_assert(sizeof(idBitMsg) == 40, "Recovered idBitMsg ABI changed");
 static_assert(sizeof(idFile_BitMsg) == 48,
     "Recovered idFile_BitMsg ABI changed");
 #endif
-

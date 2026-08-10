@@ -1,61 +1,58 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\navpower\navpowermover3d.h
-// Recovered logical types: 5
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/math/vector.h"
 
-
-// IDA Local Type ordinal 1381; PDB kind: enum.
-enum idAINavPowerMover3DParms::idMover3DParms::idMover3DTurnMode : __int32
-{
-  TURN_ONLY_MOVING_FWD = 0x0,
-  TURN_IN_PLACE = 0x1,
-  TURN_SLIP_SLIDE = 0x2,
+enum navVolumeFlags_t : int {
+    NavVolumeNone = 0,
+    NavVolumeFly = 1,
+    NavVolumeLand = 2,
+    NavVolumeDefault = 3,
+    NavVolumeAll = 0xFFFFFF
 };
 
-// IDA Local Type ordinal 16583; PDB kind: struct.
-struct idAINavPowerMover3DParms::idMover3DParms
-{
-  const idDeclNavigation *navDecl;
-  navVolumeFlags_t useVolumes;
-  float goalRadius;
-  float speedCruise;
-  float accelerationTime;
-  float turnRadius;
-  float turnSpeedMax;
-  float turnRollSpeed;
-  bool turnStayUpright;
-  idAINavPowerMover3DParms::idMover3DParms::idMover3DTurnMode turnMode;
+enum navProbeResult_t : int {
+    PROBE_HIT = 0,
+    PROBE_NOHIT = 1
 };
 
-// IDA Local Type ordinal 16584; PDB kind: struct.
-struct idAINavPowerMover3DParms::idMover3DRepulsorParms
-{
-  navRepulsorFlags_t repulsorType;
-  navRepulsorFlags_t repulsorTypeBlockedBy;
-  float repulsorRadius;
-  float repulsorOuterCushion;
-  float repulsorInnerCushion;
-  float repulsorInitialAcceleration;
-  float repulsorOuterCushionAcceleration;
-  float repulsorInnerCushionAcceleration;
-  float repulsorBulk;
+struct TungstenNavProbe3DRawResults {
+    idVec3 endPos;
+    idVec3 endNorm;
+    bool collided;
+    float distTravelled;
 };
 
-// IDA Local Type ordinal 16585; PDB kind: struct.
-struct __declspec(align(4)) idAINavPowerMover3DParms::idMover3DIdleParms
-{
-  float idleSpeedScale;
-  float idleOrbitRadius;
-  float idleOrbitHeight;
-  bool idleOrbit;
+bool Tungsten_AnyNavigationVolumesLoaded();
+TungstenNavProbe3DRawResults Tungsten_NavigationProbe3D(
+    navVolumeFlags_t useVolumes, const idVec3& start,
+    const idVec3& direction, float distance);
+
+class idNpMover3D {
+public:
+    struct idProbeInput3D {
+        navVolumeFlags_t useVolumes;
+    };
+
+    struct idProbeResults3D {
+        idVec3 endPos;
+        idVec3 endNorm;
+        bool collided;
+        float distTotal;
+        float distTravelled;
+        float distFraction;
+    };
+
+    static navProbeResult_t NavProbe3D(const idProbeInput3D& input,
+        const idVec3& start, const idVec3& end, idProbeResults3D& results);
+
+    void* impl;
 };
 
-// IDA Local Type ordinal 16586; PDB kind: struct.
-const struct idAINavPowerMover3DParms
-{
-  idAINavPowerMover3DParms::idMover3DParms mover;
-  idAINavPowerMover3DParms::idMover3DRepulsorParms repulsor;
-  idAINavPowerMover3DParms::idMover3DIdleParms idle;
-};
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idNpMover3D::idProbeInput3D) == 4,
+    "Recovered 3D probe input ABI changed");
+static_assert(sizeof(idNpMover3D::idProbeResults3D) == 40,
+    "Recovered 3D probe results ABI changed");
+static_assert(sizeof(idNpMover3D) == 4,
+    "Recovered NavPower 3D mover ABI changed");
+#endif

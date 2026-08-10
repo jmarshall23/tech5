@@ -1,23 +1,27 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\cover\coverqueryavoid.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "coverquery.h"
 
-
-// IDA Local Type ordinal 21111; PDB kind: class.
-class idCoverQueryAvoid : public idCoverQuery
-{
+class idCoverQueryAvoid : public idCoverQuery {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21112.
-  virtual ~idCoverQueryAvoid();
-  virtual void InternalPreScore();
-  virtual void InternalSetupTarget(const idCoverQuery::coverTarget_t *);
-  virtual float InternalScoreCover(const idCoverQuery::coverCache_t *);
+    idCoverQueryAvoid(idAI2* ai, const idEntity* avoidEntity,
+        const idAICover& exclude, float maximumAvoidTime);
+    ~idCoverQueryAvoid() override = default;
 
-  float maxAvoidTime;
-  const idEntity *avoidEnt;
-  idAASPosition avoidvcPos;
-  idVec3 avoidOrigin;
+protected:
+    void InternalPreScore() override;
+    float InternalScoreCover(const coverCache_t& cached) override;
+
+public:
+    float maxAvoidTime;
+    const idEntity* avoidEnt;
+    idAASPosition avoidvcPos;
+    idVec3 avoidOrigin;
 };
+
+idVec3 Tungsten_GetCoverQueryEntityOrigin(const idEntity& entity);
+idVec3 Tungsten_GetCoverQueryAILinearVelocity(const idAI2& ai);
+bool Tungsten_GetCoverQueryProjectileDamageRadius(
+    const idEntity& entity, float& damageRadius);
+bool Tungsten_CoverQueryAvoidMatchesTarget(
+    const idEntity& entity, int targetSpawnId);

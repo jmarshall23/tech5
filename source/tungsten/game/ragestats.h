@@ -1,28 +1,31 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ragestats.h
-// Recovered logical types: 3
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include <cstdint>
 
+// Retail declarations from w:\tech5\tungsten\game\ragestats.h and the two
+// exported symbols in ragestats.cpp.  rageStat_t is defined by
+// game/metrics/ragestat.h; keeping it opaque here avoids pulling the complete
+// metrics declaration surface into callers of these helpers.
 
-// IDA Local Type ordinal 18486; PDB kind: struct.
-struct pageStats_t
-{
-  unsigned __int16 numPages;
-  unsigned __int16 numVisPages;
-  unsigned __int16 numTopPages;
-  unsigned __int16 pad;
+enum rageStat_t : int;
+class idLocalUser;
+
+struct pageStats_t {
+    std::uint16_t numPages;
+    std::uint16_t numVisPages;
+    std::uint16_t numTopPages;
+    std::uint16_t pad;
 };
 
-// IDA Local Type ordinal 23028; PDB kind: struct.
-struct imageStats_t
-{
-  float ME;
-  float MSE;
-  float PSNR;
-  int Max;
+struct imageStats_t {
+    float ME;
+    float MSE;
+    float PSNR;
+    int Max;
 };
 
-// IDA Local Type ordinal 26004; PDB kind: typedef.
-typedef EP_STATUS regEP_STATUS;
+bool RageStatTypeIsInt(rageStat_t stat);
+int GetStatAsInt(idLocalUser& user, rageStat_t stat);
+
+static_assert(sizeof(pageStats_t) == 8, "Recovered pageStats_t layout changed");
+static_assert(sizeof(imageStats_t) == 16, "Recovered imageStats_t layout changed");

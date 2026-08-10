@@ -1,43 +1,59 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\framework\subtitles.h
-// Recovered logical types: 4
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/list.h"
+#include "idlib/text/str.h"
 
+class idRenderModelGui;
+class idSWF;
 
-// IDA Local Type ordinal 1223; PDB kind: unknown.
-enum idSubtitles::<unnamed_tag> : __int32
-{
-  LANGUAGE_UNDEF = 0x0,
-  LANGUAGE_ENGLISH = 0x1,
-  LANGUAGE_GERMAN = 0x2,
-  LANGUAGE_FRENCH = 0x3,
-  LANGUAGE_SPANISH = 0x4,
-  LANGUAGE_ITALIAN = 0x5,
-  LANGUAGE_POLISH = 0x6,
-  LANGUAGE_RUSSIAN = 0x7,
-  LANGUAGE_JAPANESE = 0x8,
-  LANGUAGE_HEBREW = 0x9,
-  NUM_LANGUAGES = 0xA,
-  MASK_ALL = 0xFFFFFFFF,
-};
-
-// IDA Local Type ordinal 15385; PDB kind: class.
-class idSubtitles::idPart
-{
+class idSubtitles {
 public:
-  int flags;
-  int language;
-  float startTime;
-  idStr phrase;
+    enum language_t : int {
+        LANGUAGE_UNDEF = 0,
+        LANGUAGE_ENGLISH = 1,
+        LANGUAGE_GERMAN = 2,
+        LANGUAGE_FRENCH = 3,
+        LANGUAGE_SPANISH = 4,
+        LANGUAGE_ITALIAN = 5,
+        LANGUAGE_POLISH = 6,
+        LANGUAGE_RUSSIAN = 7,
+        LANGUAGE_JAPANESE = 8,
+        LANGUAGE_HEBREW = 9,
+        NUM_LANGUAGES = 10
+    };
+    struct idPart {
+        int flags;
+        int language;
+        float startTime;
+        idStr phrase;
+    };
+
+    static const char* GetLanguageIsoName(int language);
+    static bool ProcessText(const char* text, float endTime,
+        idList<idPart, 5>* parts);
 };
 
-// IDA Local Type ordinal 21811; PDB kind: class.
-class idSubtitles
-{
+class idSubtitleSequencer {
 public:
+    idSubtitleSequencer() : current(0) {}
+    void Start(const char* text, float endTime);
+    const char* Update(float newTime, unsigned int languageMask);
+
+    idList<idSubtitles::idPart, 5> parts;
+    int current;
 };
 
-// IDA Local Type ordinal 29407; PDB kind: typedef.
-typedef idList<idVoiceTrack::idSubtitleText,5> subtitleList_t;
+// The recovered base contributes only the vptr to this layout.  Renderer/SWF
+// ownership is deliberately installed through framework hooks at runtime.
+class idSubtitles_VideoOverlay {
+public:
+    idSubtitles_VideoOverlay();
+    virtual ~idSubtitles_VideoOverlay();
+    virtual void Start(const char* videoName, float length);
+    virtual void Render(idRenderModelGui* gui, float time);
+    virtual void End();
+
+    idSWF* swf;
+    unsigned int languageMask;
+    idSubtitleSequencer sequencer;
+};

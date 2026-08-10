@@ -1,5 +1,7 @@
 #pragma once
 
+#include "decljobref.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\tungsten\game\decls\decljob.h
 // Recovered logical types: 18
@@ -80,12 +82,6 @@ enum idDeclJob::jobGiverFaction_t : __int32
   JOBFACTION_SUBWAYTOWN = 0x4,
   JOBFACTION_REGIME = 0x5,
   JOBFACTION_MUTANTBASH = 0x6,
-};
-
-// IDA Local Type ordinal 14345; PDB kind: class.
-class idDeclJobRef : public idStr
-{
-public:
 };
 
 // IDA Local Type ordinal 14370; PDB kind: struct.

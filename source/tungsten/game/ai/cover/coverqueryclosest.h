@@ -1,20 +1,27 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\cover\coverqueryclosest.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "coverquery.h"
 
-
-// IDA Local Type ordinal 21380; PDB kind: class.
-class idCoverQueryClosest : public idCoverQuery
-{
+class idCoverQueryClosest : public idCoverQuery {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21381.
-  virtual ~idCoverQueryClosest();
-  virtual void InternalPreScore();
-  virtual void InternalSetupTarget(const idCoverQuery::coverTarget_t *);
-  virtual float InternalScoreCover(const idCoverQuery::coverCache_t *);
+    idCoverQueryClosest(idAI2* ai, const idAICover& exclude,
+        const idVec3& desiredCoverPosition);
+    ~idCoverQueryClosest() override = default;
 
-  idVec3 desiredCoverPosition;
+protected:
+    float InternalScoreCover(const coverCache_t& cached) override;
+
+public:
+    idVec3 desiredCoverPosition;
 };
+
+bool Tungsten_GetCoverQueryPlayerStandingScore(
+    int targetSpawnId, int coverIndex, float& standingScore);
+bool Tungsten_IsCoverQueryPointVisible(const idVec3& eyePoint,
+    const idVec3& destinationPoint, const idAAS2& aas, int areaNum);
+float Tungsten_GetCoverQueryPathNearDistance(const idAI2& ai);
+bool Tungsten_CoverQueryPathPassesNear(const idAI2& ai,
+    const idAASPosition& start, const idAASPosition& goal,
+    const idAASPosition& test, float nearDistance);
+void Tungsten_GetCoverQueryEyePoint(
+    const idAICover& cover, const idAI2& ai, idVec3& eyePoint);

@@ -10,6 +10,7 @@
 enum invalidAnimEventId_t : int;
 enum invalidJointIndex_t : int;
 class idDeclMD6;
+class idFile_String;
 class idParser;
 
 struct idCachedJoint {
@@ -28,6 +29,8 @@ class alignas(4) idMD6AnimEvent {
 public:
     using ParseCallback = bool (*)(idMD6AnimEvent& event,
         const idDeclMD6* md6, idParser& parser, int& loadErrors);
+    using EventNumberResolver = int (*)(const char* eventName);
+    using EventNameResolver = const char* (*)(int eventNumber);
 
     idMD6AnimEvent();
     idMD6AnimEvent(const idMD6AnimEvent& other);
@@ -38,12 +41,16 @@ public:
         int frame, const idVec3& translation, const idQuat& rotation);
     void Copy(const idMD6AnimEvent& other);
     bool Parse(const idDeclMD6* md6, idParser& parser, int& loadErrors);
+    void Write(idFile_String& file, const char* indent) const;
+    const char* GetEventName() const;
     bool operator==(const idMD6AnimEvent& other) const;
     bool operator!=(const idMD6AnimEvent& other) const {
         return !(*this == other);
     }
 
     static void SetParseCallback(ParseCallback callback);
+    static void SetEventResolvers(EventNumberResolver numberResolver,
+        EventNameResolver nameResolver);
 
     idVarArgs<4> args;
     idCachedJoint* cachedJoint;
@@ -55,6 +62,8 @@ public:
 
 private:
     static ParseCallback parseCallback;
+    static EventNumberResolver eventNumberResolver;
+    static EventNameResolver eventNameResolver;
 };
 
 static_assert(sizeof(idCachedJoint) == 32,

@@ -1,39 +1,30 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\decls\declonlineperk.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../engine/decls/decltypeinfo.h"
 
-
-// IDA Local Type ordinal 20131; PDB kind: class.
-class idDeclOnlinePerk : public idDeclTypeInfo
-{
+class idDeclOnlinePerk : public idDeclTypeInfo {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20132.
-  virtual ~idDeclOnlinePerk();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    idDeclOnlinePerk();
 
-  float boostUpModifier;
-  float duraBumpModifier;
-  float jumpManModifier;
-  float overAmmoModifier;
-  float lockJackModifier;
-  float fasterFasterModifier;
-  float theSnapperModifier;
-  int overLoadModifier;
+    // Retail symbol: ?GetDeclInfo@idDeclOnlinePerk@@UBAPAVidDeclInfo@@XZ
+    // EA: 0x82BCA798, RVA: 0x00BCA798
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    static void LoadAllDecls();
+
+    float boostUpModifier;
+    float duraBumpModifier;
+    float jumpManModifier;
+    float overAmmoModifier;
+    float lockJackModifier;
+    float fasterFasterModifier;
+    float theSnapperModifier;
+    int overLoadModifier;
+
+    static idDeclInfoTemplate<idDeclOnlinePerk> resourceList;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclOnlinePerk) == 96,
+    "Recovered idDeclOnlinePerk layout changed");
+#endif

@@ -339,7 +339,7 @@ idParticleStage* idDeclParticle::ParseParticleStage(idParser* parser,
             parseParm(stage->distribution.size[1]);
         } else if (Key(token, "distribSizeZ")) {
             parseParm(stage->distribution.size[2]);
-        } else if (Key(token, "direction")) {
+        } else if (Key(token, "direction") || Key(token, "frictionTime")) {
             if (parser->CheckTokenString("{") != 0) {
                 while (parser->ReadToken(token) && !Key(token, "}")) {
                     if (Key(token, "type")) {

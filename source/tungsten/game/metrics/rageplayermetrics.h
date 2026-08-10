@@ -1,5 +1,7 @@
 #pragma once
 
+#include "levelstats.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\tungsten\game\metrics\rageplayermetrics.h
 // Recovered logical types: 1

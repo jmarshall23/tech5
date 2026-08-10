@@ -2,19 +2,25 @@
 
 #include "idlib/filesystem/file.h"
 #include "idlib/filesystem/filesystem.h"
+#include "idlib/text/parser.h"
 #include "models/skeletalanimation/md6anim.h"
+#include "models/skeletalanimation/declmd6.h"
 #include "models/skeletalanimation/jobs/md6blend.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <malloc.h>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace {
 
 constexpr unsigned int MD6_SKEL_MAGIC = 137777997u;
+constexpr unsigned int MD6_SKEL_CONFIG_MAGIC = 37112397u;
+constexpr int MD6_SKEL_CONFIG_VERSION = 2;
 constexpr int MAX_MD6_JOINTS = 256;
 constexpr int MAX_MD6_USER_CHANNELS = 2048;
 
@@ -90,6 +96,8 @@ idJointMat InvertAffine(const idJointMat& source) {
 } // namespace
 
 idTypedResourceList<idMD6Skel> idMD6Skel::resourceList("skeleton");
+idTypedResourceList<idMD6SkeletonConfig>
+    idMD6SkeletonConfig::resourceList("skeletonconfig");
 idMD6Skel::NameToJointHandleCallback idMD6Skel::nameToJointHandleCallback = nullptr;
 idMD6Skel::JointHandleNameCallback idMD6Skel::jointHandleNameCallback = nullptr;
 idMD6Skel::NameToUserHandleCallback idMD6Skel::nameToUserHandleCallback = nullptr;
@@ -183,6 +191,12 @@ md6JointHandle_t idMD6Skel::GetJointHandle(const int jointIndex) const {
     return handles[jointIndex];
 }
 
+const char* idMD6Skel::GetJointName(const int jointIndex) const {
+    const md6JointHandle_t handle = GetJointHandle(jointIndex);
+    return handle.IsValid() && jointHandleNameCallback != nullptr
+        ? jointHandleNameCallback(handle) : nullptr;
+}
+
 md6JointIndex_t idMD6Skel::GetJointIndex(const md6JointHandle_t handle) const {
     if (data == nullptr || !handle.IsValid()) return md6JointIndex_t();
     for (int index = 0; index < data->numJoints; ++index)
@@ -239,7 +253,7 @@ bool idMD6Skel::IsJointChildOf(md6JointIndex_t joint,
 }
 
 bool idMD6Skel::MakeSkeletonData(const int numJoints,
-        const float* basePoseMatrices, const md6JointHandle_t* jointHandles,
+        const float* basePose, const md6JointHandle_t* jointHandles,
         const short* parents, const int numUserChannels,
         const float* userChannelDefaults,
         const md6UserChannelHandle_t* userChannelHandles,
@@ -247,7 +261,7 @@ bool idMD6Skel::MakeSkeletonData(const int numJoints,
         const unsigned char* const userWeights[8]) {
     if (numJoints < 0 || numJoints > MAX_MD6_JOINTS || numUserChannels < 0 ||
             numUserChannels > MAX_MD6_USER_CHANNELS ||
-            (numJoints > 0 && (basePoseMatrices == nullptr ||
+            (numJoints > 0 && (basePose == nullptr ||
              jointHandles == nullptr || parents == nullptr)) ||
             (numUserChannels > 0 && (userChannelDefaults == nullptr ||
              userChannelHandles == nullptr))) return false;
@@ -333,20 +347,26 @@ bool idMD6Skel::MakeSkeletonData(const int numJoints,
         outputUserHandles[index].Invalidate();
 
     idJointMat modelMatrices[MAX_MD6_JOINTS]{};
+    const float* inputRotations = numJoints > 0 ? basePose : nullptr;
+    const float* inputScales = numJoints > 0
+        ? basePose + 4 * paddedJoints : nullptr;
+    const float* inputTranslations = numJoints > 0
+        ? basePose + 8 * paddedJoints : nullptr;
     for (int index = 0; index < numJoints; ++index) {
-        const float* matrix = basePoseMatrices + index * 12;
-        idVec3 rows[3] = {
-            idVec3(matrix[0], matrix[1], matrix[2]),
-            idVec3(matrix[4], matrix[5], matrix[6]),
-            idVec3(matrix[8], matrix[9], matrix[10])
-        };
-        const idVec3 scale(rows[0].Length(), rows[1].Length(), rows[2].Length());
-        if (scale.x > 1.0e-20f) rows[0] = rows[0] * (1.0f / scale.x);
-        if (scale.y > 1.0e-20f) rows[1] = rows[1] * (1.0f / scale.y);
-        if (scale.z > 1.0e-20f) rows[2] = rows[2] * (1.0f / scale.z);
-        const idQuat rotation = MatrixToQuat(idMat3(rows[0].x, rows[0].y,
-            rows[0].z, rows[1].x, rows[1].y, rows[1].z, rows[2].x,
-            rows[2].y, rows[2].z));
+        idQuat rotation(inputRotations[index * 4 + 0],
+            inputRotations[index * 4 + 1],
+            inputRotations[index * 4 + 2],
+            inputRotations[index * 4 + 3]);
+        rotation.Normalize();
+        if (rotation.w < 0.0f) {
+            rotation.x = -rotation.x; rotation.y = -rotation.y;
+            rotation.z = -rotation.z; rotation.w = -rotation.w;
+        }
+        const idVec3 scale(inputScales[index * 4 + 0],
+            inputScales[index * 4 + 1], inputScales[index * 4 + 2]);
+        const idVec3 translation(inputTranslations[index * 4 + 0],
+            inputTranslations[index * 4 + 1],
+            inputTranslations[index * 4 + 2]);
         rotations[index * 4 + 0] = rotation.x;
         rotations[index * 4 + 1] = rotation.y;
         rotations[index * 4 + 2] = rotation.z;
@@ -354,13 +374,22 @@ bool idMD6Skel::MakeSkeletonData(const int numJoints,
         scales[index * 3 + 0] = scale.x;
         scales[index * 3 + 1] = scale.y;
         scales[index * 3 + 2] = scale.z;
-        translations[index * 3 + 0] = matrix[3];
-        translations[index * 3 + 1] = matrix[7];
-        translations[index * 3 + 2] = matrix[11];
+        translations[index * 3 + 0] = translation.x;
+        translations[index * 3 + 1] = translation.y;
+        translations[index * 3 + 2] = translation.z;
         parentTable[index] = parents[index];
         outputJointHandles[index] = jointHandles[index];
+        idMat3 axis = rotation.ToMat3();
+        axis[0] = axis[0] * scale.x;
+        axis[1] = axis[1] * scale.y;
+        axis[2] = axis[2] * scale.z;
         idJointMat local{};
-        std::memcpy(local.mat, matrix, sizeof(local.mat));
+        for (int row = 0; row < 3; ++row) {
+            local[row][0] = axis[row][0];
+            local[row][1] = axis[row][1];
+            local[row][2] = axis[row][2];
+            local[row][3] = translation[row];
+        }
         modelMatrices[index] = parents[index] >= 0 && parents[index] < index
             ? MultiplyAffine(modelMatrices[parents[index]], local) : local;
         inverse[index] = InvertAffine(modelMatrices[index]);
@@ -631,8 +660,197 @@ bool idMD6Skel::WriteBinary(const char* fileName) const {
         WriteExact(file.file, &MD6_SKEL_MAGIC, sizeof(MD6_SKEL_MAGIC));
 }
 
+bool idMD6Skel::Parse(idParser& parser) {
+    idToken token;
+    if (!parser.ReadToken(token) ||
+            (idStr::Icmp(token.c_str(), "MD6_VERSION_STRING") != 0 &&
+             idStr::Icmp(token.c_str(), "MD6") != 0)) {
+        parser.Error("Invalid skeleton asset tag '%s'", token.c_str());
+        return false;
+    }
+    const int version = parser.ParseInt();
+    if (version != 1) {
+        parser.Error("Invalid skeleton version %d. Should be version %d.",
+            version, 1);
+        return false;
+    }
+    if (!parser.ExpectTokenString("init") ||
+            !parser.ExpectTokenString("{")) return false;
+
+    int numJoints = 0;
+    int numUserChannels = 0;
+    idStr jointConversionName;
+    idStr userChannelFile;
+    while (parser.ReadToken(token)) {
+        if (idStr::Cmp(token.c_str(), "}") == 0) break;
+        if (idStr::Icmp(token.c_str(), "commandLine") == 0 ||
+                idStr::Icmp(token.c_str(), "sourceFile") == 0) {
+            if (!parser.ExpectTokenType(TT_STRING, 0, token)) return false;
+        } else if (idStr::Icmp(token.c_str(), "numJoints") == 0) {
+            numJoints = parser.ParseInt();
+        } else if (idStr::Icmp(token.c_str(), "numUserChannels") == 0) {
+            numUserChannels = parser.ParseInt();
+        } else if (idStr::Icmp(token.c_str(), "jointconversion") == 0) {
+            if (!parser.ExpectTokenType(TT_STRING, 0, token)) return false;
+            jointConversionName = token.c_str();
+        } else if (idStr::Icmp(token.c_str(), "userChannelFile") == 0) {
+            if (!parser.ExpectTokenType(TT_STRING, 0, token)) return false;
+            userChannelFile = token.c_str();
+        } else {
+            parser.Error("Unknown token '%s' in 'init' section",
+                token.c_str());
+            return false;
+        }
+    }
+
+    idParser externalUsers(LEXFL_NOSTRINGESCAPECHARS |
+        LEXFL_NOSTRINGCONCAT | LEXFL_ALLOWPATHNAMES);
+    idParser* userParser = &parser;
+    if (!userChannelFile.IsEmpty()) {
+        if (!externalUsers.LoadFile(userChannelFile.c_str(), false)) {
+            parser.Error("UserChannels file not found %s",
+                userChannelFile.c_str());
+            return false;
+        }
+        if (!externalUsers.ReadToken(token) ||
+                (idStr::Icmp(token.c_str(), "MD6_VERSION_STRING") != 0 &&
+                 idStr::Icmp(token.c_str(), "MD6") != 0)) return false;
+        const int userVersion = externalUsers.ParseInt();
+        if (userVersion != 0 && userVersion != 2) {
+            externalUsers.Error(
+                "Invalid userchannel version %d. Should be version %d",
+                userVersion, 2);
+            return false;
+        }
+        if (!externalUsers.ExpectTokenString("numUserChannels"))
+            return false;
+        numUserChannels = externalUsers.ParseInt();
+        userParser = &externalUsers;
+    }
+    if (numJoints < 0 || numJoints >= MAX_MD6_JOINTS ||
+            numUserChannels < 0 || numUserChannels >= 256) {
+        parser.Error("Invalid skeleton dimensions %d joints, %d user channels",
+            numJoints, numUserChannels);
+        return false;
+    }
+
+    const int paddedJoints = Pad8(numJoints);
+    const int paddedUsers = Pad8(numUserChannels);
+    std::vector<float> basePose(12 * paddedJoints, 0.0f);
+    std::vector<md6JointHandle_t> jointHandles(paddedJoints);
+    std::vector<short> parents(paddedJoints, -1);
+    std::array<std::vector<unsigned char>, 8> jointWeights;
+    std::array<bool, 8> jointWeightUsed{};
+    for (int group = 0; group < 8; ++group)
+        jointWeights[group].resize(paddedJoints, 0);
+    for (int index = 0; index < paddedJoints; ++index) {
+        basePose[index * 4 + 3] = 1.0f;
+        basePose[4 * paddedJoints + index * 4 + 0] = 1.0f;
+        basePose[4 * paddedJoints + index * 4 + 1] = 1.0f;
+        basePose[4 * paddedJoints + index * 4 + 2] = 1.0f;
+    }
+
+    if (!parser.ExpectTokenString("joints") ||
+            !parser.ExpectTokenString("{")) return false;
+    for (int index = 0; index < numJoints; ++index) {
+        if (!parser.ExpectTokenType(TT_STRING, 0, token)) return false;
+        idStr jointName(token.c_str());
+        jointName.MakeNameCanonical();
+        jointHandles[index] = nameToJointHandleCallback != nullptr
+            ? nameToJointHandleCallback(jointName.c_str())
+            : md6JointHandle_t();
+        const int parent = parser.ParseInt();
+        if (parent < -1 || parent >= numJoints) {
+            parser.Error("Invalid parent for joint '%s'", jointName.c_str());
+            return false;
+        }
+        parents[index] = static_cast<short>(parent);
+        float weights[8]{};
+        if (!parser.Parse1DMatrix(8, weights)) return false;
+        weights[0] = 1.0f;
+        for (int group = 0; group < 8; ++group) {
+            const int packed = static_cast<int>(weights[group] * 255.0f +
+                0.5f);
+            const unsigned char value = static_cast<unsigned char>(
+                (std::max)(0, (std::min)(255, packed)));
+            jointWeights[group][index] = value;
+            jointWeightUsed[group] = jointWeightUsed[group] || value != 0;
+        }
+        if (!parser.Parse1DMatrix(4, &basePose[index * 4]) ||
+                !parser.Parse1DMatrix(3, &basePose[
+                    4 * paddedJoints + index * 4]) ||
+                !parser.Parse1DMatrix(3, &basePose[
+                    8 * paddedJoints + index * 4])) return false;
+    }
+    if (!parser.ExpectTokenString("}")) return false;
+
+    std::vector<float> userDefaults(paddedUsers, 0.0f);
+    std::vector<md6UserChannelHandle_t> userHandles(paddedUsers);
+    std::array<std::vector<unsigned char>, 8> userWeights;
+    std::array<bool, 8> userWeightUsed{};
+    for (int group = 0; group < 8; ++group)
+        userWeights[group].resize(paddedUsers, 0);
+    if (userParser->CheckTokenString("userChannels") != 0) {
+        if (!userParser->ExpectTokenString("{")) return false;
+        for (int index = 0; index < numUserChannels; ++index) {
+            if (!userParser->ExpectTokenType(TT_STRING, 0, token))
+                return false;
+            idStr channelName(token.c_str());
+            channelName.MakeNameCanonical();
+            userHandles[index] = nameToUserHandleCallback != nullptr
+                ? nameToUserHandleCallback(channelName.c_str())
+                : md6UserChannelHandle_t();
+            float weights[8]{};
+            if (!userParser->Parse1DMatrix(8, weights)) return false;
+            for (int group = 0; group < 8; ++group) {
+                const int packed = static_cast<int>(weights[group] *
+                    255.0f + 0.5f);
+                const unsigned char value = static_cast<unsigned char>(
+                    (std::max)(0, (std::min)(255, packed)));
+                userWeights[group][index] = value;
+                userWeightUsed[group] = userWeightUsed[group] || value != 0;
+            }
+            userDefaults[index] = userParser->ParseFloat();
+        }
+        if (!userParser->ExpectTokenString("}")) return false;
+    } else if (numUserChannels != 0) {
+        userParser->Error("Missing userChannels block");
+        return false;
+    }
+
+    const unsigned char* jointWeightPointers[8]{};
+    const unsigned char* userWeightPointers[8]{};
+    for (int group = 0; group < 8; ++group) {
+        if (jointWeightUsed[group])
+            jointWeightPointers[group] = jointWeights[group].data();
+        if (userWeightUsed[group])
+            userWeightPointers[group] = userWeights[group].data();
+    }
+    if (!MakeSkeletonData(numJoints, basePose.data(), jointHandles.data(),
+            parents.data(), numUserChannels, userDefaults.data(),
+            userHandles.data(), jointWeightPointers, userWeightPointers))
+        return false;
+
+    if (jointConversionName.IsEmpty()) {
+        jointConversionName = GetName();
+        jointConversionName.Append("_default.md6jointconversion");
+    }
+    jointConversion = conversionFindCallback != nullptr
+        ? conversionFindCallback(jointConversionName.c_str())
+        : idHandle<unsigned short, invalidJointConversionHandle_t, 65535>();
+    jointConversionChecksum.Invalidate();
+    return !parser.HadError() && !userParser->HadError();
+}
+
 bool idMD6Skel::LoadText(const char* fileName) {
-    return textLoadCallback != nullptr && textLoadCallback(this, fileName);
+    if (textLoadCallback != nullptr) return textLoadCallback(this, fileName);
+    if (fileName == nullptr) return false;
+    idParser parser(LEXFL_NOSTRINGESCAPECHARS | LEXFL_NOSTRINGCONCAT |
+        LEXFL_ALLOWPATHNAMES);
+    if (!parser.LoadFile(fileName, false) || !Parse(parser)) return false;
+    timestamp = fileSystem != nullptr
+        ? fileSystem->GetTimestamp(fileName, false) : ~0u;
+    return true;
 }
 
 void idMD6Skel::LoadResource() {
@@ -652,6 +870,158 @@ bool idMD6Skel::ReloadIfStale() {
     if (fileSystem == nullptr) return false;
     const unsigned int current = fileSystem->GetTimestamp(GetName(), false);
     if (current == timestamp) return false;
+    LoadResource();
+    return true;
+}
+
+idMD6SkeletonConfig::idMD6SkeletonConfig()
+    : boundsDecl(nullptr) {
+}
+
+idResourceList* idMD6SkeletonConfig::GetResourceList() {
+    return &resourceList;
+}
+
+bool idMD6SkeletonConfig::WriteSkeletonConfig_Binary(
+        const char* fileName) const {
+    if (fileName == nullptr || fileSystem == nullptr) return false;
+    idFileLocal file(fileSystem->OpenFileWrite(fileName, FSPATH_BASE));
+    if (file.file == nullptr) return false;
+    const int count = instances.Num();
+    if (!WriteExact(file.file, &MD6_SKEL_CONFIG_MAGIC,
+                sizeof(MD6_SKEL_CONFIG_MAGIC)) ||
+            !WriteExact(file.file, &count, sizeof(count))) return false;
+    for (int index = 0; index < count; ++index) {
+        const instance_t& instance = instances[index];
+        const char* skeletonName = instance.skeleton != nullptr
+            ? instance.skeleton->GetName() : "";
+        if (!WriteExact(file.file, &instance.timestamp,
+                    sizeof(instance.timestamp)) ||
+                file->WriteString(skeletonName != nullptr
+                    ? skeletonName : "") == 0) return false;
+    }
+    const char* boundsName = boundsDecl != nullptr
+        ? boundsDecl->GetName() : "";
+    return file->WriteString(boundsName != nullptr ? boundsName : "") != 0;
+}
+
+bool idMD6SkeletonConfig::ReadSkeletonConfig_Binary(
+        const char* fileName) {
+    if (fileName == nullptr || fileSystem == nullptr) return false;
+    idFileLocal file(fileSystem->OpenFileRead(fileName, true, false));
+    unsigned int magic = 0;
+    int count = 0;
+    if (file.file == nullptr ||
+            !ReadExact(file.file, &magic, sizeof(magic)) ||
+            magic != MD6_SKEL_CONFIG_MAGIC ||
+            !ReadExact(file.file, &count, sizeof(count)) ||
+            count < 0 || count > 0x10000) return false;
+
+    idList<instance_t, 5> loaded;
+    loaded.SetNum(count);
+    for (int index = 0; index < count; ++index) {
+        idStr skeletonName;
+        if (!ReadExact(file.file, &loaded[index].timestamp,
+                    sizeof(loaded[index].timestamp))) return false;
+        file->ReadString(skeletonName);
+        loaded[index].skeleton = skeletonName.IsEmpty() ? nullptr
+            : static_cast<const idMD6Skel*>(idMD6Skel::resourceList.Load(
+                skeletonName.c_str(), true, false));
+    }
+    idStr boundsName;
+    file->ReadString(boundsName);
+    const idDeclMD6* loadedBounds = boundsName.IsEmpty() ? nullptr
+        : static_cast<const idDeclMD6*>(idDeclMD6::resourceList.Load(
+            boundsName.c_str(), true, false));
+    instances = loaded;
+    boundsDecl = loadedBounds;
+    return true;
+}
+
+bool idMD6SkeletonConfig::LoadSkeletonConfig(const char* basePath) {
+    if (basePath == nullptr || fileSystem == nullptr) return false;
+    idFileList* files = fileSystem->ListFilesTree(basePath, "md6skl", true);
+    if (files == nullptr) return false;
+
+    idList<instance_t, 5> loaded;
+    loaded.SetNum(files->GetNumFiles());
+    for (int index = 0; index < files->GetNumFiles(); ++index) {
+        const idMD6Skel* skeleton = static_cast<const idMD6Skel*>(
+            idMD6Skel::resourceList.Load(files->GetFile(index), false,
+                false));
+        loaded[index].skeleton = skeleton;
+        loaded[index].timestamp = skeleton != nullptr
+            ? skeleton->timestamp : ~0u;
+    }
+    fileSystem->FreeFileList(files);
+
+    const idDeclMD6* loadedBounds = nullptr;
+    idStr configPath(basePath);
+    configPath.Append("/.skeletonconfig");
+    idParser parser(LEXFL_NOSTRINGESCAPECHARS | LEXFL_NOSTRINGCONCAT |
+        LEXFL_ALLOWPATHNAMES);
+    if (parser.LoadFile(configPath.c_str(), false)) {
+        idToken header;
+        if (!parser.ReadToken(header)) return false;
+        const int version = parser.ParseInt();
+        if (version != MD6_SKEL_CONFIG_VERSION) {
+            parser.Error("Invalid skeleton config version %d. Should be version %d.",
+                version, MD6_SKEL_CONFIG_VERSION);
+            return false;
+        }
+        idToken boundsName;
+        if (!parser.ExpectTokenType(TT_STRING, 0, boundsName)) return false;
+        loadedBounds = static_cast<const idDeclMD6*>(
+            idDeclMD6::resourceList.Load(boundsName.c_str(), true, false));
+        if (loadedBounds == nullptr) {
+            parser.Error("Skeleton config had invalid md6Decl %s.",
+                boundsName.c_str());
+            return false;
+        }
+    }
+    instances = loaded;
+    boundsDecl = loadedBounds;
+    return true;
+}
+
+void idMD6SkeletonConfig::LoadResource() {
+    instances.Clear();
+    boundsDecl = nullptr;
+    if (fileSystem == nullptr) return;
+    idStr binary = fileSystem->GeneratedPath(GetName());
+    binary.SetFileExtension("bmd6skeletonconfig");
+    if (!ReadSkeletonConfig_Binary(binary.c_str()) &&
+            LoadSkeletonConfig(GetName()))
+        WriteSkeletonConfig_Binary(binary.c_str());
+}
+
+bool idMD6SkeletonConfig::ReloadIfStale() {
+    if (fileSystem == nullptr) return false;
+    idFileList* files = fileSystem->ListFilesTree(GetName(), "md6skl", true);
+    bool stale = files == nullptr
+        ? instances.Num() != 0
+        : files->GetNumFiles() != instances.Num();
+    if (files != nullptr && !stale) {
+        for (int fileIndex = 0; fileIndex < files->GetNumFiles() && !stale;
+                ++fileIndex) {
+            const char* fileName = files->GetFile(fileIndex);
+            bool found = false;
+            for (int instanceIndex = 0; instanceIndex < instances.Num();
+                    ++instanceIndex) {
+                const instance_t& instance = instances[instanceIndex];
+                if (instance.skeleton == nullptr ||
+                        idStr::Icmp(instance.skeleton->GetName(),
+                            fileName) != 0) continue;
+                found = true;
+                stale = fileSystem->GetTimestamp(fileName, false) !=
+                    instance.timestamp;
+                break;
+            }
+            if (!found) stale = true;
+        }
+    }
+    if (files != nullptr) fileSystem->FreeFileList(files);
+    if (!stale) return false;
     LoadResource();
     return true;
 }

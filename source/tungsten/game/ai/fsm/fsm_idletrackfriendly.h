@@ -1,127 +1,130 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\fsm\fsm_idletrackfriendly.h
-// Recovered logical types: 4
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "aifsm.h"
 
+class idEntity;
+class idPlayer;
 
-// IDA Local Type ordinal 16789; PDB kind: class.
-class __unaligned __declspec(align(4)) idRelaxed_IdleTrackFriendly : public idAIState
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 34025.
-  virtual idTypeInfo *GetType();
-  virtual ~idRelaxed_IdleTrackFriendly();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void Save(const idFiniteStateMachine *, idFile_String *, const char *);
-  virtual void InternalInitState(const idFiniteStateMachine *);
-  virtual bool InternalCanUse(idFiniteStateMachine *, const int);
-  virtual void InternalEnterState(idFiniteStateMachine *, const int);
-  virtual void InternalExitState(idFiniteStateMachine *, const int);
-  virtual void InternalWork(idFiniteStateMachine *, const int);
-  virtual void InternalReenterState(idFiniteStateMachine *, const int, const int);
-  virtual bool InternalIsStateWaiting(idFiniteStateMachine *, const int);
-  virtual void InternalGetDebugString(idStr *);
-  virtual bool AIState_CanUse(idAI2 *, idAIFSM *, const int);
-  virtual void AIState_EnterState(idAI2 *, idAIFSM *, const int);
-  virtual void AIState_ExitState(idAI2 *, idAIFSM *, const int);
-  virtual void AIState_Work(idAI2 *, idAIFSM *, const int);
-  virtual void AIState_ReenterState(idAI2 *, idAIFSM *, const int, const int);
-  virtual bool AIState_IsWaiting(idAI2 *, idAIFSM *, const int);
-
+enum idIdleTrackFriendlyTransitionKind : int {
+    ITF_TRANSITION_NO_TARGET = 0,
+    ITF_TRANSITION_TRACK,
+    ITF_TRANSITION_PLAYER_APPROACHING,
+    ITF_TRANSITION_END_TRACK,
+    ITF_TRANSITION_FINISHED
 };
 
-// IDA Local Type ordinal 16992; PDB kind: class.
-class __unaligned __declspec(align(4)) idIdleTrackFriendly_Default : public idAIState
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 33926.
-  virtual idTypeInfo *GetType();
-  virtual ~idIdleTrackFriendly_Default();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void Save(const idFiniteStateMachine *, idFile_String *, const char *);
-  virtual void InternalInitState(const idFiniteStateMachine *);
-  virtual bool InternalCanUse(idFiniteStateMachine *, const int);
-  virtual void InternalEnterState(idFiniteStateMachine *, const int);
-  virtual void InternalExitState(idFiniteStateMachine *, const int);
-  virtual void InternalWork(idFiniteStateMachine *, const int);
-  virtual void InternalReenterState(idFiniteStateMachine *, const int, const int);
-  virtual bool InternalIsStateWaiting(idFiniteStateMachine *, const int);
-  virtual void InternalGetDebugString(idStr *);
-  virtual bool AIState_CanUse(idAI2 *, idAIFSM *, const int);
-  virtual void AIState_EnterState(idAI2 *, idAIFSM *, const int);
-  virtual void AIState_ExitState(idAI2 *, idAIFSM *, const int);
-  virtual void AIState_Work(idAI2 *, idAIFSM *, const int);
-  virtual void AIState_ReenterState(idAI2 *, idAIFSM *, const int, const int);
-  virtual bool AIState_IsWaiting(idAI2 *, idAIFSM *, const int);
-
+enum idIdleTrackFriendlyDestination : int {
+    ITF_DESTINATION_DONE = 0,
+    ITF_DESTINATION_TRACK,
+    ITF_DESTINATION_END_TRACK
 };
 
-// IDA Local Type ordinal 16993; PDB kind: class.
-class __unaligned __declspec(align(4)) idIdleTrackFriendly_Track : public idAIState
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 33928.
-  virtual idTypeInfo *GetType();
-  virtual ~idIdleTrackFriendly_Track();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void Save(const idFiniteStateMachine *, idFile_String *, const char *);
-  virtual void InternalInitState(const idFiniteStateMachine *);
-  virtual bool InternalCanUse(idFiniteStateMachine *, const int);
-  virtual void InternalEnterState(idFiniteStateMachine *, const int);
-  virtual void InternalExitState(idFiniteStateMachine *, const int);
-  virtual void InternalWork(idFiniteStateMachine *, const int);
-  virtual void InternalReenterState(idFiniteStateMachine *, const int, const int);
-  virtual bool InternalIsStateWaiting(idFiniteStateMachine *, const int);
-  virtual void InternalGetDebugString(idStr *);
-  virtual bool AIState_CanUse(idAI2 *, idAIFSM *, const int);
-  virtual void AIState_EnterState(idAI2 *, idAIFSM *, const int);
-  virtual void AIState_ExitState(idAI2 *, idAIFSM *, const int);
-  virtual void AIState_Work(idAI2 *, idAIFSM *, const int);
-  virtual void AIState_ReenterState(idAI2 *, idAIFSM *, const int, const int);
-  virtual bool AIState_IsWaiting(idAI2 *, idAIFSM *, const int);
+static constexpr int TRANSCODE_ITF_TRACK = 0x1BC;
+static constexpr int TRANSCODE_ITF_NO_TARGET = 0x1BD;
+static constexpr int TRANSCODE_ITF_ENDTRACK = 0x1BE;
+static constexpr int TRANSCODE_ITF_FINISHED = 0x1BF;
+static constexpr int TRANSCODE_ITF_PLAYER_APPROACHING = 0x1C0;
+static constexpr int ITF_PLAYER_APPROACH_EVENT_ID = 0x200000;
+static constexpr unsigned int ITF_INVALID_TARGET_SPAWN_ID = 0x1FFF;
+static constexpr short ITF_INVALID_ANIM_STATE = -1;
+static constexpr int ITF_AIMPOINT_HEAD = 1;
 
+// Header-defined retail no-op/default state methods are represented once here;
+// the nontrivial out-of-line state routines remain on their concrete classes.
+class idIdleTrackFriendlyStateBase : public idAIState {
+public:
+    bool AIState_CanUse(idAI2*, idAIFSM*, int) override { return true; }
+    void AIState_EnterState(idAI2*, idAIFSM*, int) override {}
+    void AIState_ExitState(idAI2*, idAIFSM*, int) override {}
+    void AIState_Work(idAI2*, idAIFSM*, int) override {}
+    void AIState_ReenterState(idAI2*, idAIFSM*, int, int) override {}
+    bool AIState_IsWaiting(idAI2*, idAIFSM*, int) override { return false; }
 };
 
-// IDA Local Type ordinal 16995; PDB kind: class.
-class __unaligned __declspec(align(4)) idIdleTrackFriendlyFSM : public idAIFSM
-{
+class idIdleTrackFriendly_Default : public idIdleTrackFriendlyStateBase {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 16996.
-  virtual idTypeInfo *GetType();
-  virtual ~idIdleTrackFriendlyFSM();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual bool CanUse(idFiniteStateMachine *, const int);
-  virtual idState *GetErrorState();
-  virtual idState *GetDoneState();
-  virtual void Save(idFile_String *, const char *);
-  virtual void Restart(idFiniteStateMachine *, const int);
-  virtual void AddState(idState *);
-  virtual int GetUpdateInterval();
-  virtual void InitStates(const idFiniteStateMachineParams *);
-  virtual void AppendDefaultTransitions(idState *);
-  virtual void SetNextState(const idStateData::transResult_t *, const int);
-  virtual void SetState(const idStateData::transResult_t *, const int, const bool);
-
-  idIdleTrackFriendly_Default stateDefault;
-  idIdleTrackFriendly_Track stateTrack;
-  idIdleTrackFriendly_EndTrack stateEndTrack;
-  idEntityPtr<idEntity const > target;
-  idIndex<short,enum idDeclAnimWeb::invalidStateIndex_t> idleStateIndex;
-  idIndex<short,enum idDeclAnimWeb::invalidStateIndex_t> startStateIndex;
-  bool oldEnableHeadTracking;
-  bool oldEnableAutoFocus;
+    void InternalInitState(const idFiniteStateMachine* fsm);
+    void AIState_EnterState(idAI2* ai, idAIFSM* fsm,
+        int currentTime) override;
 };
+
+class idIdleTrackFriendly_Track : public idIdleTrackFriendlyStateBase {
+public:
+    void InternalInitState(const idFiniteStateMachine* fsm);
+    void AIState_Work(idAI2* ai, idAIFSM* fsm,
+        int currentTime) override;
+};
+
+class idIdleTrackFriendly_EndTrack : public idIdleTrackFriendlyStateBase {
+public:
+    void InternalInitState(const idFiniteStateMachine* fsm);
+    void AIState_EnterState(idAI2* ai, idAIFSM* fsm,
+        int currentTime) override;
+};
+
+class idIdleTrackFriendlyFSM : public idAIFSM {
+public:
+    idIdleTrackFriendlyFSM();
+    ~idIdleTrackFriendlyFSM() override;
+
+    void InitStates(const idFiniteStateMachineParams* params) override;
+
+    idIdleTrackFriendly_Default stateDefault;
+    idIdleTrackFriendly_Track stateTrack;
+    idIdleTrackFriendly_EndTrack stateEndTrack;
+    unsigned int targetSpawnId;
+    short idleStateIndex;
+    short startStateIndex;
+    bool oldEnableHeadTracking;
+    bool oldEnableAutoFocus;
+};
+
+class ITF_Finished : public idAIFSMTransitionBase {
+public:
+    aiTransCode_t Evaluate(idAI2*, idAIFSM*, idAIState*, int) override;
+};
+class ITF_PlayerApproaching : public idAIFSMTransitionBase {
+public:
+    aiTransCode_t Evaluate(idAI2*, idAIFSM*, idAIState*, int) override;
+};
+class ITF_NoTarget : public idAIFSMTransitionBase {
+public:
+    aiTransCode_t Evaluate(idAI2*, idAIFSM*, idAIState*, int) override;
+};
+class ITF_Track : public idAIFSMTransitionBase {
+public:
+    aiTransCode_t Evaluate(idAI2*, idAIFSM*, idAIState*, int) override;
+};
+class ITF_EndTrack : public idAIFSMTransitionBase {
+public:
+    aiTransCode_t Evaluate(idAI2*, idAIFSM*, idAIState*, int) override;
+};
+
+// Runtime boundaries for generated transition RTTI, entity spawn tables,
+// animation-web state lookup, AI focus flags, and player-interaction policy.
+void Tungsten_AddIdleTrackFriendlyTransition(idAIState& state,
+    const idFiniteStateMachine& fsm, bool eventTransition,
+    idIdleTrackFriendlyTransitionKind transition,
+    idIdleTrackFriendlyDestination destination);
+void Tungsten_InitIdleTrackFriendlyFSMRuntime(idIdleTrackFriendlyFSM& fsm,
+    const char* name);
+void Tungsten_SetIdleTrackFriendlyDefaultState(idIdleTrackFriendlyFSM& fsm,
+    idAIState& state);
+bool Tungsten_GetIdleTrackHeadTracking(const idAI2& ai);
+bool Tungsten_GetIdleTrackAutoFocus(const idAI2& ai);
+void Tungsten_SetIdleTrackOverride(idAI2& ai, bool enabled);
+short Tungsten_GetIdleTrackCurrentAnimState(const idAI2& ai);
+short Tungsten_GetIdleTrackIdleAnimState(const idAI2& ai);
+const idEntity* Tungsten_ResolveIdleTrackTarget(unsigned int spawnId);
+bool Tungsten_GetIdleTrackSphereOriginator(const void* eventData,
+    unsigned int& spawnId);
+const idPlayer* Tungsten_ResolveIdleTrackPlayer(unsigned int spawnId);
+bool Tungsten_IdleTrackPlayerApproaching(const idAI2& ai,
+    const idPlayer* player);
+bool Tungsten_CanIdleTrackFriendlyTarget(const idAI2& ai,
+    const idEntity* target);
+void Tungsten_SetIdleTrackHeadTracking(idAI2& ai, bool enabled);
+void Tungsten_SetIdleTrackAutoFocus(idAI2& ai, bool enabled);
+void Tungsten_SetIdleTrackLookFocus(idAI2& ai, const idEntity* target,
+    bool keepFocusInView, int aimPoint, int timeout);
+void Tungsten_ClearIdleTrackLookFocus(idAI2& ai);

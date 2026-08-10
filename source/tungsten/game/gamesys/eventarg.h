@@ -1,70 +1,82 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\gamesys\eventarg.h
-// Recovered logical types: 5
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../engine/gamelib/effects/weapontracemanager.h"
+#include "../../../shared/idlib/containers/array.h"
+#include "../../../shared/idlib/math/vector.h"
+#include "../../../shared/idlib/text/str.h"
 
+class idDecl;
+class idEntity;
+class idEventReceiver;
+class idMD6Anim;
+class idScriptList;
 
-// IDA Local Type ordinal 1046; PDB kind: enum.
-enum eventArgType_t : __int32
-{
-  D_EVENT_VOID = 0x0,
-  D_EVENT_INTEGER = 0x69,
-  D_EVENT_FLOAT = 0x66,
-  D_EVENT_VECTOR = 0x76,
-  D_EVENT_QUAT = 0x71,
-  D_EVENT_COLOR = 0x63,
-  D_EVENT_ANGLES = 0x61,
-  D_EVENT_STRING = 0x73,
-  D_EVENT_ENTITY = 0x65,
-  D_EVENT_DECL = 0x64,
-  D_EVENT_ANIMWEBPATH = 0x31,
-  D_EVENT_JOINTNAME = 0x32,
-  D_EVENT_ANIMALIAS = 0x33,
-  D_EVENT_ANIM = 0x34,
-  D_EVENT_JOINTTAG = 0x35,
-  D_EVENT_FSM = 0x36,
-  D_EVENT_TRACE = 0x74,
-  D_EVENT_VARIABLEARGS = 0x78,
-  D_EVENT_BOOLEAN = 0x62,
-  D_EVENT_SCRIPTLIST = 0x6C,
-  D_EVENT_RECEIVER = 0x72,
+enum eventArgType_t : int {
+    D_EVENT_VOID = 0,
+    D_EVENT_INTEGER = 'i',
+    D_EVENT_FLOAT = 'f',
+    D_EVENT_VECTOR = 'v',
+    D_EVENT_QUAT = 'q',
+    D_EVENT_COLOR = 'c',
+    D_EVENT_ANGLES = 'a',
+    D_EVENT_STRING = 's',
+    D_EVENT_ENTITY = 'e',
+    D_EVENT_DECL = 'd',
+    D_EVENT_ANIMWEBPATH = '1',
+    D_EVENT_JOINTNAME = '2',
+    D_EVENT_ANIMALIAS = '3',
+    D_EVENT_ANIM = '4',
+    D_EVENT_JOINTTAG = '5',
+    D_EVENT_FSM = '6',
+    D_EVENT_TRACE = 't',
+    D_EVENT_VARIABLEARGS = 'x',
+    D_EVENT_BOOLEAN = 'b',
+    D_EVENT_SCRIPTLIST = 'l',
+    D_EVENT_RECEIVER = 'r'
 };
 
-// IDA Local Type ordinal 14182; PDB kind: class.
-class idEventArg
-{
+class idEventArg {
 public:
-  char type;
-  idEventArg::<unnamed_type_value> value;
+    union value_t {
+        int i;
+        float f;
+        float v[3];
+        float q[4];
+        float c[4];
+        const char* s;
+        const unsigned char* x;
+        const idDecl* d;
+        const idMD6Anim* anim;
+        unsigned int h;
+        const idScriptList* l;
+        idEventReceiver* er;
+    };
+
+    idEventArg() : type(D_EVENT_VOID), value{} {}
+    explicit idEventArg(const idSpawnId& data);
+    idSpawnId GetEntitySpawnId() const;
+    const idEntity* GetEntity() const;
+
+    char type;
+    value_t value;
 };
 
-// IDA Local Type ordinal 14191; PDB kind: unknown.
-union idEventArg::<unnamed_type_value>
-{
-  int i;
-  float f;
-  float v[3];
-  float q[4];
-  float c[4];
-  const char *s;
-  const unsigned __int8 *x;
-  const idDecl *d;
-  const idMD6Anim *anim;
-  unsigned int h;
-  const idScriptList *l;
-  idEventReceiver *er;
-};
-
-// IDA Local Type ordinal 17104; PDB kind: class.
-class idEventArgs
-{
+class idEventArgs {
 public:
-  idArray<idEventArg,8> args;
-  idArray<idStr,8> strings;
-  int argsNumber;
+    idEventArgs();
+    idEventArgs(int numberOfParams, const idEventArg* params);
+
+    void AddArg(const idEventArg& arg);
+    void operator=(const idEventArgs& other);
+
+    idArray<idEventArg, 8> args;
+    idArray<idStr, 8> strings;
+    int argsNumber;
 };
 
-// IDA Local Type ordinal 29871; PDB kind: typedef.
-typedef idVarArgs<4> eventArgs_t;
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idEventArg) == 20,
+    "Recovered event-argument ABI changed");
+static_assert(sizeof(idEventArgs) == 420,
+    "Recovered event-argument array ABI changed");
+#endif

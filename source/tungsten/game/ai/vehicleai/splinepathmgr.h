@@ -1,220 +1,295 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\vehicleai\splinepathmgr.h
-// Recovered logical types: 4
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/list.h"
+#include "idlib/math/vector.h"
+#include "idlib/text/str.h"
 
+class idEntity;
+class idVehicleAI;
 
-// IDA Local Type ordinal 15683; PDB kind: class.
-class idAISplinePathMgr : public idNavSplinePathMgr
-{
+enum navSplineType_t : int {
+    NAV_SPLINE_TYPE_DEFAULT = 0,
+    NAV_SPLINE_TYPE_VEHICLE_AI = 1,
+    NAV_SPLINE_TYPE_QUEST = 2
+};
+
+struct idAISplineNavSpline {
+    idStr name;
+    navSplineType_t type = NAV_SPLINE_TYPE_DEFAULT;
+    bool hasSplinePath = true;
+    bool hasStartNode = false;
+    bool hasEndNode = false;
+    float length = 0.0f;
+    idVec3 boundsMins = idVec3(0.0f, 0.0f, 0.0f);
+    idVec3 boundsMaxs = idVec3(0.0f, 0.0f, 0.0f);
+    int drawTime = 0;
+};
+
+struct idAISplinePathPosition {
+    idAISplineNavSpline* navSpline = nullptr;
+    float distance = 0.0f;
+    float rightDistance = 0.0f;
+};
+
+struct idAISplineTracker {
+    idEntity* owner = nullptr;
+    idAISplinePathPosition pathPosition;
+    idAISplinePathPosition goalPathPosition;
+    navSplineType_t navSplineType = NAV_SPLINE_TYPE_DEFAULT;
+};
+
+struct idAISplineDormancyRef {
+    int spawnId = 0x1FFF;
+};
+
+enum idAISplineTrackerOwnerKind : int {
+    AI_SPLINE_OWNER_NONE = 0,
+    AI_SPLINE_OWNER_VEHICLE = 1,
+    AI_SPLINE_OWNER_PICKUP = 2,
+    AI_SPLINE_OWNER_OTHER = 3
+};
+
+struct idAISplinePathDebugInfo {
+    idAISplineNavSpline* spline = nullptr;
+};
+
+struct idAISplineStatsPathEntry {
+    idStr name;
+    float distance = 0.0f;
+};
+
+struct idAISplineVehicleStats {
+    bool valid = false;
+    idStr name;
+    idStr ownerName;
+    int entityNumber = -1;
+    float desiredSteering = 0.0f;
+    int desiredBraking = 0;
+    float speedLimit = 0.0f;
+    float desiredSpeed = 0.0f;
+    float actualSpeed = 0.0f;
+    float rightDistance = 0.0f;
+    float splineDistance = 0.0f;
+    int obstacleFlags = 0;
+    int speedFlags = 0;
+    int steerFlags = 0;
+    float turnSpeedRatio = 0.0f;
+    idStr idObstacles;
+    bool dormant = false;
+    bool aiSpecificDormancy = false;
+    bool hasVehicleCar = false;
+    float health = 0.0f;
+    int difficultyLevel = -1;
+    float difficultyAttackScale = 0.0f;
+    float difficultyDamageScale = 0.0f;
+    float difficultySpeedRate = 0.0f;
+    float difficultyAccuracy = 0.0f;
+    float difficultyDamageTakenScale = 0.0f;
+    float stopDistance = 0.0f;
+    float moveDistance = 0.0f;
+    float decelDistance = 0.0f;
+    float maxCurveSpeed = 0.0f;
+    float maxCurveCosine = 1.0f;
+    float maxStepCosine = 1.0f;
+    int avoidanceType = 3;
+    float powerTurnSpeed = 0.0f;
+    float powerTurnTime = 0.0f;
+    float stopPowerTurnSpeed = 0.0f;
+    float traversalStepSize = 0.0f;
+    float backupSpeed = 0.0f;
+    idStr decisionState;
+    idStr movementState;
+    idStr attackState;
+    idStr commandState;
+    idStr enemyName;
+    bool hasPathToGoal = false;
+    float distanceToGoal = 0.0f;
+    float pathDistanceToGoal = 0.0f;
+    idList<idAISplineStatsPathEntry, 5> path;
+};
+
+struct idAISplineRuntimeOptions {
+    idStr follow;
+    bool next = false;
+    bool previous = false;
+    bool reset = false;
+    bool debug = false;
+    bool timer = false;
+    int stats = 0;
+    float showAllPaths = 0.0f;
+    bool showPathBounds = false;
+    float pathStepSize = 300.0f;
+    bool position = false;
+    bool graph = false;
+    bool waypoints = false;
+    bool disablePathing = false;
+    int trace = 0;
+};
+
+struct idAISplineDebugCameraState {
+    int scaledTime = 0;
+    int frameMilliseconds = 1;
+    bool forceFrameStep = false;
+    bool freeCamera = false;
+    idVec3 vehicleOrigin = idVec3(0.0f, 0.0f, 0.0f);
+    idAngles vehicleAngles = idAngles(0.0f, 0.0f, 0.0f);
+    idAngles freeAngles = idAngles(0.0f, 0.0f, 0.0f);
+    idVec3 gravityNormal = idVec3(0.0f, 0.0f, -1.0f);
+    float placementPitch = 0.0f;
+    float placementYaw = 0.0f;
+    float cameraYaw = 0.0f;
+    float cameraPitch = 0.0f;
+    float cameraRange = 0.0f;
+    float cameraHeight = 0.0f;
+    float minimumPitch = -89.0f;
+    float wildYaw = 180.0f;
+    float wildPitch = 180.0f;
+    float wildRoll = 180.0f;
+    float recoverRate = 0.01f;
+};
+
+struct idAISplineCameraTrace {
+    float fraction = 1.0f;
+    bool startSolid = false;
+    idVec3 endPosition = idVec3(0.0f, 0.0f, 0.0f);
+};
+
+class idAISplinePathMgr {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15684.
-  virtual ~idAISplinePathMgr();
-  virtual void Update();
-  virtual void SpecialSetup();
-  virtual idNavSplinePosition *GetClosestPathPosition(idNavSplinePosition *result, idVec3, idNavSpline *, float, float, idVec3, bool);
-  virtual float GetNextRecalcTime();
+    idAISplinePathMgr();
+    virtual ~idAISplinePathMgr() = default;
 
-  bool trackPickups;
-  int numVehiclePickups;
-  idNavPathPosTracker null_splineTracker;
-  idList<idEntityPtr<idVehicleAI>,5> dormancyList;
+    virtual void Update();
+    virtual void SpecialSetup();
+
+    void CycleFollow();
+    void UpdateTrackersPeriodic(const idList<int, 5>& indexList,
+        int frequencyInFrames, bool fastUpdateOthers);
+    bool GetDebugAiView(idVec3& origin, idMat3& axis, float& fovX);
+    void ShowVehicleAiStats();
+    void DrawWaypoints();
+    void SetupWaypoints();
+    bool CanFindEnemy(idVehicleAI* vehicleAI);
+    void RemoveFromDormancyList(idVehicleAI* vehicleAI);
+    void AddToDormancyList(idVehicleAI* vehicleAI);
+
+    float updatetime;
+    int nextRecalcTime;
+    idList<idAISplineTracker, 5> trackerPool;
+    idList<int, 5> usedTrackers;
+    idAISplineTracker null_splineTracker;
+    idAISplineNavSpline tempNavSpline;
+    idList<idAISplineDormancyRef, 5> dormancyList;
+    navSplineType_t navSplineType;
+    idStr tempNavSplinePathName;
+    bool trackPickups;
+    int numVehiclePickups;
+    idAISplineTracker* debugTracker;
+    idAngles currentViewAngles;
+    idAngles lastCarAngles;
+    int wildSpinTime;
+    float viewAnglesDeltaPerc;
+    int lastDrawTime;
+    long long navSplinePathTimerTicks;
+    int navSplinePathCount;
+    int navSplinePathCount2;
+    long long navSplineTrackerTimerTicks;
+    int navSplineTrackerCount;
+    long long navSplineClosestPosTimerTicks;
+    int navSplineClosestPosCount;
+    long long navSplineClosestPosSectionTimerTicks;
+    int navSplineClosestPosSectionCount;
 };
 
-// IDA Local Type ordinal 19697; PDB kind: struct.
-struct idSplinePathMM::idSplineGeometry
-{
-  bool generateGeometry;
-  float radius;
-  int splineSubdivisions;
-  int sweptSubdivisions;
-};
+bool Tungsten_IsAISplineRuntimeAvailable();
+int Tungsten_GetAISplineScaledTime();
+int Tungsten_GetAISplineGameFrame();
+int Tungsten_GetAISplineGameFlags();
+void Tungsten_GetAISplineRuntimeOptions(idAISplineRuntimeOptions& options);
+void Tungsten_SetAISplineFollowName(const char* name);
+void Tungsten_ClearAISplineNext();
+void Tungsten_ClearAISplinePrevious();
+void Tungsten_ClearAISplineReset();
+void Tungsten_ClearAISplinePosition();
+void Tungsten_SetAISplineTrace(int value);
 
-// IDA Local Type ordinal 19699; PDB kind: class.
-class __declspec(align(8)) idSplinePathMM : public idEntity
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 19701.
-  virtual idTypeInfo *GetType();
-  virtual ~idSplinePathMM();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
+int Tungsten_GetVehicleAICount();
+idVehicleAI* Tungsten_GetVehicleAI(int index);
+idVehicleAI* Tungsten_FindVehicleAI(const char* name);
+bool Tungsten_IsVehicleAIValid(const idVehicleAI& vehicleAI);
+const char* Tungsten_GetVehicleAIName(const idVehicleAI& vehicleAI);
+const char* Tungsten_GetVehicleAIOwnerName(const idVehicleAI& vehicleAI);
+void Tungsten_GetAISplineVehicleStats(const idVehicleAI& vehicleAI,
+    idAISplineVehicleStats& stats);
 
-  splinePathType_t type;
-  idList<idVec3,5> controlPoints;
-  idList<idVec3,5> weightPoints;
-  idSplinePathMM::idSplineGeometry splineGeometry;
-  idLinkList<idSplinePathMM> controlNode;
-  idList<splineMoverModifier_t,5> moverModifiers;
-  idList<idEntityPtr<idEntity>,5> moverModifierEntities;
-  idSplinePathMM::moverModifierModels_t moverModifierModels;
-  const idDeclEntityDef *graphDef;
-  idEntityPtr<idEntity> anchorStart;
-  idEntityPtr<idEntity> anchorEnd;
-  float cachedSplineLength;
-  idCurve_Spline<idVec3> *allocedSpline;
-  idList<idEntityPtr<idEntity>,5> splineChildEntities;
-};
+bool Tungsten_GetAISplineDebugCameraState(const idVehicleAI& vehicleAI,
+    idAISplineDebugCameraState& state);
+void Tungsten_TraceAISplineCamera(const idVec3& start,
+    const idVec3& end, idAISplineCameraTrace& trace);
 
-// IDA Local Type ordinal 19700; PDB kind: struct.
-struct idSplinePathMM::moverModifierModels_t
-{
-  idStrRenderModel orientationModModel;
-  idStrRenderModel defaultModModel;
-  float moverScale;
-};
+void Tungsten_PrepareAISplineDebugHUD();
+void Tungsten_PrintAISplineDebugHUD(const char* format, ...);
+void Tungsten_BeginAISplineTraceRecording(unsigned long lastError);
+unsigned long Tungsten_GetAISplineLastError();
+void Tungsten_ResetAISplineVehicles();
+void Tungsten_CleanupAISplineEntities(idAISplinePathMgr& manager);
+void Tungsten_CycleVehicleFollow();
+
+int Tungsten_GetAISplineDebugPathCount();
+void Tungsten_GetAISplineDebugPath(int index,
+    idAISplineNavSpline& path);
+void Tungsten_DrawAISplinePath(int index, const idVec4& color,
+    float startDistance, float endDistance, float stepSize);
+void Tungsten_SetAISplinePathDrawTime(int index, int drawTime);
+bool Tungsten_GetAISplineDebugPlayerOrigin(idVec3& origin);
+void Tungsten_DrawAISplineBounds(int index, const idVec4& color);
+idAISplineTracker* Tungsten_FindAISplineDebugTracker(
+    idAISplinePathMgr& manager);
+void Tungsten_SetAISplineTrackerGoalToCurrent(
+    idAISplineTracker& tracker, bool doPathSearch);
+void Tungsten_DrawAISplineDebugTracker(idAISplinePathMgr& manager,
+    idAISplineTracker& tracker, float pathStepSize,
+    bool pathingDisabled);
+void Tungsten_DrawAISplineGraph(idAISplinePathMgr& manager);
+
+idAISplineTrackerOwnerKind Tungsten_GetAISplineTrackerOwnerKind(
+    const idEntity* owner);
+bool Tungsten_GetAISplineEntityOrigin(const idEntity& entity,
+    idVec3& origin);
+void Tungsten_SetAISplineTrackerWorldPosition(
+    idAISplineTracker& tracker, const idVec3& position);
+void Tungsten_UpdateAISplineTracker(
+    idAISplineTracker& tracker, bool fullUpdate);
+void Tungsten_ReleaseAISplineTracker(idAISplinePathMgr& manager,
+    idAISplineTracker* tracker);
+
+int Tungsten_GetAISplineWaypointCount();
+bool Tungsten_IsAISplineWaypoint(int index);
+const char* Tungsten_GetAISplineWaypointName(int index);
+bool Tungsten_GetAISplineWaypointOrigin(int index, idVec3& origin);
+int Tungsten_GetAISplineWaypointTargetCount(int index);
+bool Tungsten_GetAISplineWaypointTargetPathName(int waypointIndex,
+    int targetIndex, idStr& pathName);
+bool Tungsten_GetAISplineWaypointTargetPosition(int waypointIndex,
+    int targetIndex, idAISplinePathPosition& position);
+bool Tungsten_GetAISplineWaypointPosition(int waypointIndex,
+    idAISplinePathPosition& position);
+idAISplineNavSpline* Tungsten_FindAISplineNavSpline(
+    const char* name, bool exact);
+idAISplinePathPosition Tungsten_GetClosestAISplinePathPosition(
+    const idVec3& origin, idAISplineNavSpline* spline,
+    float maximumDistance, float tolerance);
+void Tungsten_SetAISplineWaypointPosition(int waypointIndex,
+    const idAISplinePathPosition& position);
+idVec3 Tungsten_GetAISplinePositionWorldPoint(
+    const idAISplinePathPosition& position, bool centerLine);
+void Tungsten_DrawAISplineWaypointArrow(
+    const idVec3& start, const idVec3& end);
+void Tungsten_DrawAISplineWaypointSphere(const idVec3& origin,
+    float radius);
+void Tungsten_WarnUnassociatedAISplineWaypoint(const char* name);
+
+int Tungsten_MakeAISplineVehicleSpawnId(const idVehicleAI* vehicleAI);
+idVehicleAI* Tungsten_ResolveAISplineVehicleSpawnId(int spawnId);
+
+void Tungsten_PrintAISplineTimerStats(const idAISplinePathMgr& manager);

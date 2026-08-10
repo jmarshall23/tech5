@@ -1,16 +1,6 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\fsm\fsmlog.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
-
-
-// IDA Local Type ordinal 17252; PDB kind: class.
-class idFSMLog
-{
-public:
-  idList<idFSMLogEntry,5> list;
-  int first;
-  int maxSize;
-};
+// idFSMLog is shared by the finite-state-machine callback interface.  The
+// recovered declaration lives there so the embedded idAIFSMCallback instance
+// and this implementation use one definition and one Win32 layout.
+#include "idlib/callback.h"

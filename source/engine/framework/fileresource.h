@@ -1,9 +1,9 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\framework\fileresource.h
-// Recovered logical types: 3
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "framework/resourcelist.h"
+
+class idFile_Memory;
+struct HINSTANCE__;
 
 
 // IDA Local Type ordinal 5027; PDB kind: struct.
@@ -15,17 +15,17 @@ struct _DXFILELOADRESOURCE
 };
 
 // IDA Local Type ordinal 22454; PDB kind: class.
-class idFileResource : public idResource
-{
+class idFileResource : public idResource {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 22455.
-  virtual ~idFileResource();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
+  idFileResource();
+  ~idFileResource() override;
+  void LoadResource() override;
+  idResourceList* GetResourceList() override;
+
+  void FreeData();
+  idFile_Memory* GetFileReadOnly();
+  static bool FileExists(const char* fileName);
+  static idTypedResourceList<idFileResource> resourceList;
 
   unsigned int timestamp;
   unsigned int length;
@@ -34,3 +34,8 @@ public:
 
 // IDA Local Type ordinal 29898; PDB kind: typedef.
 typedef _DXFILELOADRESOURCE DXFILELOADRESOURCE;
+
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(idFileResource) == 48,
+    "Recovered idFileResource ABI changed");
+#endif

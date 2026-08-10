@@ -1,47 +1,34 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\decls\declaccolades.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../engine/decls/decltypeinfo.h"
+#include "../ragestats.h"
 
+class idMaterial;
 
-// IDA Local Type ordinal 18362; PDB kind: class.
-class idDeclAccolade : public idDeclTypeInfo
-{
+class idDeclAccolade : public idDeclTypeInfo {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 18363.
-  virtual ~idDeclAccolade();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    idDeclAccolade();
+    ~idDeclAccolade() override = default;
 
-  int ordinal;
-  const idMaterial *icon;
-  rageStat_t stat;
-  idStr accoladeName;
-  idStr description;
-  int index;
+    // Retail symbol: ?GetDeclInfo@idDeclAccolade@@UBAPAVidDeclInfo@@XZ
+    // EA: 0x82BBAE38, RVA: 0x00BBAE38
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    const char* GetIconName() const;
+    static void LoadAllDecls();
+
+    int ordinal;
+    const idMaterial* icon;
+    rageStat_t stat;
+    idStr accoladeName;
+    idStr description;
+    mutable int index;
+
+    static idDeclInfoTemplate<idDeclAccolade> resourceList;
+    static idList<const idDeclAccolade*, 5> orderedList;
 };
 
-// IDA Local Type ordinal 20275; PDB kind: class.
-class idSort_DeclAccoladePtr : public idSort_Quick<idDeclAccolade const *,idSort_DeclAccoladePtr>
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 20276.
-  virtual ~idSort_DeclAccoladePtr();
-  virtual void Sort(const idDeclAccolade **, unsigned int);
-
-};
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclAccolade) == 144,
+    "Recovered accolade declaration ABI changed");
+#endif

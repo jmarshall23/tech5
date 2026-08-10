@@ -1,15 +1,28 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\framework\editfield.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/csystems/autocomplete.h"
+
+class idRenderModelGui;
 
 
 // IDA Local Type ordinal 23604; PDB kind: class.
-class idEditField
-{
+class idEditField {
 public:
+  idEditField();
+  ~idEditField();
+
+  void Draw(idRenderModelGui* gui, int x, int y, int width,
+      bool showCursor) const;
+  void Clear();
+  void ClearAutoComplete();
+  bool AcceptAutoComplete();
+  void AutoComplete(bool reverse);
+  void CharEvent(int character);
+  void Paste();
+  void SetBuffer(const char* text);
+  bool KeyDownEvent(int key);
+  const char* GetBuffer() const { return buffer.c_str(); }
+
   bool overstrikeMode;
   int cursor;
   int scroll;

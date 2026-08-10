@@ -20,6 +20,7 @@ struct transSortResult_t {
 
 struct transSortParms_t {
     idTransparencyVert* verts;
+    int numQuadsToSort;
     float* quadDepths;
     std::uint8_t* emissiveQuads;
     const transSortSegmentInfo_t* segmentInfo;
@@ -44,6 +45,6 @@ static_assert(sizeof(transSortSegmentInfo_t) == 16,
 static_assert(sizeof(transSortResult_t) == 12,
     "Recovered transparency-sort result ABI changed");
 #if INTPTR_MAX == INT32_MAX
-static_assert(sizeof(transSortParms_t) == 44,
+static_assert(sizeof(transSortParms_t) == 48,
     "Recovered transparency-sort parameters ABI changed");
 #endif

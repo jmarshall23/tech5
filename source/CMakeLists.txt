@@ -71,12 +71,11 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "Source"
     FILES ${IDTECH5_IDLIB_SOURCES}
 )
 
-# Minimal framework resource ownership needed by recovered engine resources.
-set(IDTECH5_FRAMEWORK_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/engine/framework/resource.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/engine/framework/resource.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/engine/framework/resourcelist.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/engine/framework/resourcelist.h"
+# Recovered framework sources.  The original-drive Hex-Rays tree remains
+# evidence only; every compiler input is a manually reconstructed PC source.
+file(GLOB IDTECH5_FRAMEWORK_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/framework/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/framework/*.h"
 )
 
 add_library(framework STATIC ${IDTECH5_FRAMEWORK_SOURCES})
@@ -90,6 +89,8 @@ target_compile_definitions(framework PRIVATE
     _CRT_SECURE_NO_DEPRECATE
     _CRT_NONSTDC_NO_DEPRECATE
     _USE_32BIT_TIME_T
+    NOMINMAX
+    WIN32_LEAN_AND_MEAN
 )
 target_link_libraries(framework PUBLIC tech5::idLib)
 set_property(TARGET framework PROPERTY
@@ -137,6 +138,42 @@ if(MSVC)
 endif()
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "Source"
     FILES ${IDTECH5_DECL_SOURCES}
+)
+
+# Recovered map parser/model ownership.  The reconstructed PC source is the
+# only compiler input; the original-drive dump remains implementation evidence.
+file(GLOB_RECURSE IDTECH5_MAPFILE_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/mapfile/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine/mapfile/*.h"
+)
+
+add_library(mapfile STATIC ${IDTECH5_MAPFILE_SOURCES})
+add_library(tech5::mapfile ALIAS mapfile)
+target_include_directories(mapfile PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/engine"
+    "${CMAKE_CURRENT_SOURCE_DIR}/shared"
+)
+target_compile_features(mapfile PUBLIC cxx_std_14)
+target_compile_definitions(mapfile PRIVATE
+    _CRT_SECURE_NO_DEPRECATE
+    _CRT_NONSTDC_NO_DEPRECATE
+    _USE_32BIT_TIME_T
+)
+target_link_libraries(mapfile PUBLIC
+    tech5::decls tech5::framework tech5::idLib
+)
+set_property(TARGET mapfile PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+)
+set_target_properties(mapfile PROPERTIES OUTPUT_NAME "mapfile")
+if(MSVC)
+    target_compile_options(mapfile PRIVATE
+        /MP /W3 /arch:SSE2
+        /wd4244 /wd4267 /wd4305 /wd4467 /wd4595 /wd4996
+    )
+endif()
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "Source"
+    FILES ${IDTECH5_MAPFILE_SOURCES}
 )
 
 # Collision model recovery is a separate engine library. As with idLib and
@@ -229,7 +266,7 @@ target_compile_definitions(gameLib PRIVATE
     _USE_32BIT_TIME_T
 )
 target_link_libraries(gameLib PUBLIC
-    tech5::decls tech5::aas2file tech5::cm tech5::idLib
+    tech5::decls tech5::aas2file tech5::cm tech5::mapfile tech5::idLib
 )
 set_property(TARGET gameLib PROPERTY
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"

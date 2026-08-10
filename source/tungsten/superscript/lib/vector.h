@@ -1,10 +1,15 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\superscript\lib\vector.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../shared/idlib/containers/array.h"
 
+// SuperScript exposes a compact three-component vector at its ABI boundary.
+// The unrelated six-float vector_t typedef is retained from the PDB types.
+struct ssVector {
+    float x;
+    float y;
+    float z;
+};
 
-// IDA Local Type ordinal 26175; PDB kind: typedef.
-typedef idArray<float,6> vector_t;
+using vector_t = idArray<float, 6>;
+
+static_assert(sizeof(ssVector) == 12, "Recovered ssVector layout changed");

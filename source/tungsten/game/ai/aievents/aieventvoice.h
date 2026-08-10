@@ -1,40 +1,34 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\aievents\aieventvoice.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "aieventsound.h"
 
-
-// IDA Local Type ordinal 21478; PDB kind: class.
-class idAIEventVoice : public idAIEventSound
-{
+class idAIEventVoice : public idAIEventSound {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21479.
-  virtual idTypeInfo *GetType();
-  virtual ~idAIEventVoice();
-  virtual void Clear();
-  virtual idAIEvent::aiEventUpdateResult_t InternalUpdate(const int);
-  virtual idAIEvent::aiEventUpdateResult_t InternalUpdateAttached(const int);
-  virtual bool InternalIsTouching(const idEntity *, const int);
-  virtual void InternalDrawDebug(const int, const int, const int);
-  virtual float InternalGetIntensity(const idEntity *);
-  virtual const idColor *GetColor();
+    idAIEventVoice();
+    ~idAIEventVoice() override = default;
 
+    voiceMessageType_t GetVoiceMessageType() const;
+    bool InternalIsTouching(
+        const idEntity* entity, int currentTime) override;
 };
 
-// IDA Local Type ordinal 21486; PDB kind: class.
-class idAIEvent_Vehicle : public idAIEventWedge
-{
+class idAIEvent_DelayedVO : public idAIEvent {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21487.
-  virtual idTypeInfo *GetType();
-  virtual ~idAIEvent_Vehicle();
-  virtual void Clear();
-  virtual idAIEvent::aiEventUpdateResult_t InternalUpdate(const int);
-  virtual idAIEvent::aiEventUpdateResult_t InternalUpdateAttached(const int);
-  virtual bool InternalIsTouching(const idEntity *, const int);
-  virtual void InternalDrawDebug(const int, const int, const int);
-  virtual float InternalGetIntensity(const idEntity *);
+    ~idAIEvent_DelayedVO() override = default;
 
+    voiceMsg_t GetMessage() const;
+    bool InternalIsTouching(
+        const idEntity* entity, int currentTime) override;
 };
+
+bool Tungsten_AIEventEntitiesShareEncounterGroup(
+    const idEntity* listener, int originatorSpawnId);
+void Tungsten_DebugAIEventVoiceTrace(const idVec3& origin,
+    const idVec3& listenerOrigin, int resultKind);
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idAIEventVoice) == 52,
+    "Recovered voice AI-event ABI changed");
+static_assert(sizeof(idAIEvent_DelayedVO) == 52,
+    "Recovered delayed-voice AI-event ABI changed");
+#endif

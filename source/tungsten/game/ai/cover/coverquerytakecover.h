@@ -1,19 +1,50 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\cover\coverquerytakecover.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "coverquery.h"
 
-
-// IDA Local Type ordinal 20508; PDB kind: class.
-class idCoverQueryTakeCover : public idCoverQuery
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 20509.
-  virtual ~idCoverQueryTakeCover();
-  virtual void InternalPreScore();
-  virtual void InternalSetupTarget(const idCoverQuery::coverTarget_t *);
-  virtual float InternalScoreCover(const idCoverQuery::coverCache_t *);
-
+struct idTakeCoverGroupMember {
+    float distanceToCover;
+    bool contributes;
 };
+
+struct idTakeCoverRuntime {
+    bool hasCurrentEnemy;
+    bool targetIsCurrentEnemy;
+    bool staleNonEnemyTarget;
+    bool roleAllowed;
+    bool usePlayerCoverCheck;
+    bool targetIsPlayer;
+    bool hasPlayerCoverScore;
+    bool pathPassesNear;
+    bool groupFastTravel;
+    bool coverHasDynamicOwner;
+    float playerStandingScore;
+    float playerFirePointScore;
+    float deferredVisibilityThreshold;
+    float targetTravelDistanceThreshold;
+    float minimumTargetDistance;
+    float idealTargetDistance;
+    float minimumTargetTravelTime;
+    float maxEnemyCoverDistance;
+    int targetToCoverTravelTime;
+    float coverVisibilityRatio;
+    float coverAngle;
+    float historyScore;
+    float groupPenaltyDistance;
+    int groupMemberCount;
+    idTakeCoverGroupMember groupMembers[64];
+};
+
+class idCoverQueryTakeCover : public idCoverQuery {
+public:
+    using idCoverQuery::idCoverQuery;
+    ~idCoverQueryTakeCover() override = default;
+
+protected:
+    float InternalScoreCover(const coverCache_t& cached) override;
+};
+
+bool Tungsten_GetTakeCoverRuntime(const idCoverQueryTakeCover& query,
+    const idAICover& cover, const idCoverQuery::coverCache_t& cached,
+    const idCoverQuery::coverTarget_t& target,
+    idTakeCoverRuntime& runtime);

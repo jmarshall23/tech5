@@ -1,5 +1,7 @@
 #pragma once
 
+#include "navpowerdata.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\tungsten\game\navpower\navpower.h
 // Recovered logical types: 1

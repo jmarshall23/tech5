@@ -30,21 +30,24 @@ struct particleInput_t {
     const idLookupTable* tables;
     const particleRenderView_t* view;
     const idDrawVert* staticVerts;
-    idVec3 globalOrigin;
+    int totalParticles;
+    idMat3 modelAxis;
     idMat3 globalAxis;
-    idMat3 stageAxis;
-    idVec3 localViewOrg;
+    idVec3 globalOrigin;
+    idVec3 localVelocity;
     idVec3 localViewLeft;
     idVec3 localViewUp;
-    idVec3 localVelocity;
-    idVec3 distribScale;
-    idVec3 wind;
-    idVec4 entityColor;
-    float sizeScale;
+    idVec3 localViewOrg;
     float fade;
-    float shadow;
     float alphaScaleOverride;
-    int totalParticles;
+    float shadow;
+    idVec3 distribScale;
+    float sizeScale;
+    idVec4 entityColor;
+    idMat3 stageAxis;
+    idVec3 wind;
+    const influenceSphere_t* influenceSpheres;
+    int numInfluenceSpheres;
 };
 
 struct particleOutput_t {
@@ -65,3 +68,7 @@ void ParticleGenJob(const deferredParticleGenParms_t* parms);
 
 static_assert(sizeof(particleGen_t) == 48,
     "Recovered particle-generator ABI changed");
+#if INTPTR_MAX == INT32_MAX
+static_assert(sizeof(particleInput_t) == 252,
+    "Recovered particle-input ABI changed");
+#endif

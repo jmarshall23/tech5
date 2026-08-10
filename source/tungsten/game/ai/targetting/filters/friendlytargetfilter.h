@@ -1,27 +1,29 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\targetting\filters\friendlytargetfilter.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../targetfilter.h"
+#include "turretfilter.h"
 
-
-// IDA Local Type ordinal 20483; PDB kind: class.
-class idFriendlyTargetFilter : public idTargetFilter
-{
+class idFriendlyTargetFilter : public idTargetFilter {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20484.
-  virtual ~idFriendlyTargetFilter();
-  virtual bool InternalFilter(const idEntity *, const idTargetInfo *);
+    explicit idFriendlyTargetFilter(aiAwareness_t minimumAwareness);
+    ~idFriendlyTargetFilter() override = default;
 
+    bool InternalFilter(
+        const idEntity* owner, const idTargetInfo* target) const override;
 };
 
-// IDA Local Type ordinal 20485; PDB kind: class.
-class idFriendlyDeadTargetFilter : public idTargetFilter
-{
+class idFriendlyDeadTargetFilter : public idTargetFilter {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20486.
-  virtual ~idFriendlyDeadTargetFilter();
-  virtual bool InternalFilter(const idEntity *, const idTargetInfo *);
+    explicit idFriendlyDeadTargetFilter(aiAwareness_t minimumAwareness);
+    ~idFriendlyDeadTargetFilter() override = default;
 
+    bool InternalFilter(
+        const idEntity* owner, const idTargetInfo* target) const override;
 };
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idFriendlyTargetFilter) == 8,
+    "Recovered friendly target-filter ABI changed");
+static_assert(sizeof(idFriendlyDeadTargetFilter) == 8,
+    "Recovered friendly-dead target-filter ABI changed");
+#endif

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "framework/buildversion.h"
+
 // System-facing framework ABI recovered from the retail PDB.  The framework
 // headers elsewhere in this partial tree are raw PDB dumps and are not valid
 // standalone C++; keeping the cleaned declarations here lets the recovered
@@ -59,11 +61,6 @@ struct renderView_t;
 struct classMetaDataInfo_t;
 struct trace_t;
 struct enumTypeInfo_t;
-
-struct idVersionInfo {
-	char fullVersion[ 128 ];
-	char netVersion[ 128 ];
-};
 
 // Clean declarations for the small ActionScript ABI surface used by the
 // system dialogs.  The recovered GUI headers are direct PDB type dumps and

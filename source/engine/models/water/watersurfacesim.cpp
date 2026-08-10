@@ -6,6 +6,8 @@
 
 idWaterSurfaceSim::GlobalToLocalCallback
     idWaterSurfaceSim::globalToLocalCallback = nullptr;
+idWaterSurfaceSim::LocalToGlobalCallback
+    idWaterSurfaceSim::localToGlobalCallback = nullptr;
 
 namespace {
 
@@ -78,6 +80,13 @@ void idWaterSurfaceSim::SetGlobalToLocalCallback(
     globalToLocalCallback = callback;
 }
 
+void idWaterSurfaceSim::SetCoordinateTransformCallbacks(
+        GlobalToLocalCallback globalToLocal,
+        LocalToGlobalCallback localToGlobal) {
+    globalToLocalCallback = globalToLocal;
+    localToGlobalCallback = localToGlobal;
+}
+
 float idWaterSurfaceSim::GetTimeStep() const {
     return timeStep;
 }
@@ -101,6 +110,15 @@ void idWaterSurfaceSim::LocalToGridSpacePos(const idVec3& localPosition,
         int& x, int& y) const {
     x = static_cast<int>(std::floor(localPosition.x / spacing + 0.5f));
     y = static_cast<int>(std::floor(localPosition.y / spacing + 0.5f));
+}
+
+void idWaterSurfaceSim::SetupLocalPos(idVec3& result, const int gridX,
+        const int gridY, const float* const previousHeightMap) const {
+    result.x = static_cast<float>(gridX) * spacing;
+    result.y = static_cast<float>(gridY) * spacing;
+    const int index = GridIndex(gridX, gridY);
+    result.z = index >= 0 && previousHeightMap != nullptr
+        ? previousHeightMap[index] : 0.0f;
 }
 
 int idWaterSurfaceSim::GridIndex(const int gridX, const int gridY) const {
@@ -247,28 +265,50 @@ bool idWaterSurfaceSim::GetSurfacePositionAtPoint(idVec3& position,
     idVec3 localPosition;
     GlobalToLocalPos(position, localPosition,
         reinterpret_cast<const idRenderModel*>(renderModel));
-    const float gridX = localPosition.x / spacing;
-    const float gridY = localPosition.y / spacing;
-    const int x = static_cast<int>(std::floor(gridX));
-    const int y = static_cast<int>(std::floor(gridY));
-    if (x < 0 || y < 0 || x + 1 >= static_cast<int>(width) ||
-            y + 1 >= static_cast<int>(height)) {
-        return false;
+    const float gridPositionX = localPosition.x / spacing;
+    const float gridPositionY = localPosition.y / spacing;
+    const int x0 = static_cast<int>(std::floor(gridPositionX));
+    const int y0 = static_cast<int>(std::floor(gridPositionY));
+    if (x0 < 0 || y0 < 0 || x0 + 1 >= static_cast<int>(width)
+        || y0 + 1 >= static_cast<int>(height)) return false;
+    const int x1 = x0 + 1;
+    const int y1 = y0 + 1;
+    const float fractionX = gridPositionX - static_cast<float>(x0);
+    const float fractionY = gridPositionY - static_cast<float>(y0);
+    const idList<float, 54>& heights = waveHeight[currentDeferred];
+
+    idVec3 triangle[3];
+    if (((x0 + y0) & 1) == 0) {
+        SetupLocalPos(triangle[0], x0, y0, heights.Ptr());
+        SetupLocalPos(triangle[1], x1, y1, heights.Ptr());
+        if (fractionX <= fractionY)
+            SetupLocalPos(triangle[2], x0, y1, heights.Ptr());
+        else
+            SetupLocalPos(triangle[2], x1, y0, heights.Ptr());
+    } else {
+        SetupLocalPos(triangle[0], x1, y0, heights.Ptr());
+        SetupLocalPos(triangle[1], x0, y1, heights.Ptr());
+        if (1.0f - fractionX > fractionY)
+            SetupLocalPos(triangle[2], x0, y0, heights.Ptr());
+        else
+            SetupLocalPos(triangle[2], x1, y1, heights.Ptr());
     }
-
-    const idList<float, 54>& heights = waveHeight[currentDeferred ^ 1];
-    const float h00 = heights[GridIndex(x, y)];
-    const float h10 = heights[GridIndex(x + 1, y)];
-    const float h01 = heights[GridIndex(x, y + 1)];
-    const float h11 = heights[GridIndex(x + 1, y + 1)];
-    const float fractionX = gridX - x;
-    const float fractionY = gridY - y;
-    const float lower = h00 + (h10 - h00) * fractionX;
-    const float upper = h01 + (h11 - h01) * fractionX;
-    surfaceHeight = lower + (upper - lower) * fractionY;
-    position.z = origin.z + surfaceHeight;
-
-    normal.Set(h00 - h10, h00 - h01, spacing);
-    normal.NormalizeFast();
+    normal = (triangle[0] - triangle[2]).Cross(
+        triangle[1] - triangle[2]);
+    if (normal.LengthSqr() <= 1.0e-30f) normal.Set(0.0f, 0.0f, 1.0f);
+    else normal.NormalizeFast();
+    if (normal.z < 0.0f) normal = -normal;
+    if (std::fabs(normal.z) <= 1.0e-20f) return false;
+    surfaceHeight = triangle[2].z
+        - (normal.x * (localPosition.x - triangle[2].x)
+            + normal.y * (localPosition.y - triangle[2].y)) / normal.z;
+    const idVec3 modelPosition(localPosition.x + origin.x,
+        localPosition.y + origin.y, surfaceHeight + origin.z);
+    if (localToGlobalCallback != nullptr && renderModel != nullptr) {
+        localToGlobalCallback(reinterpret_cast<const idRenderModel*>(
+            renderModel), modelPosition, position);
+    } else {
+        position = modelPosition;
+    }
     return true;
 }

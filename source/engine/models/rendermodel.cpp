@@ -2,10 +2,20 @@
 
 #include "network/serializer.h"
 #include "idlib/filesystem/file.h"
+#include "idlib/geometry/rendermatrix.h"
+
+struct lightContribution_t;
+struct ambientMap_t;
+struct shadowMap_t;
+class idRenderLightCommitted;
+enum lightingModel_t : int;
+#include "renderer/jobs/approximatelighting/approximatelighting.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <memory>
+#include <unordered_map>
 
 namespace {
 
@@ -47,6 +57,39 @@ bool LoadEmptyParmBlock(idParmBlock* block, idFile* file) {
     return true;
 }
 
+struct portableCommittedState_t {
+    idRenderMatrix modelMatrix;
+    idStaticParmBlock<32> renderParmBlock;
+    approximateLighting_t approximateLighting{};
+    idList<idRenderModelSurface, 85> surfaces;
+    idRenderWorld* world = nullptr;
+    int index = -1;
+    int referenceCount = 0;
+    bool rendered = false;
+    bool litTransSort = false;
+
+    portableCommittedState_t() {
+        modelMatrix.Identity();
+    }
+};
+
+std::unordered_map<const idRenderModel*,
+    std::unique_ptr<portableCommittedState_t>> portableCommittedStates;
+
+portableCommittedState_t& PortableState(const idRenderModel* const model) {
+    std::unique_ptr<portableCommittedState_t>& state =
+        portableCommittedStates[model];
+    if (!state) state.reset(new portableCommittedState_t());
+    return *state;
+}
+
+const portableCommittedState_t* FindPortableState(
+        const idRenderModel* const model) {
+    const auto found = portableCommittedStates.find(model);
+    return found != portableCommittedStates.end()
+        ? found->second.get() : nullptr;
+}
+
 } // namespace
 
 idRenderModel::MaterialNameCallback idRenderModel::materialNameCallback = nullptr;
@@ -55,6 +98,30 @@ idRenderModel::ParmBlockSaveCallback idRenderModel::parmBlockSaveCallback = null
 idRenderModel::ParmBlockLoadCallback idRenderModel::parmBlockLoadCallback = nullptr;
 idRenderModel::SnapshotMaterialCallback idRenderModel::snapshotMaterialCallback = nullptr;
 idRenderModel::SnapshotParmBlockCallback idRenderModel::snapshotParmBlockCallback = nullptr;
+idRenderModel::ScheduleCommitCallback idRenderModel::scheduleCommitCallback =
+    nullptr;
+idRenderModel::CommitCallback idRenderModel::commitCallback = nullptr;
+idRenderModel::WorldResolver idRenderModel::worldResolver = nullptr;
+idRenderModel::IntegerResolver idRenderModel::indexResolver = nullptr;
+idRenderModel::IntegerResolver idRenderModel::referenceCountResolver =
+    nullptr;
+idRenderModel::VisibilityResolver idRenderModel::visibilityResolver =
+    nullptr;
+idRenderModel::ClearOcclusionCallback
+    idRenderModel::clearOcclusionCallback = nullptr;
+idRenderModel::NameCommitCallback idRenderModel::nameCommitCallback =
+    nullptr;
+idRenderModel::SurfaceCommitCallback idRenderModel::surfaceCommitCallback =
+    nullptr;
+idRenderModel::ParmSetCallback idRenderModel::parmSetCallback = nullptr;
+idRenderModel::SurfaceResourceFreeCallback
+    idRenderModel::surfaceResourceFreeCallback = nullptr;
+idRenderModel::DecalCreateCallback idRenderModel::decalCreateCallback =
+    nullptr;
+idRenderModel::DecalPositionCallback idRenderModel::decalPositionCallback =
+    nullptr;
+idRenderModel::DecalRemoveCallback idRenderModel::decalRemoveCallback =
+    nullptr;
 
 idRenderModel::idRenderModel()
     : name("")
@@ -64,8 +131,8 @@ idRenderModel::idRenderModel()
     , useDeferredPosition(false)
     , deferredPositionInitialized(false)
     , deleteOnSync(false)
-    , unlinked(false)
-    , needWriteToSnapshot(false)
+    , unlinked(true)
+    , needWriteToSnapshot(true)
     , nextOnCommitList(nullptr)
     , needCommitFrameNum(-1)
     , committed(nullptr)
@@ -89,11 +156,13 @@ idRenderModel::idRenderModel()
     g.modelFade = 1.0f;
     g.fadeVisibilityOver = 400.0f;
     g.viewport.Zero();
+    PortableState(this);
 }
 
 idRenderModel::~idRenderModel() {
     RemoveDecals();
     FreeSurfaces();
+    portableCommittedStates.erase(this);
 }
 
 void idRenderModel::Save(idFile* file) {
@@ -323,14 +392,29 @@ const idDeclSkins* idRenderModel::GetSkins() const {
     return nullptr;
 }
 
-decalHandle_t idRenderModel::AddDecalFromPoint(const decalParams_t*, int,
-        const idVec3&, const idVec3&, idJointIndex) {
-    return decalHandle_t();
+decalHandle_t idRenderModel::AddDecalFromPoint(const decalParams_t* parms,
+        const int startTime, const idVec3& position,
+        const idVec3& direction, idJointIndex) {
+    if (decalData.Num() >= 16) return decalHandle_t();
+
+    decalData_t decal{};
+    decal.handle.Invalidate();
+    decal.jointId.Invalidate();
+    InitDecalData(decal, parms, startTime, position, direction);
+    if (decal.handle.IsValid()) decalData.Append(decal);
+    return decal.handle;
 }
 
 bool idRenderModel::RemoveDecal(const decalHandle_t handle) {
+    if (!handle.IsValid()) {
+        const bool removedAny = decalData.Num() != 0;
+        RemoveDecals();
+        return removedAny;
+    }
     for (int index = 0; index < decalData.Num(); ++index) {
         if (decalData[index].handle == handle) {
+            if (decalRemoveCallback != nullptr)
+                decalRemoveCallback(this, handle);
             decalData.RemoveIndexFast(index);
             return true;
         }
@@ -339,11 +423,39 @@ bool idRenderModel::RemoveDecal(const decalHandle_t handle) {
 }
 
 void idRenderModel::RemoveDecals() {
+    if (decalRemoveCallback != nullptr) {
+        for (int index = 0; index < decalData.Num(); ++index)
+            decalRemoveCallback(this, decalData[index].handle);
+    }
     decalData.Clear();
 }
 
 void idRenderModel::FreeSurfaces() {
+    for (int index = 0; index < surfaces.Num(); ++index) {
+        idRenderModelSurface& surface = surfaces[index];
+        if (surfaceResourceFreeCallback != nullptr) {
+            surfaceResourceFreeCallback(surface);
+            continue;
+        }
+        if (surface.geometry != nullptr && !surface.geometryIsReference) {
+            delete surface.geometry;
+            surface.geometry = nullptr;
+        }
+        if (surface.stMap != nullptr && (surface.referenceMask & 3u) == 0) {
+            delete surface.stMap;
+            surface.stMap = nullptr;
+        }
+        if (surface.morphMap != nullptr && (surface.referenceMask & 2u) == 0) {
+            delete surface.morphMap;
+            surface.morphMap = nullptr;
+        }
+        if (surface.joints != nullptr && (surface.referenceMask & 1u) == 0) {
+            delete surface.joints;
+            surface.joints = nullptr;
+        }
+    }
     surfaces.ClearFree();
+    PortableState(this).surfaces.ClearFree();
 }
 
 bool idRenderModel::CommitSubclass() {
@@ -362,6 +474,8 @@ const idList<sourceSurface_t, 5>* idRenderModel::GetSourceSurfaces() const {
 void idRenderModel::SetName(const char* modelName) {
     name.Set(modelName != nullptr ? modelName : "");
     debugName = name.c_str();
+    if (nameCommitCallback != nullptr)
+        nameCommitCallback(this, name.c_str());
 }
 
 void idRenderModel::AddSurface(const idRenderModelSurface& surface) {
@@ -371,17 +485,29 @@ void idRenderModel::AddSurface(const idRenderModelSurface& surface) {
 void idRenderModel::SetMaxSurfaces(const int maximum) {
     if (maximum >= 0) {
         surfaces.PreAllocate(maximum);
+        PortableState(this).surfaces.PreAllocate(maximum);
     }
 }
 
 void idRenderModel::FinishSurfaces() {
-    referenceBounds[0].Zero();
-    referenceBounds[1].Zero();
     bool haveBounds = false;
     for (int index = 0; index < surfaces.Num(); ++index) {
-        // Geometry bounds are renderer-owned and deliberately opaque here.
-        // A renderer integration may populate referenceBounds before commit.
-        haveBounds = haveBounds || surfaces[index].geometry != nullptr;
+        idRenderModelSurface& surface = surfaces[index];
+        if (g.customMaterial != nullptr && surface.material != nullptr)
+            surface.material = g.customMaterial;
+        if (surface.geometry == nullptr) continue;
+        const idBounds& bounds = surface.geometry->bounds;
+        if (!haveBounds) {
+            referenceBounds = bounds;
+            haveBounds = true;
+        } else {
+            for (int axis = 0; axis < 3; ++axis) {
+                referenceBounds[0][axis] = (std::min)(
+                    referenceBounds[0][axis], bounds[0][axis]);
+                referenceBounds[1][axis] = (std::max)(
+                    referenceBounds[1][axis], bounds[1][axis]);
+            }
+        }
     }
     if (!haveBounds) {
         referenceBounds[0].Zero();
@@ -390,21 +516,57 @@ void idRenderModel::FinishSurfaces() {
 }
 
 void idRenderModel::CommitThisFrame() {
-    CommitSubclass();
+    unlinked = false;
+    if (scheduleCommitCallback != nullptr && scheduleCommitCallback(this))
+        return;
+    Commit();
+}
+
+void idRenderModel::Commit() {
+    portableCommittedState_t& state = PortableState(this);
+    state.renderParmBlock.ops = gameParmBlock.ops;
+    state.renderParmBlock.constants = gameParmBlock.constants;
+    state.renderParmBlock.thread = gameParmBlock.thread;
+    state.renderParmBlock.usingTempOps = gameParmBlock.usingTempOps;
+
+    const bool subclassChanged = CommitSubclass();
+    if (useDeferredPosition) {
+        g.origin = deferredOrigin;
+        g.axis = deferredAxis;
+    }
+    deferredPositionInitialized = true;
+    idRenderMatrix::FromOriginAxisScale(
+        g.origin, g.axis, g.scale, state.modelMatrix);
+    CommitSurfaces();
+    state.rendered = !unlinked;
+    if (commitCallback != nullptr)
+        commitCallback(this, subclassChanged);
+}
+
+void idRenderModel::CommitSurfaces() {
+    portableCommittedState_t& state = PortableState(this);
+    state.surfaces = surfaces;
+    if (surfaceCommitCallback != nullptr)
+        surfaceCommitCallback(this, state.surfaces);
 }
 
 void idRenderModel::SetViewport(const int x, const int y, const int width,
         const int height) {
     g.viewport.x1 = static_cast<short>(x);
     g.viewport.y1 = static_cast<short>(y);
-    g.viewport.x2 = static_cast<short>(x + width);
-    g.viewport.y2 = static_cast<short>(y + height);
+    g.viewport.x2 = static_cast<short>(x + width - 1);
+    g.viewport.y2 = static_cast<short>(y + height - 1);
 }
 
 void idRenderModel::ClearOcclusionQuery() {
+    if (clearOcclusionCallback != nullptr)
+        clearOcclusionCallback(this);
 }
 
-void idRenderModel::SetParm(const idDeclRenderParm*, const parmValue_t&) {
+void idRenderModel::SetParm(const idDeclRenderParm* parm,
+        const parmValue_t& value) {
+    if (parm != nullptr && parmSetCallback != nullptr)
+        parmSetCallback(&gameParmBlock, parm, value);
 }
 
 void idRenderModel::SetMaterialPersistenceCallbacks(
@@ -425,6 +587,40 @@ void idRenderModel::SetSnapshotPersistenceCallbacks(
         SnapshotParmBlockCallback parmBlockCallback) {
     snapshotMaterialCallback = materialCallback;
     snapshotParmBlockCallback = parmBlockCallback;
+}
+
+void idRenderModel::SetRuntimeCallbacks(
+        ScheduleCommitCallback scheduleCommit,
+        CommitCallback commit,
+        WorldResolver resolveWorld,
+        IntegerResolver resolveIndex,
+        IntegerResolver resolveReferenceCount,
+        VisibilityResolver resolveVisibility,
+        ClearOcclusionCallback clearOcclusion,
+        NameCommitCallback commitName,
+        SurfaceCommitCallback commitSurfacesCallback) {
+    scheduleCommitCallback = scheduleCommit;
+    commitCallback = commit;
+    worldResolver = resolveWorld;
+    indexResolver = resolveIndex;
+    referenceCountResolver = resolveReferenceCount;
+    visibilityResolver = resolveVisibility;
+    clearOcclusionCallback = clearOcclusion;
+    nameCommitCallback = commitName;
+    surfaceCommitCallback = commitSurfacesCallback;
+}
+
+void idRenderModel::SetDecalCallbacks(DecalCreateCallback create,
+        DecalPositionCallback position, DecalRemoveCallback remove) {
+    decalCreateCallback = create;
+    decalPositionCallback = position;
+    decalRemoveCallback = remove;
+}
+
+void idRenderModel::SetModelResourceCallbacks(ParmSetCallback setParm,
+        SurfaceResourceFreeCallback freeSurfaceResources) {
+    parmSetCallback = setParm;
+    surfaceResourceFreeCallback = freeSurfaceResources;
 }
 
 void idRenderModel::SetParm(const idDeclRenderParm* parm, const float scalar) {
@@ -461,19 +657,69 @@ const idParmBlock* idRenderModel::GetParmBlock() const {
 }
 
 bool idRenderModel::IsRendered() const {
-    return committed != nullptr && !unlinked;
+    if (visibilityResolver != nullptr) return visibilityResolver(this);
+    const portableCommittedState_t* state = FindPortableState(this);
+    return state != nullptr && state->rendered;
 }
 
 int idRenderModel::GetNumReferences() const {
-    return IsRendered() ? 1 : 0;
+    if (referenceCountResolver != nullptr)
+        return referenceCountResolver(this);
+    const portableCommittedState_t* state = FindPortableState(this);
+    return state != nullptr ? state->referenceCount : 0;
 }
 
 int idRenderModel::GetIndex() const {
-    return -1;
+    if (indexResolver != nullptr) return indexResolver(this);
+    const portableCommittedState_t* state = FindPortableState(this);
+    return state != nullptr ? state->index : -1;
 }
 
 idRenderWorld* idRenderModel::GetWorld() const {
-    return nullptr;
+    if (worldResolver != nullptr) return worldResolver(this);
+    const portableCommittedState_t* state = FindPortableState(this);
+    return state != nullptr ? state->world : nullptr;
+}
+
+const idRenderMatrix& idRenderModel::GetModelMatrix() const {
+    return PortableState(this).modelMatrix;
+}
+
+idParmBlock* idRenderModel::GetRenderParmBlock() {
+    return &PortableState(this).renderParmBlock;
+}
+
+const idParmBlock* idRenderModel::GetRenderParmBlock() const {
+    return &PortableState(this).renderParmBlock;
+}
+
+const approximateLighting_t& idRenderModel::GetApproximateLighting() const {
+    return PortableState(this).approximateLighting;
+}
+
+void idRenderModel::SetLitTransSortFlag() {
+    PortableState(this).litTransSort = true;
+}
+
+bool idRenderModel::SetDecalPosition(const decalHandle_t handle,
+        const idVec3& worldPosition, const idMat3& worldAxis) {
+    return handle.IsValid() && decalPositionCallback != nullptr
+        && decalPositionCallback(this, handle, worldPosition, worldAxis);
+}
+
+void idRenderModel::InitDecalData(decalData_t& decal,
+        const decalParams_t* parms, const int startTime,
+        const idVec3& position, const idVec3& direction) {
+    decal.handle.Invalidate();
+    decal.jointId.Invalidate();
+    if (decalCreateCallback == nullptr) return;
+
+    idMat3 decalWorldAxis(1.0f);
+    decal.handle = decalCreateCallback(this, parms, startTime,
+        position, direction, decalWorldAxis);
+    if (!decal.handle.IsValid()) return;
+    GlobalPointToLocal(position, decal.relativePos);
+    decal.relativeAxis = decalWorldAxis * ActiveAxis(*this).Transpose();
 }
 
 void idRenderModel::GlobalPointToLocal(const idVec3& input,
@@ -488,4 +734,8 @@ void idRenderModel::LocalPointToGlobal(const idVec3& input,
     const idMat3& axis = ActiveAxis(*this);
     output = ActiveOrigin(*this) + axis[0] * input.x + axis[1] * input.y +
         axis[2] * input.z;
+}
+
+bool CompareEqualMat3(const idMat3& left, const idMat3& right) {
+    return std::memcmp(&left, &right, sizeof(left)) == 0;
 }

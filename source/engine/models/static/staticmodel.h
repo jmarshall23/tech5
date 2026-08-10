@@ -12,6 +12,7 @@ public:
         int autospriteType = 0;
         bool disableTriangleStrips = false;
         bool transparencySort = false;
+        bool discrete = false;
     };
 
     enum modelLoadFlags_t : int {
@@ -65,6 +66,11 @@ public:
     bool ConvertOBJToModelSurfaces(const class idOBJModel* obj);
     bool ConvertToOBJ(const char* groupName, class idOBJModel* obj) const;
     void BuildAutospriteData();
+    void BuildMergeList(const idList<idStr, 5>& materialNames,
+        idList<const idMaterial*, 5>& resolvedMaterials,
+        idList<int, 5>& mergeTo,
+        idList<const idMaterial*, 5>& uniqueMaterials,
+        idList<int, 5>& uniqueMaterialNumbers);
     void MergeSurfacesAndBuildSourceSurfaces();
     void ConvertToTriStrips();
     bool WriteStaticBModel(const char* fileName,
@@ -90,6 +96,8 @@ public:
     static const idMaterial* ResolveMaterial(const char* name);
     static const char* MaterialName(const idMaterial* material);
     static int MaterialChecksum(const idMaterial* material);
+    static bool GetMaterialTraits(const idMaterial* material,
+        materialGenerationTraits_t& traits);
 
     static idTypedResourceList<idStaticModel> resourceList;
 

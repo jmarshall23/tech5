@@ -4,6 +4,7 @@
 #include "../bv/bounds.h"
 #include "../containers/list.h"
 #include "../math/matrix.h"
+#include "../sys/sys_alloc.h"
 
 enum SurfaceSwap : int {
     SWAP_LOWRED = 0,

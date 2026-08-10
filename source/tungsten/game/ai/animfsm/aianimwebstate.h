@@ -1,157 +1,142 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\ai\animfsm\aianimwebstate.h
-// Recovered logical types: 14
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "aianimwebtransitions_core.h"
+#include "../aimoveparms.h"
 
+class idAI2;
 
-// IDA Local Type ordinal 1590; PDB kind: enum.
-enum aiAnimWeb_t : __int32
-{
-  AIANIMWEB_BODY = 0x0,
-  AIANIMWEB_MAX = 0x1,
+enum aiAnimWeb_t : int {
+    AIANIMWEB_BODY = 0,
+    AIANIMWEB_MAX = 1
 };
 
-// IDA Local Type ordinal 21323; PDB kind: class.
-class idAIAnimWebState : public idAnimWebState
-{
+enum walkState_t : int {
+    WALKSTATE_NOCLIP = 0,
+    WALKSTATE_WALKING = 1,
+    WALKSTATE_RUNNING = 2,
+    WALKSTATE_SPRINTING = 3,
+    WALKSTATE_MAX = 4
+};
+
+enum equipSlot_t : int {
+    EQUIP_NONE = 0,
+    EQUIP_LEFT_HAND = 1,
+    EQUIP_RIGHT_HAND = 2,
+    EQUIP_HEAD = 3,
+    EQUIP_TORSO = 4,
+    EQUIP_HOLSTER_HIP_LEFT = 5,
+    EQUIP_HOLSTER_HIP_RIGHT = 6,
+    EQUIP_HOLSTER_BACK = 7,
+    EQUIP_HOLSTER_SHOULDER = 8,
+    EQUIP_HOLSTER_BELT_LEFT = 9,
+    EQUIP_HOLSTER_BELT_RIGHT = 10,
+    EQUIP_HOLSTER_BELT_BACK = 11,
+    EQUIP_HOLSTER_BELT_FRONT = 12,
+    EQUIP_VEHICLE = 13,
+    EQUIP_VEHICLE_RAM = 14,
+    EQUIP_MAX = 15
+};
+
+enum aiSubWeb_t : int {
+    AISUBWEB_RELAXED = 0,
+    AISUBWEB_COMBAT = 1,
+    AISUBWEB_HOSTILE = 2,
+    AISUBWEB_SEARCH = 3,
+    AISUBWEB_PAIN = 4,
+    AISUBWEB_PAIN_STAGGER = 5,
+    AISUBWEB_PAIN_MOVING = 6,
+    AISUBWEB_PAIN_SHOCK = 7,
+    AISUBWEB_DYING = 8,
+    AISUBWEB_ACTIONSCRIPT = 9,
+    AISUBWEB_FCOVER = 10,
+    AISUBWEB_MELEE = 11,
+    AISUBWEB_SURPRISE = 12,
+    AISUBWEB_DIVE = 13,
+    AISUBWEB_DODGE = 14,
+    AISUBWEB_GRENADE = 15,
+    AISUBWEB_THROW = 16,
+    AISUBWEB_OVERRIDE = 17,
+    AISUBWEB_TURRET = 18,
+    AISUBWEB_RCCONTROL = 19,
+    AISUBWEB_TRAVERSAL = 20,
+    AISUBWEB_ZIPLINE = 21,
+    AISUBWEB_DROPSHIP_FALL = 22,
+    AISUBWEB_MAX = 23
+};
+
+class idAIAnimWebState : public idAnimWebState {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21324.
-  virtual ~idAIAnimWebState();
-  virtual void GetMoveStateString(const idAI2 *, idStr *, posture_t);
-  virtual void GetTurnStateString(const idAI2 *, idStr *);
+    idAIAnimWebState() = default;
+    idAIAnimWebState(const idAI2* ai,
+        const char* subWebName, const char* stateName);
+    idAIAnimWebState(const idAI2* ai,
+        aiSubWeb_t subWeb, const char* stateName);
+    ~idAIAnimWebState() = default;
 
+    virtual void GetMoveStateString(const idAI2* ai,
+        idStr& moveState, posture_t overridePosture);
+    virtual void GetTurnStateString(
+        const idAI2* ai, idStr& turnState);
+
+    bool VerifyFloorTrace(const idAI2* ai);
+    bool VerifyPointOutsideAnimRange(
+        const idAI2* ai, const idVec3& point);
+    static void GetSubwebString(const idAI2* ai, idStr& output,
+        aiSubWeb_t subWeb, posture_t posture,
+        equipSlot_t weaponSlot);
 };
 
-// IDA Local Type ordinal 21325; PDB kind: class.
-class idAIAnimWebState_Current : public idAIAnimWebState
-{
+class idAIAnimWebState_Transition : public idAIAnimWebState {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21326.
-  virtual ~idAIAnimWebState_Current();
-  virtual void GetMoveStateString(const idAI2 *, idStr *, posture_t);
-  virtual void GetTurnStateString(const idAI2 *, idStr *);
-
+    idAIAnimWebState_Transition(const idAI2* ai,
+        idAnimWebTransitions::transitionQueryResult_t& result,
+        bool skipTrace, bool skipVerifyPointOutsideAnimRange);
 };
 
-// IDA Local Type ordinal 21386; PDB kind: class.
-class idAIAnimWebState_Idle : public idAIAnimWebState
-{
+class idAIAnimWebState_Current : public idAIAnimWebState {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21387.
-  virtual ~idAIAnimWebState_Idle();
-  virtual void GetMoveStateString(const idAI2 *, idStr *, posture_t);
-  virtual void GetTurnStateString(const idAI2 *, idStr *);
-
+    explicit idAIAnimWebState_Current(const idAI2* ai);
 };
 
-// IDA Local Type ordinal 21388; PDB kind: class.
-class idAIAnimWebState_Movement : public idAIAnimWebState
-{
+class idAIAnimWebState_Target : public idAIAnimWebState {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21389.
-  virtual ~idAIAnimWebState_Movement();
-  virtual void GetMoveStateString(const idAI2 *, idStr *, posture_t);
-  virtual void GetTurnStateString(const idAI2 *, idStr *);
-
+    explicit idAIAnimWebState_Target(const idAI2* ai);
 };
 
-// IDA Local Type ordinal 21393; PDB kind: class.
-class idAIAnimWebState_Target : public idAIAnimWebState
-{
+class idAIAnimWebState_Idle : public idAIAnimWebState {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21394.
-  virtual ~idAIAnimWebState_Target();
-  virtual void GetMoveStateString(const idAI2 *, idStr *, posture_t);
-  virtual void GetTurnStateString(const idAI2 *, idStr *);
-
+    idAIAnimWebState_Idle(const idAI2* ai,
+        aiSubWeb_t subWeb = AISUBWEB_MAX,
+        posture_t posture = POSTURE_MAX,
+        equipSlot_t weaponSlot = EQUIP_MAX);
 };
 
-// IDA Local Type ordinal 21830; PDB kind: class.
-class idAIAnimWebState_FallTraversal : public idAIAnimWebState
-{
+class idAIAnimWebState_Movement : public idAIAnimWebState {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 21831.
-  virtual ~idAIAnimWebState_FallTraversal();
-  virtual void GetMoveStateString(const idAI2 *, idStr *, posture_t);
-  virtual void GetTurnStateString(const idAI2 *, idStr *);
-
+    idAIAnimWebState_Movement(const idAI2* ai,
+        const char* postfix = nullptr,
+        aiSubWeb_t subWeb = AISUBWEB_MAX,
+        posture_t posture = POSTURE_MAX);
 };
 
-// IDA Local Type ordinal 21853; PDB kind: class.
-class idAIAnimWebState_BrakingTurn : public idAIAnimWebState
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 21854.
-  virtual ~idAIAnimWebState_BrakingTurn();
-  virtual void GetMoveStateString(const idAI2 *, idStr *, posture_t);
-  virtual void GetTurnStateString(const idAI2 *, idStr *);
-
-};
-
-// IDA Local Type ordinal 21898; PDB kind: class.
-class idAIAnimWebState_Pain : public idAIAnimWebState
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 21899.
-  virtual ~idAIAnimWebState_Pain();
-  virtual void GetMoveStateString(const idAI2 *, idStr *, posture_t);
-  virtual void GetTurnStateString(const idAI2 *, idStr *);
-
-};
-
-// IDA Local Type ordinal 21947; PDB kind: class.
-class idAIAnimWebState_Reload : public idAIAnimWebState
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 21948.
-  virtual ~idAIAnimWebState_Reload();
-  virtual void GetMoveStateString(const idAI2 *, idStr *, posture_t);
-  virtual void GetTurnStateString(const idAI2 *, idStr *);
-
-};
-
-// IDA Local Type ordinal 21951; PDB kind: class.
-class idAIAnimWebState_Action : public idAIAnimWebState
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 21952.
-  virtual ~idAIAnimWebState_Action();
-  virtual void GetMoveStateString(const idAI2 *, idStr *, posture_t);
-  virtual void GetTurnStateString(const idAI2 *, idStr *);
-
-};
-
-// IDA Local Type ordinal 22002; PDB kind: class.
-class idAIAnimWebState_Timeout : public idAIAnimWebState
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 22003.
-  virtual ~idAIAnimWebState_Timeout();
-  virtual void GetMoveStateString(const idAI2 *, idStr *, posture_t);
-  virtual void GetTurnStateString(const idAI2 *, idStr *);
-
-};
-
-// IDA Local Type ordinal 22289; PDB kind: class.
-class idAIAnimWebState_Dest : public idAIAnimWebState
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 22290.
-  virtual ~idAIAnimWebState_Dest();
-  virtual void GetMoveStateString(const idAI2 *, idStr *, posture_t);
-  virtual void GetTurnStateString(const idAI2 *, idStr *);
-
-};
-
-// IDA Local Type ordinal 22369; PDB kind: class.
-class idAIAnimWebState_Turn : public idAIAnimWebState
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 22370.
-  virtual ~idAIAnimWebState_Turn();
-  virtual void GetMoveStateString(const idAI2 *, idStr *, posture_t);
-  virtual void GetTurnStateString(const idAI2 *, idStr *);
-
-};
+const idDeclAnimWeb* Tungsten_GetAIAnimWebDeclaration(const idAI2& ai);
+walkState_t Tungsten_GetAIWalkState(const idAI2& ai);
+const char* Tungsten_GetAIWalkStateName(walkState_t walkState);
+int Tungsten_GetAICurrentTurnDirection(const idAI2& ai);
+bool Tungsten_GetAIAnimModelAxis(const idAI2& ai, idMat3& axis);
+bool Tungsten_GetAIAnimOrigin(const idAI2& ai, idVec3& origin);
+bool Tungsten_GetAIAnimNextMovePoint(const idAI2& ai, idVec3& point);
+bool Tungsten_IsAIAnimLineInNavGraph(const idAI2& ai,
+    const idVec3& start, const idVec3& end);
+const char* Tungsten_GetAIResolvedSubWebName(
+    const idAI2& ai, const char* requestedName);
+short Tungsten_GetAIAnimCurrentNode(const idAI2& ai);
+short Tungsten_GetAIAnimTargetNode(const idAI2& ai);
+aiSubWeb_t Tungsten_GetAIAnimationSubWeb(const idAI2& ai);
+aiSubWeb_t Tungsten_AIAlertCycleToSubWeb(
+    const idAI2& ai, int alertCycle);
+posture_t Tungsten_GetAIPosture(const idAI2& ai);
+const char* Tungsten_GetAISubWebName(aiSubWeb_t subWeb);
+const char* Tungsten_GetAIAnimWeaponPrefix(
+    const idAI2& ai, equipSlot_t weaponSlot);
+const char* Tungsten_GetAIIdleStateName(const idAI2& ai);
