@@ -55,8 +55,8 @@ idRenderModelCuttableBeams::idRenderModelCuttableBeams()
       graphManager(nullptr), graphHandle(-1) {
     g.noInteractions = 1;
     g.noShadow = 1;
-    g.addAlways = 1;
-    g.noGPUocclusionTest = 1;
+    g.alwaysOcclusionCullBounds = 1;
+    g.noStippleFade = 1;
     referenceBounds[0].Set(-1.0f, -1.0f, -1.0f);
     referenceBounds[1].Set(1.0f, 1.0f, 1.0f);
     SetMaxSurfaces(SURFACE_MAX);

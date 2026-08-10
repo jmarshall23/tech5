@@ -33,9 +33,14 @@ enum aiCoverFlags_t : int {
 // semantics and exact Xbox 360/Win32 layout.
 class idAICover {
 public:
-    idAICover();
+    // Retail symbol: ??0idAICover@@QAA@XZ (EA 0x82A889D8)
+    idAICover()
+        : aas(nullptr), spawnId(0x1FFF), coverIndex(-1) {}
     idAICover(const idAAS2* aas, int index);
-    idAICover(const idAICover& other);
+    // Retail symbol: ??0idAICover@@QAA@ABV0@@Z (EA 0x82A88710)
+    idAICover(const idAICover& other)
+        : aas(other.aas), spawnId(other.spawnId),
+          coverIndex(other.coverIndex) {}
 
     idAICover& operator=(const idAICover& other);
     bool operator==(const idAICover& other) const;

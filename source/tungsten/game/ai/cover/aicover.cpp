@@ -33,14 +33,6 @@ void idCoverActions::Init(const aas2Cover_t& cover) {
         | ((cover.flags & 0x200) != 0 ? 0x08u : 0u));
 }
 
-// Retail symbol: ??0idAICover@@QAA@ABV0@@Z
-// EA: 0x82A88710, RVA: 0x00A88710
-idAICover::idAICover(const idAICover& other)
-    : aas(other.aas)
-    , spawnId(other.spawnId)
-    , coverIndex(other.coverIndex) {
-}
-
 // Retail symbol: ??4idAICover@@QAAAAV0@ABV0@@Z
 // EA: 0x82A88730, RVA: 0x00A88730
 idAICover& idAICover::operator=(const idAICover& other) {
@@ -111,14 +103,6 @@ void idAICover::Init(const idAAS2* const newAas, const int index) {
     aas = newAas;
     spawnId = INVALID_SPAWN_ID;
     coverIndex = static_cast<short>(index);
-}
-
-// Retail symbol: ??0idAICover@@QAA@XZ
-// EA: 0x82A889D8, RVA: 0x00A889D8
-idAICover::idAICover()
-    : aas(nullptr)
-    , spawnId(INVALID_SPAWN_ID)
-    , coverIndex(-1) {
 }
 
 // Retail symbol: ?IsValid@idAICover@@QBA_NXZ

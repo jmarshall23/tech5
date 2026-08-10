@@ -45,6 +45,7 @@ public:
         ParticleJobSubmitCallback particleJobSubmit,
         BufferReferenceCallback bufferReference,
         ShadowSampleCallback shadowSample);
+    static void SetParticleTrailTimeStep(int milliseconds);
     static int EstimateQuadAllocation(const idParticleStage* stage,
         const effectParticleParms_t* particle, int renderTime);
     bool CommitSubclass() override;
@@ -108,6 +109,7 @@ private:
     static ParticleJobSubmitCallback particleJobSubmitCallback;
     static BufferReferenceCallback bufferReferenceCallback;
     static ShadowSampleCallback shadowSampleCallback;
+    static int particleTrailTimeStep;
 };
 
 #if INTPTR_MAX == INT32_MAX

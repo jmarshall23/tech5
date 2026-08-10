@@ -86,7 +86,7 @@ void ParseParametric(idParser* parser, idParticleParm* parm,
 
     float last = first;
     float variance = 0.0f;
-    while (parser->ReadTokenOnLine(token) != 0) {
+    while (parser->ReadToken(token) != 0) {
         if (idStr::Icmp(token.c_str(), "to") == 0) {
             if (!ReadNumber(parser, last)) {
                 parser->Error("Missing 'to' parameter for parametric parm");

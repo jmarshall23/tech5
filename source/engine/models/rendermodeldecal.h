@@ -75,6 +75,8 @@ public:
     using InverseVPCallback = bool (*)(const idRenderModelDecal* model,
         idRenderMatrix& inverseViewProjection, const idRenderView* view,
         float zNear, float zFar);
+    using RenderParmResolver = const idDeclRenderParm* (*)(
+        const char* name, bool makeDefault);
 
     idRenderModelDecal();
     ~idRenderModelDecal() override;
@@ -86,6 +88,7 @@ public:
     static void SetProjectionTypeCallback(ProjectionTypeCallback callback);
     static void SetDebugDrawCallback(DebugDrawCallback callback);
     static void SetInverseVPCallback(InverseVPCallback callback);
+    static void SetRenderParmResolver(RenderParmResolver resolver);
 
     void Update(int currentTime);
     bool CommitSubclass() override;
@@ -139,6 +142,7 @@ private:
     static ProjectionTypeCallback projectionTypeCallback;
     static DebugDrawCallback debugDrawCallback;
     static InverseVPCallback inverseVPCallback;
+    static RenderParmResolver renderParmResolver;
     static bool initialized;
 };
 

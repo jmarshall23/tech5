@@ -99,6 +99,8 @@ idRenderModelCloth::idRenderModelCloth()
       vSpacing(0.0f), hSpacing(0.0f) {
     std::memset(vertexBuffer, 0, sizeof(vertexBuffer));
     std::memset(&indexBuffer, 0, sizeof(indexBuffer));
+    g.noInteractions = 1;
+    g.noShadow = 1;
 }
 
 idRenderModelCloth::idRenderModelCloth(const idDeclCloth* system)

@@ -17,12 +17,17 @@ enum idMD6BlendBranchFlags_t : int {
 
 class idMD6BlendBranch_Base : public idMD6Branch {
 public:
+    explicit idMD6BlendBranch_Base(idMD6Node::nodeType_t nodeType);
+
     idList<float, 30> coordinateList;
     idList<idMD6Node*, 30> animationList;
 };
 
 class idMD6BlendBranch : public idMD6BlendBranch_Base {
 public:
+    idMD6BlendBranch();
+    explicit idMD6BlendBranch(idMD6Node::nodeType_t nodeType);
+
     idList<float, 30> currentCoordinate;
     idList<idUserChannelIndex, 30> userChannelIndices;
     idList<float, 30> activeCoordinate;
@@ -34,6 +39,8 @@ public:
 
 class idMD6BlendAdditiveBranch : public idMD6BlendBranch_Base {
 public:
+    idMD6BlendAdditiveBranch();
+
     float currentCoordinate;
     float activeCoordinate;
     idMD6Node* baseAnimation;
@@ -41,6 +48,8 @@ public:
 
 class idMD6FusionBranch : public idMD6BlendBranch {
 public:
+    idMD6FusionBranch();
+
     idList<unsigned short, 30> phaseToFrameLookupData;
 };
 
@@ -48,6 +57,8 @@ class idMD6Filter : public idMD6Node {};
 
 class alignas(4) idMD6TagFilter : public idMD6Filter {
 public:
+    idMD6TagFilter();
+
     const idDeclAnimWebTagGroup* tagGroup;
     unsigned int tagMask;
     std::uint8_t tagGroupIndex;
@@ -58,6 +69,8 @@ struct idMD6DebugFilterLogicHelper_t {};
 
 class idMD6BestLeaf : public idMD6Node {
 public:
+    idMD6BestLeaf();
+
     idList<idMD6Node*, 30> leafList;
     idList<unsigned int, 30> tagList;
     idList<idMD6Filter*, 30> filterList;
@@ -120,6 +133,7 @@ void SetUseStackTop(idMD6LeafPause& leaf, bool enabled);
 void SetClearNonModWeights(idMD6LeafPause& leaf, bool enabled);
 void SetOverrideFrameBounds(idMD6LeafPause& leaf, bool enabled);
 void SetNumAnimMods(idMD6LeafPause& leaf, int count);
+void ReleaseAnimMods(idMD6LeafPause& leaf);
 
 void Init(idMD6Branch& branch, idMD6Node* left, idMD6Node* right,
     idMD6Blend::blendOp_t operation, idMD6Blend::originBlend_t originBlend,
@@ -179,3 +193,16 @@ void Init(idMD6BestLeaf& best, std::uint8_t tagBias,
 void Update(idMD6BestLeaf& best);
 
 } // namespace idMD6AnimTree
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idMD6BlendBranch) == 156,
+    "Recovered MD6 blend-branch ABI changed");
+static_assert(sizeof(idMD6BlendAdditiveBranch) == 84,
+    "Recovered MD6 additive-branch ABI changed");
+static_assert(sizeof(idMD6FusionBranch) == 172,
+    "Recovered MD6 fusion-branch ABI changed");
+static_assert(sizeof(idMD6BestLeaf) == 92,
+    "Recovered MD6 best-leaf ABI changed");
+static_assert(sizeof(idMD6TagFilter) == 16,
+    "Recovered MD6 tag-filter ABI changed");
+#endif

@@ -44,19 +44,53 @@ idMat3 RotationMatrix(const idVec3& rawAxis, const float angle) {
         cosine + axis.z * axis.z * oneMinusCosine);
 }
 
+idMat3 VectorToMat3(idVec3 forward) {
+    if (forward.NormalizeFast() == 0.0f) {
+        return idMat3(1.0f);
+    }
+    idVec3 left;
+    if (std::fabs(forward.x) > 0.7f) {
+        const float length = std::sqrt(forward.x * forward.x
+            + forward.y * forward.y);
+        left.Set(-forward.y / length, forward.x / length, 0.0f);
+    } else {
+        const float length = std::sqrt(forward.y * forward.y
+            + forward.z * forward.z);
+        left.Set(0.0f, -forward.z / length, forward.y / length);
+    }
+    idVec3 up = forward.Cross(left);
+    up.NormalizeFast();
+    return idMat3(
+        forward.x, forward.y, forward.z,
+        left.x, left.y, left.z,
+        up.x, up.y, up.z);
+}
+
 idVec3 RandomUnitVector(idRandom2& random) {
-    idVec3 value;
-    do {
-        value.Set(random.CRandomFloat(), random.CRandomFloat(),
-            random.CRandomFloat());
-    } while (value.LengthSqr() <= 1.0e-12f || value.LengthSqr() > 1.0f);
-    value.NormalizeFast();
+    idVec3 value(random.CRandomFloat(), random.CRandomFloat(),
+        random.CRandomFloat());
+    if (value.NormalizeFast() == 0.0f) {
+        value.Set(0.0f, 0.0f, 1.0f);
+    }
     return value;
+}
+
+void ProjectOntoSphere(idVec3& value, const float radius) {
+    const float radiusSquared = radius * radius;
+    const float planarSquared = value.x * value.x + value.y * value.y;
+    if (planarSquared < radiusSquared * 0.5f) {
+        value.z = std::sqrt((std::max)(0.0f,
+            radiusSquared - planarSquared));
+    } else if (planarSquared > 1.0e-30f) {
+        value.z = radiusSquared * 0.5f / std::sqrt(planarSquared);
+    } else {
+        value.z = radius;
+    }
 }
 
 float Evaluate(const idParticleParm& parm, const particleInput_t& input,
     particleGen_t& particle) {
-    return parm.Compute(input.tables, particle.frac, particle.random);
+    return parm.Compute(input.tables, particle.parmVal, particle.random);
 }
 
 std::uint8_t ToColorByte(const float value) {
@@ -113,68 +147,70 @@ textureAnimationState_t ComputeTextureAnimation(
         static_cast<int>(stage.texAnimation.numColumns));
     const int rows = (std::max)(1,
         static_cast<int>(stage.texAnimation.numRows));
-    const int row = stage.texAnimation.useRandomRow
-        ? particle.random.RandomInt(rows) : -1;
     const int usableFrames = stage.texAnimation.useRandomRow
         ? columns : columns * rows;
     int startFrame = stage.texAnimation.startFrame;
-    if (startFrame < 0) startFrame = particle.random.RandomInt(usableFrames);
-
-    const float rate = Evaluate(stage.texAnimation.rate, input, particle);
-    float framePosition = static_cast<float>(startFrame);
-    switch (stage.texAnimation.type) {
-    case PANIM_TYPE_CYLE_RATE:
-        framePosition += particle.totalAge * rate;
-        break;
-    case PANIM_TYPE_SINGLE_CYCLE_RATE:
-        framePosition += (stage.texAnimation.rate.calcType
-            == PARTICLE_CALC_GENERIC ? particle.frac * rate : rate);
-        framePosition = (std::min)(framePosition,
-            static_cast<float>(usableFrames - 1));
-        break;
-    case PANIM_TYPE_SINGLE_CYCLE:
-    default:
-        framePosition += particle.frac
-            * static_cast<float>((std::max)(0, usableFrames - 1));
-        break;
-    }
-
-    int frame = static_cast<int>(std::floor(framePosition));
-    const float blendFraction = framePosition - std::floor(framePosition);
-    if (stage.texAnimation.type == PANIM_TYPE_CYLE_RATE) {
-        frame %= usableFrames;
-        if (frame < 0) frame += usableFrames;
-    } else {
-        frame = (std::max)(0, (std::min)(usableFrames - 1, frame));
-    }
-    int nextFrame = frame + 1;
-    if (nextFrame >= usableFrames) {
-        nextFrame = stage.texAnimation.type == PANIM_TYPE_CYLE_RATE ? 0 : frame;
-    }
-
-    int frameRow = row;
-    int nextRow = row;
-    int frameColumn = frame;
-    int nextColumn = nextFrame;
-    if (!stage.texAnimation.useRandomRow) {
-        frameRow = frame / columns;
-        nextRow = nextFrame / columns;
-        frameColumn = frame % columns;
-        nextColumn = nextFrame % columns;
-    } else {
-        frameColumn %= columns;
-        nextColumn %= columns;
+    if (startFrame < 0) {
+        startFrame = usableFrames > 1
+            ? particle.random.RandomInt(usableFrames) : 0;
     }
 
     textureAnimationState_t result{};
     result.scaleS = 1.0f / static_cast<float>(columns);
     result.scaleT = 1.0f / static_cast<float>(rows);
-    result.biasS = frameColumn * result.scaleS;
-    result.biasT = frameRow * result.scaleT;
-    result.nextBiasS = nextColumn * result.scaleS;
-    result.nextBiasT = nextRow * result.scaleT;
-    result.blend = stage.texAnimation.useFrameBlending
-        ? ToColorByte(blendFraction) : 0;
+    if (columns > 1 || rows > 1) {
+        float framePosition = static_cast<float>(startFrame);
+        if (stage.texAnimation.type == PANIM_TYPE_CYLE_RATE) {
+            const float rate = stage.texAnimation.rate.Compute(input.tables,
+                particle.parmVal, particle.random);
+            framePosition += stage.texAnimation.rate.calcType
+                    == PARTICLE_CALC_GENERIC
+                ? particle.totalAge * rate : rate;
+        } else if (stage.texAnimation.type
+                == PANIM_TYPE_SINGLE_CYCLE_RATE) {
+            const float rate = stage.texAnimation.rate.Compute(input.tables,
+                particle.parmVal, particle.random);
+            framePosition += stage.texAnimation.rate.calcType
+                    == PARTICLE_CALC_GENERIC
+                ? particle.frac * rate : rate;
+            framePosition = (std::min)(framePosition,
+                static_cast<float>(usableFrames - 1));
+        } else {
+            framePosition += particle.frac
+                * static_cast<float>(usableFrames);
+        }
+
+        const int unwrappedFrame = static_cast<int>(framePosition);
+        const float blendFraction = framePosition
+            - static_cast<float>(unwrappedFrame);
+        int frame = unwrappedFrame % usableFrames;
+        if (frame < 0) frame += usableFrames;
+        const int nextFrame = (frame + 1) % usableFrames;
+        int frameRow;
+        int nextRow;
+        if (stage.texAnimation.useRandomRow) {
+            frameRow = rows > 1 ? particle.random.RandomInt(rows) : 0;
+            nextRow = frameRow;
+        } else {
+            frameRow = frame / columns;
+            nextRow = nextFrame / columns;
+        }
+        const int frameColumn = frame % columns;
+        const int nextColumn = nextFrame % columns;
+        result.biasS = frameColumn * result.scaleS;
+        result.biasT = frameRow * result.scaleT;
+        result.nextBiasS = nextColumn * result.scaleS;
+        result.nextBiasT = nextRow * result.scaleT;
+        result.blend = stage.texAnimation.useFrameBlending
+            ? static_cast<std::uint8_t>((std::max)(0, (std::min)(255,
+                static_cast<int>(blendFraction * 255.0f)))) : 0;
+    } else {
+        result.biasS = 0.0f;
+        result.biasT = 0.0f;
+        result.nextBiasS = 0.0f;
+        result.nextBiasT = 0.0f;
+        result.blend = 0;
+    }
     const bool oddParticle = (particle.index & 1) != 0;
     result.flipS = stage.systemProperties.textureFlipS
             == PTEXTURE_FLIP_ALWAYS
@@ -240,10 +276,13 @@ void ParticleTexCoords(const particleInput_t& input, particleGen_t& particle,
 
 unsigned int ParticleSeed(const int diversity, const int particleIndex,
         const int cycle, const bool randomOnCycle) {
-    unsigned int seed = static_cast<unsigned int>(diversity) & 0x7FFFu;
-    seed ^= static_cast<unsigned int>(particleIndex + 1) * 0x9E3779B9u;
-    if (randomOnCycle)
-        seed ^= static_cast<unsigned int>(cycle + 1) * 0x85EBCA6Bu;
+    const unsigned int cycleSeed = randomOnCycle
+        ? (static_cast<unsigned int>(cycle) << 10) & 0x7C00u : 0u;
+    unsigned int seed = cycleSeed
+        ^ (static_cast<unsigned int>(diversity) & 0x7FFFu);
+    for (int advance = 0; advance <= particleIndex; ++advance) {
+        seed = 1664525u * seed + 1013904223u;
+    }
     return seed;
 }
 
@@ -282,15 +321,39 @@ int GenerateModelStage(const deferredParticleGenParms_t* parms,
     input.stageAxis = ParticleStageAxis(&stage, diversity);
     input.influenceSpheres = nullptr;
     input.numInfluenceSpheres = 0;
-    input.totalParticles = (std::max)(1, baseInput.totalParticles);
+    input.totalParticles = baseInput.totalParticles;
+    if (input.totalParticles <= 0) return 0;
 
     int generated = 0;
     const int spawnWindow = static_cast<int>((std::max)(0.0f,
         stage.systemProperties.spawnBunching * stage.bunchTime) * 1000.0f);
+    int firstParticle = 0;
+    if ((stage.systemProperties.sortType == PSORT_TYPE_NEWEST_TO_OLDEST
+            || stage.systemProperties.sortType
+                == PSORT_TYPE_OLDEST_TO_NEWEST)
+            && input.totalParticles > 1) {
+        for (int candidate = 1; candidate < input.totalParticles;
+                ++candidate) {
+            const int candidateTime = stageTimeMilliseconds
+                - candidate * spawnWindow / input.totalParticles;
+            if (candidateTime >= 0
+                    && stageTimeMilliseconds % cycleMilliseconds
+                        < candidateTime % cycleMilliseconds) {
+                firstParticle = candidate;
+                break;
+            }
+        }
+    }
     for (int order = 0; order < input.totalParticles; ++order) {
-        const int index = stage.systemProperties.sortType ==
-                PSORT_TYPE_NEWEST_TO_OLDEST
-            ? input.totalParticles - 1 - order : order;
+        int index = order;
+        if (stage.systemProperties.sortType ==
+                PSORT_TYPE_NEWEST_TO_OLDEST) {
+            index = firstParticle + input.totalParticles - 1 - order;
+        } else if (stage.systemProperties.sortType ==
+                PSORT_TYPE_OLDEST_TO_NEWEST) {
+            index = firstParticle + order;
+        }
+        index %= input.totalParticles;
         const int particleTime = stageTimeMilliseconds -
             index * spawnWindow / input.totalParticles;
         if (particleTime < 0) continue;
@@ -368,210 +431,279 @@ idVec3 ParticleOrigin(const particleInput_t& input,
     particleGen_t& particle, idVec3* velocity) {
     const idParticleStage& stage = *input.stage;
     idVec3 distributionSize;
-    idVec3 spawnOffset;
-    idVec3 localOffset;
     for (int axis = 0; axis < 3; ++axis) {
         distributionSize[axis] = Evaluate(stage.distribution.size[axis],
             input, particle) * input.distribScale[axis];
-        spawnOffset[axis] = Evaluate(stage.spawnLocation.spawnLocation[axis],
-            input, particle);
-        localOffset[axis] = Evaluate(stage.offset.offset[axis], input,
-            particle);
     }
 
     idVec3 distributed(0.0f, 0.0f, 0.0f);
     switch (stage.distribution.type) {
-    case PDIST_CYLINDER:
-    case PDIST_CYLINDER_SURFACE: {
-        const float angle = particle.random.RandomFloat() * 2.0f * kPi;
-        const float radius = stage.distribution.type == PDIST_CYLINDER_SURFACE
-            ? 1.0f : std::sqrt(particle.random.RandomFloat());
-        distributed.Set(std::cos(angle) * radius * distributionSize.x,
-            std::sin(angle) * radius * distributionSize.y,
-            particle.random.CRandomFloat() * distributionSize.z);
+    case PDIST_CYLINDER: {
+        const float angleCoordinate = stage.distribution.random
+            ? particle.random.CRandomFloat() : 1.0f;
+        const float heightCoordinate = stage.distribution.random
+            ? particle.random.CRandomFloat() : 1.0f;
+        const float angle = angleCoordinate * 2.0f * kPi;
+        distributed.Set(std::cos(angle) * distributionSize.x,
+            std::sin(angle) * distributionSize.y,
+            heightCoordinate * distributionSize.z);
         break;
     }
-    case PDIST_SPHERE:
-    case PDIST_SPHERE_SURFACE: {
-        idVec3 direction = RandomUnitVector(particle.random);
-        const float radius = stage.distribution.type == PDIST_SPHERE_SURFACE
-            ? 1.0f : std::cbrt(particle.random.RandomFloat());
-        distributed.Set(direction.x * radius * distributionSize.x,
-            direction.y * radius * distributionSize.y,
-            direction.z * radius * distributionSize.z);
+    case PDIST_SPHERE: {
+        idVec3 direction = stage.distribution.random
+            ? RandomUnitVector(particle.random)
+            : idVec3(1.0f, 1.0f, 1.0f);
+        distributed.Set(direction.x * distributionSize.x,
+            direction.y * distributionSize.y,
+            direction.z * distributionSize.z);
         break;
     }
     case PDIST_RECT_SURFACE: {
         distributed.Set(particle.random.CRandomFloat() * distributionSize.x,
             particle.random.CRandomFloat() * distributionSize.y,
             particle.random.CRandomFloat() * distributionSize.z);
-        const int face = particle.random.RandomInt(3);
-        distributed[face] = (particle.random.RandomInt(2) == 0 ? -1.0f : 1.0f)
-            * distributionSize[face];
+        const int face = particle.random.RandomInt(6);
+        const int axis = face % 3;
+        distributed[axis] = (face < 3 ? 1.0f : -1.0f)
+            * distributionSize[axis];
+        break;
+    }
+    case PDIST_CYLINDER_SURFACE: {
+        const float angle = particle.random.CRandomFloat() * 2.0f * kPi;
+        distributed.Set(std::cos(angle) * distributionSize.x,
+            std::sin(angle) * distributionSize.y,
+            particle.random.CRandomFloat() * distributionSize.z);
+        break;
+    }
+    case PDIST_SPHERE_SURFACE: {
+        const idVec3 direction = RandomUnitVector(particle.random);
+        distributed.Set(direction.x * distributionSize.x,
+            direction.y * distributionSize.y,
+            direction.z * distributionSize.z);
         break;
     }
     case PDIST_RECT:
     default:
-        distributed.Set(particle.random.CRandomFloat() * distributionSize.x,
-            particle.random.CRandomFloat() * distributionSize.y,
-            particle.random.CRandomFloat() * distributionSize.z);
+        if (stage.distribution.random) {
+            distributed.Set(
+                particle.random.CRandomFloat() * distributionSize.x,
+                particle.random.CRandomFloat() * distributionSize.y,
+                particle.random.CRandomFloat() * distributionSize.z);
+        } else {
+            distributed = distributionSize;
+        }
         break;
     }
-
-    idVec3 direction;
-    if (stage.direction.type == PDIR_OUTWARD) {
-        direction = distributed;
-        if (direction.NormalizeFast() == 0.0f) direction.Set(0.0f, 0.0f, 1.0f);
-    } else if (stage.direction.type == PDIR_SPEED) {
-        direction = input.localVelocity;
-        if (direction.NormalizeFast() == 0.0f) direction.Set(0.0f, 0.0f, 1.0f);
-    } else {
-        const float coneAngle = stage.direction.parms[0]
-            * kDegreesToRadians;
-        const float azimuth = particle.random.RandomFloat() * 2.0f * kPi;
-        const float polar = particle.random.RandomFloat() * coneAngle;
-        direction.Set(std::sin(polar) * std::cos(azimuth),
-            std::sin(polar) * std::sin(azimuth), std::cos(polar));
-        direction = TransformVector(stage.direction.coneAxis, direction);
-    }
-    direction = TransformVector(input.stageAxis, direction);
-
-    idVec3 particleVelocity;
-    idVec3 localTravel;
-    for (int axis = 0; axis < 3; ++axis) {
-        const idParticleParm& speedParm = stage.speed.speed[axis];
-        const float speedValue = Evaluate(speedParm, input, particle);
-        particleVelocity[axis] = direction[axis] * speedValue
-            + input.localVelocity[axis];
-        if (speedParm.calcType == PARTICLE_CALC_PARAMETRIC_INTEGRATE
-                || speedParm.calcType
-                    == PARTICLE_CALC_PARAMETRIC_INTEGRATE_MINMAX) {
-            localTravel[axis] = direction[axis] * speedValue
-                * particle.particleLife + input.localVelocity[axis]
-                * particle.cycleAge;
-        } else {
-            localTravel[axis] = particleVelocity[axis] * particle.cycleAge;
-        }
-        const float friction = std::fabs(Evaluate(
-            stage.friction.friction[axis], input, particle));
-        localTravel[axis] /= 1.0f + friction * particle.cycleAge;
-    }
-    const float age = particle.cycleAge;
-    idVec3 position = distributed + spawnOffset + localOffset + localTravel;
-    idVec3 worldTravel(0.0f, 0.0f, 0.0f);
-    for (int axis = 0; axis < 3; ++axis) {
-        const float acceleration = Evaluate(
-            stage.acceleration.acceleration[axis], input, particle);
-        if (stage.acceleration.world) {
-            worldTravel[axis] += 0.5f * acceleration * age * age;
-        } else {
-            position[axis] += 0.5f * acceleration * age * age;
-        }
-        position[axis] += input.wind[axis]
-            * Evaluate(stage.systemProperties.windBias, input, particle)
-            * age;
-    }
-    const float gravityTravel = 0.5f
-        * Evaluate(stage.gravity.gravity, input, particle) * age * age;
-    if (stage.gravity.world) worldTravel.z -= gravityTravel;
-    else position.z -= gravityTravel;
 
     switch (stage.customPath.type) {
     case PPATH_HELIX: {
-        const float radius = Evaluate(stage.customPath.parms[0], input,
+        const float axialSpeed = Evaluate(stage.customPath.parms[4], input,
             particle);
-        const float turns = Evaluate(stage.customPath.parms[1], input,
+        const float angularSpeed = Evaluate(stage.customPath.parms[3], input,
             particle);
-        const float angle = turns * age * 2.0f * kPi;
-        position.x += std::cos(angle) * radius;
-        position.y += std::sin(angle) * radius;
+        const float angle = particle.random.RandomFloat() * 2.0f * kPi
+            + particle.cycleAge * angularSpeed;
+        const float radiusX = Evaluate(stage.customPath.parms[0], input,
+            particle) * input.distribScale.x;
+        const float radiusY = Evaluate(stage.customPath.parms[1], input,
+            particle) * input.distribScale.y;
+        const float heightRange = Evaluate(stage.customPath.parms[2], input,
+            particle) * input.distribScale.z;
+        distributed.x += std::cos(angle) * radiusX;
+        distributed.y += std::sin(angle) * radiusY;
+        distributed.z += particle.random.RandomFloat() * heightRange
+            + particle.cycleAge * axialSpeed;
+        break;
+    }
+    case PPATH_FLIES: {
+        const float firstRate = Evaluate(stage.customPath.parms[0], input,
+            particle);
+        const float secondRate = Evaluate(stage.customPath.parms[1], input,
+            particle);
+        const float firstScale = (std::max)(0.4f,
+            particle.random.RandomFloat());
+        const float secondScale = (std::max)(0.4f,
+            particle.random.RandomFloat());
+        const float firstAngle = particle.random.RandomFloat()
+            * 2.0f * kPi + particle.cycleAge * firstScale * firstRate;
+        const float secondAngle = particle.random.RandomFloat()
+            * 2.0f * kPi + particle.cycleAge * secondScale * secondRate;
+        const float radius = Evaluate(stage.customPath.parms[2], input,
+            particle) * input.distribScale.x;
+        const float sinFirst = std::sin(firstAngle);
+        const float cosFirst = std::cos(firstAngle);
+        const float sinSecond = std::sin(secondAngle);
+        const float cosSecond = std::cos(secondAngle);
+        distributed.x += sinSecond * sinFirst * radius;
+        distributed.y += sinSecond * cosFirst * radius;
+        distributed.z -= cosSecond * radius;
         break;
     }
     case PPATH_ORBIT: {
+        const float angularSpeed = Evaluate(stage.customPath.parms[1], input,
+            particle);
+        const float angle = particle.random.RandomFloat() * 2.0f * kPi
+            + particle.cycleAge * angularSpeed;
         const float radius = Evaluate(stage.customPath.parms[0], input,
             particle);
-        const float rate = Evaluate(stage.customPath.parms[1], input,
-            particle);
-        const float angle = rate * age * 2.0f * kPi;
-        position.x += std::cos(angle) * radius;
-        position.y += std::sin(angle) * radius;
+        idVec3 orbit(radius * std::cos(angle), radius * std::sin(angle),
+            0.0f);
+        ProjectOntoSphere(orbit, radius);
+        distributed = distributed + orbit;
         break;
     }
-    case PPATH_FLIES:
-        position = position + RandomUnitVector(particle.random)
-            * Evaluate(stage.customPath.parms[0], input, particle);
-        break;
     case PPATH_DRIP:
-        position.z -= Evaluate(stage.customPath.parms[0], input, particle)
-            * age * age;
+        distributed.z -= particle.cycleAge * Evaluate(
+            stage.customPath.parms[0], input, particle);
         break;
     default:
         break;
     }
 
-    if (velocity != nullptr) {
-        *velocity = TransformVector(input.globalAxis, particleVelocity);
+    const float spawnFraction = input.totalParticles > 1
+        ? static_cast<float>(particle.index)
+            / static_cast<float>(input.totalParticles - 1)
+        : 0.0f;
+    idVec3 origin = distributed;
+    for (int axis = 0; axis < 3; ++axis) {
+        origin[axis] += stage.spawnLocation.spawnLocation[axis].Compute(
+            input.tables, spawnFraction, particle.random);
     }
-    return input.globalOrigin + TransformVector(input.globalAxis, position)
-        + worldTravel;
-}
+    for (int axis = 0; axis < 3; ++axis) {
+        origin[axis] += Evaluate(stage.offset.offset[axis], input, particle);
+    }
 
-float EvaluateIntegratedAngle(const idParticleParm& parm,
-    const particleInput_t& input, particleGen_t& particle) {
-    const float value = Evaluate(parm, input, particle);
-    return parm.calcType == PARTICLE_CALC_PARAMETRIC_INTEGRATE
-            || parm.calcType == PARTICLE_CALC_PARAMETRIC_INTEGRATE_MINMAX
-        ? value * particle.particleLife : value;
+    idVec3 speed;
+    for (int axis = 0; axis < 3; ++axis) {
+        const float friction = Clamp01(Evaluate(
+            stage.friction.friction[axis], input, particle));
+        const float speedFraction = particle.frac
+            - 0.5f * particle.frac * particle.parmVal * friction;
+        speed[axis] = stage.speed.speed[axis].Compute(input.tables,
+            speedFraction, particle.random);
+    }
+
+    idVec3 direction;
+    switch (stage.direction.type) {
+    case PDIR_OUTWARD:
+        direction = origin;
+        direction.NormalizeFast();
+        direction.z += stage.direction.parms[0];
+        break;
+    case PDIR_SPEED:
+        direction = speed;
+        direction.NormalizeFast();
+        speed.x = std::fabs(speed.x);
+        speed.y = std::fabs(speed.y);
+        speed.z = std::fabs(speed.z);
+        break;
+    case PDIR_CONE:
+    default: {
+        const float polar = particle.random.CRandomFloat()
+            * stage.direction.parms[0] * kDegreesToRadians;
+        const float azimuth = particle.random.CRandomFloat() * kPi;
+        const float sinPolar = std::sin(polar);
+        direction.Set(std::cos(azimuth) * sinPolar,
+            std::sin(azimuth) * sinPolar, std::cos(polar));
+        break;
+    }
+    }
+
+    idVec3 speedTravel(direction.x * speed.x, direction.y * speed.y,
+        direction.z * speed.z);
+    if (stage.direction.type == PDIR_CONE) {
+        speedTravel = TransformVector(stage.direction.coneAxis,
+            speedTravel);
+    }
+    speedTravel = speedTravel * particle.particleLife;
+
+    idVec3 acceleration;
+    for (int axis = 0; axis < 3; ++axis) {
+        acceleration[axis] = Evaluate(
+            stage.acceleration.acceleration[axis], input, particle);
+    }
+    if (stage.acceleration.world) {
+        acceleration = TransformVector(input.modelAxis.Transpose(),
+            acceleration);
+    }
+
+    idVec3 gravity(0.0f, 0.0f,
+        -Evaluate(stage.gravity.gravity, input, particle));
+    if (stage.gravity.world) {
+        gravity = TransformVector(input.modelAxis.Transpose(), gravity);
+    }
+    const float windBias = Evaluate(stage.systemProperties.windBias,
+        input, particle);
+    const float age = particle.cycleAge;
+    const idVec3 travel = speedTravel + (acceleration
+        + gravity * age + input.wind * windBias) * age;
+    origin = origin + travel;
+    origin = TransformVector(input.stageAxis, origin);
+    origin = input.globalOrigin + TransformVector(input.globalAxis, origin);
+
+    if (stage.orientation.depthOffset > 0.0f) {
+        idVec3 viewDirection = input.localViewOrg - origin;
+        if (viewDirection.NormalizeFast() != 0.0f) {
+            origin = origin
+                + viewDirection * stage.orientation.depthOffset;
+        }
+    }
+
+    if (velocity != nullptr) {
+        const idVec3 orientationTravel = stage.orientation.orientToVelOnly
+            ? speedTravel : travel;
+        *velocity = TransformVector(input.stageAxis, orientationTravel)
+            + input.localVelocity;
+    }
+    return origin;
 }
 
 idVec4 ComputeParticleColor(const particleInput_t& input,
     particleGen_t& particle) {
     const idParticleStage& stage = *input.stage;
-    float lifeFade = input.fade;
-    float colorBlend = 0.0f;
+    float lifeFade = 1.0f;
     if (particle.frac < stage.colorAttributes.fadeInFraction
             && stage.colorAttributes.fadeInFraction > 0.0f) {
-        const float fraction = particle.frac
+        lifeFade = particle.frac
             / stage.colorAttributes.fadeInFraction;
-        lifeFade *= fraction;
-        colorBlend = (std::max)(colorBlend, 1.0f - fraction);
     }
     const float remaining = 1.0f - particle.frac;
     if (remaining < stage.colorAttributes.fadeOutFraction
             && stage.colorAttributes.fadeOutFraction > 0.0f) {
-        const float fraction = remaining
-            / stage.colorAttributes.fadeOutFraction;
-        lifeFade *= fraction;
-        colorBlend = (std::max)(colorBlend, 1.0f - fraction);
+        lifeFade *= remaining / stage.colorAttributes.fadeOutFraction;
     }
     if (stage.colorAttributes.fadeIndexFraction > 0.0f
-            && input.totalParticles > 1) {
-        const float indexFraction = static_cast<float>(particle.index)
-            / static_cast<float>(input.totalParticles - 1);
-        if (indexFraction > 1.0f - stage.colorAttributes.fadeIndexFraction) {
-            lifeFade *= (1.0f - indexFraction)
+            && input.totalParticles > 0) {
+        const float indexRemaining = static_cast<float>(
+            input.totalParticles - particle.index)
+            / static_cast<float>(input.totalParticles);
+        if (indexRemaining < stage.colorAttributes.fadeIndexFraction) {
+            lifeFade *= indexRemaining
                 / stage.colorAttributes.fadeIndexFraction;
         }
     }
 
     const float brightness = Evaluate(stage.colorAttributes.brightness,
         input, particle);
-    const float shadow = stage.colorAttributes.useGlobalShadows
-        ? (std::max)(stage.colorAttributes.minShadowVal, input.shadow) : 1.0f;
+    const float shadow = (std::max)(stage.colorAttributes.minShadowVal,
+        input.shadow);
+    const float rgbFade = stage.alphaBlended ? 1.0f : input.fade;
+    const float alphaFade = stage.alphaBlended ? input.fade : 1.0f;
     idVec4 result;
     for (int component = 0; component < 4; ++component) {
         const float base = Evaluate(stage.colorAttributes.baseColor[component],
             input, particle);
-        const float faded = base + (stage.colorAttributes.fadeColor[component]
-            - base) * Clamp01(colorBlend);
+        const float faded = stage.colorAttributes.fadeColor[component]
+                * (1.0f - lifeFade)
+            + base * lifeFade;
         const float entity = 1.0f + (input.entityColor[component] - 1.0f)
-            * Clamp01(stage.colorAttributes.entityColorBlendVal);
-        result[component] = faded * entity * brightness;
+            * stage.colorAttributes.entityColorBlendVal;
+        result[component] = faded * entity;
     }
-    result.x *= shadow;
-    result.y *= shadow;
-    result.z *= shadow;
-    result.w *= Clamp01(lifeFade) * input.alphaScaleOverride;
+    result.x *= brightness * shadow * rgbFade;
+    result.y *= brightness * shadow * rgbFade;
+    result.z *= brightness * shadow * rgbFade;
+    result.w *= alphaFade;
     return result;
 }
 
@@ -589,88 +721,112 @@ void InitializeQuad(idTransparencyVert* verts, const idVec3 corners[4],
     }
 }
 
-void BuildQuadAxes(const particleInput_t& input, particleGen_t& particle,
-    const idVec3& origin, const idVec3& velocity, idVec3& left,
-    idVec3& up) {
-    const idParticleStage& stage = *input.stage;
-    left = input.localViewLeft;
-    up = input.localViewUp;
-    const idMat3 worldAxis(1.0f);
-    const idMat3& fixedAxis = stage.orientation.world
-        ? worldAxis : input.globalAxis;
-    if (stage.orientation.type == POR_X) {
-        left = TransformVector(fixedAxis, idVec3(0.0f, 1.0f, 0.0f));
-        up = TransformVector(fixedAxis, idVec3(0.0f, 0.0f, 1.0f));
-    } else if (stage.orientation.type == POR_Y) {
-        left = TransformVector(fixedAxis, idVec3(1.0f, 0.0f, 0.0f));
-        up = TransformVector(fixedAxis, idVec3(0.0f, 0.0f, 1.0f));
-    } else if (stage.orientation.type == POR_Z) {
-        left = TransformVector(fixedAxis, idVec3(1.0f, 0.0f, 0.0f));
-        up = TransformVector(fixedAxis, idVec3(0.0f, 1.0f, 0.0f));
-    } else if (stage.orientation.type == POR_XYZ) {
-        const int plane = particle.index % 3;
-        if (plane == 0) {
-            left = TransformVector(fixedAxis, idVec3(0.0f, 1.0f, 0.0f));
-            up = TransformVector(fixedAxis, idVec3(0.0f, 0.0f, 1.0f));
-        } else if (plane == 1) {
-            left = TransformVector(fixedAxis, idVec3(1.0f, 0.0f, 0.0f));
-            up = TransformVector(fixedAxis, idVec3(0.0f, 0.0f, 1.0f));
-        } else {
-            left = TransformVector(fixedAxis, idVec3(1.0f, 0.0f, 0.0f));
-            up = TransformVector(fixedAxis, idVec3(0.0f, 1.0f, 0.0f));
-        }
-    } else if (stage.orientation.type == POR_AIMED
-            || stage.orientation.type == POR_TRAIL) {
-        idVec3 forward = velocity;
-        if (forward.NormalizeFast() == 0.0f) forward.Set(0.0f, 0.0f, 1.0f);
-        left = forward.Cross(input.localViewOrg - origin);
-        if (left.NormalizeFast() == 0.0f) left = input.localViewLeft;
-        up = left.Cross(forward);
-        if (up.NormalizeFast() == 0.0f) up = input.localViewUp;
-    }
-}
-
 int GenerateQuadVerts(const particleInput_t& input, particleGen_t& particle,
     particleOutput_t& output, const idVec3& origin, const idVec3& velocity) {
     const idParticleStage& stage = *input.stage;
-    idVec3 left;
-    idVec3 up;
-    BuildQuadAxes(input, particle, origin, velocity, left, up);
+    (void)velocity;
+    const textureAnimationState_t animation =
+        ComputeTextureAnimation(input, particle);
+    const float width = Evaluate(stage.size.size[0], input, particle)
+        * input.sizeScale;
+    const float height = Evaluate(stage.size.aspectRatio, input, particle)
+        * width;
 
-    const float width = std::fabs(Evaluate(stage.size.size[0], input,
-        particle) * input.sizeScale);
-    const float heightValue = std::fabs(Evaluate(stage.size.size[1], input,
-        particle) * input.sizeScale);
-    const float aspect = std::fabs(Evaluate(stage.size.aspectRatio, input,
-        particle));
-    const float height = heightValue * (aspect > 1.0e-6f ? aspect : 1.0f);
-    const float angle = EvaluateIntegratedAngle(
-        stage.initialRotation.initialAngle[0], input, particle)
-        + EvaluateIntegratedAngle(stage.rotation.rotation[0], input,
-            particle);
-    if (std::fabs(angle) > 1.0e-6f) {
+    idVec3 widthAxis;
+    idVec3 heightAxis;
+    if (stage.orientation.type == POR_XYZ) {
+        const idAngles angles(
+            Evaluate(stage.initialRotation.initialAngle[0], input, particle)
+                + Evaluate(stage.rotation.rotation[0], input, particle)
+                    * particle.particleLife,
+            Evaluate(stage.initialRotation.initialAngle[1], input, particle)
+                + Evaluate(stage.rotation.rotation[1], input, particle)
+                    * particle.particleLife,
+            Evaluate(stage.initialRotation.initialAngle[2], input, particle)
+                + Evaluate(stage.rotation.rotation[2], input, particle)
+                    * particle.particleLife);
+        const idMat3 rotation = angles.ToMat3();
+        widthAxis = rotation[0];
+        heightAxis = rotation[1];
+    } else {
+        const float initial = Evaluate(
+            stage.initialRotation.initialAngle[0], input, particle);
+        const float rotation = Evaluate(stage.rotation.rotation[0], input,
+            particle) * particle.particleLife;
+        const float angle = initial
+            + (((particle.index & 1) != 0
+                    && stage.rotation.allowRotDirOverride)
+                ? -rotation : rotation);
         const float sine = std::sin(angle * kDegreesToRadians);
         const float cosine = std::cos(angle * kDegreesToRadians);
-        const idVec3 oldLeft = left;
-        left = oldLeft * cosine + up * sine;
-        up = up * cosine - oldLeft * sine;
+        switch (stage.orientation.type) {
+        case POR_X:
+            widthAxis.Set(0.0f, cosine, sine);
+            heightAxis.Set(0.0f, -sine, cosine);
+            break;
+        case POR_Y:
+            widthAxis.Set(cosine, 0.0f, sine);
+            heightAxis.Set(-sine, 0.0f, cosine);
+            break;
+        case POR_Z:
+            widthAxis.Set(cosine, sine, 0.0f);
+            heightAxis.Set(-sine, cosine, 0.0f);
+            break;
+        case POR_VIEW:
+        default:
+            widthAxis = input.localViewLeft * cosine
+                + input.localViewUp * sine;
+            heightAxis = input.localViewUp * cosine
+                - input.localViewLeft * sine;
+            break;
+        }
     }
-    left = left * width;
-    up = up * height;
-    const idVec3 pivot = left * stage.pivot.pivotOffset.x
-        + up * stage.pivot.pivotOffset.y;
+
+    widthAxis = TransformVector(input.globalAxis, widthAxis);
+    heightAxis = TransformVector(input.globalAxis, heightAxis);
+    if (stage.orientation.world) {
+        const idMat3 worldToModel = input.modelAxis.Transpose();
+        widthAxis = TransformVector(worldToModel, widthAxis);
+        heightAxis = TransformVector(worldToModel, heightAxis);
+    }
+    widthAxis = widthAxis * width;
+    heightAxis = heightAxis * height;
+    const idVec3 pivot = widthAxis * stage.pivot.pivotOffset.x
+        + heightAxis * stage.pivot.pivotOffset.y;
     const idVec3 corners[4] = {
-        origin - left - up + pivot,
-        origin + left - up + pivot,
-        origin + left + up + pivot,
-        origin - left + up + pivot
+        origin - widthAxis + heightAxis + pivot,
+        origin + widthAxis + heightAxis + pivot,
+        origin - widthAxis - heightAxis + pivot,
+        origin + widthAxis - heightAxis + pivot
     };
-    InitializeQuad(output.verts, corners, particle.vertColor);
+    idVec4 color = particle.vertColor;
+    if (stage.orientation.type != POR_VIEW
+            && stage.orientation.viewFade < 1.0f) {
+        idVec3 viewDirection = origin + pivot - input.localViewOrg;
+        viewDirection.NormalizeFast();
+        idVec3 normal = widthAxis.Cross(heightAxis);
+        normal.NormalizeFast();
+        const float denominator = 1.0f - stage.orientation.viewFade;
+        const float blend = denominator > 1.0e-7f
+            ? Clamp01((1.0f - std::fabs(normal.Dot(viewDirection))
+                - stage.orientation.viewFade) / denominator)
+            : 0.0f;
+        for (int component = 0; component < 4; ++component) {
+            const float faded = stage.colorAttributes.fadeColor[component]
+                * input.entityColor[component];
+            color[component] = color[component] * (1.0f - blend)
+                + faded * blend;
+        }
+    }
+    InitializeQuad(output.verts, corners, color);
     const idVec2 texCoords[4] = {
         idVec2(0.0f, 0.0f), idVec2(1.0f, 0.0f),
-        idVec2(1.0f, 1.0f), idVec2(0.0f, 1.0f)
+        idVec2(0.0f, 1.0f), idVec2(1.0f, 1.0f)
     };
-    ParticleTexCoords(input, particle, output.verts, texCoords, 4);
+    for (int vertex = 0; vertex < 4; ++vertex) {
+        ParticleTexCoord(input, animation, texCoords[vertex],
+            output.verts[vertex]);
+    }
     StoreQuadDepth(input, origin, output.quadDepth);
     return 4;
 }
@@ -678,102 +834,177 @@ int GenerateQuadVerts(const particleInput_t& input, particleGen_t& particle,
 int GenerateAimedVerts(const particleInput_t& input, particleGen_t& particle,
     particleOutput_t& output, const idVec3& origin, idVec3 velocity) {
     const idParticleStage& stage = *input.stage;
-    if (velocity.NormalizeFast() == 0.0f) velocity.Set(0.0f, 0.0f, 1.0f);
-    const float length = std::fabs(stage.orientation.segmentLength);
-    const idVec3 tail = origin - velocity * length;
-    idVec3 side = velocity.Cross(input.localViewOrg - origin);
-    if (side.NormalizeFast() == 0.0f) side = input.localViewLeft;
-    if (stage.orientation.aimedSafeQuad) {
-        const float alignment = std::fabs(velocity.Dot(input.localViewUp));
-        if (alignment > stage.orientation.aimedSafeQuadAlign) {
-            side = input.localViewLeft;
-            side.NormalizeFast();
-        }
+    const float size = Evaluate(stage.size.size[0], input, particle)
+        * input.sizeScale;
+    const float aspect = Evaluate(stage.size.aspectRatio, input, particle);
+    velocity = TransformVector(input.globalAxis, velocity);
+    if (velocity.NormalizeFast() == 0.0f) {
+        velocity.Set(0.0f, 0.0f, 1.0f);
     }
-    const float width = std::fabs(Evaluate(stage.size.size[0], input,
-        particle) * input.sizeScale);
-    side = side * width;
+    idVec3 viewDirection = origin - input.localViewOrg;
+    if (viewDirection.NormalizeFast() == 0.0f) {
+        viewDirection.Set(0.0f, 0.0f, 1.0f);
+    }
+    idVec3 side = velocity.Cross(viewDirection);
+    if (side.NormalizeFast() == 0.0f) {
+        side = input.localViewLeft;
+        side.NormalizeFast();
+    }
+    if (stage.orientation.world) {
+        const idMat3 worldToModel = input.modelAxis.Transpose();
+        velocity = TransformVector(worldToModel, velocity);
+        side = TransformVector(worldToModel, side);
+    }
+
+    idVec3 lengthVector = velocity
+        * (stage.orientation.segmentLength * aspect);
+    if (stage.orientation.aimedSafeQuad) {
+        const idVec3 center = origin + lengthVector * 0.5f;
+        idVec3 centerViewDirection = center - input.localViewOrg;
+        centerViewDirection.NormalizeFast();
+        float blend = std::fabs(centerViewDirection.Dot(velocity));
+        if (stage.orientation.aimedSafeQuadAlign != 1.0f) {
+            const float denominator = (std::max)(1.0e-6f,
+                stage.orientation.aimedSafeQuadAlign - 1.0e-6f);
+            blend = Clamp01((blend
+                - (1.0f - stage.orientation.aimedSafeQuadAlign))
+                / denominator);
+        }
+        const idVec3 safeLength = centerViewDirection.Cross(side)
+            * (size * aspect);
+        lengthVector = lengthVector * (1.0f - blend)
+            + safeLength * blend;
+    }
+    side = side * size;
+    const idVec3 end = origin + lengthVector;
     const idVec3 corners[4] = {
-        tail - side, tail + side, origin + side, origin - side
+        end - side, end + side, origin - side, origin + side
     };
     idVec4 color = particle.vertColor;
-    const float facing = Clamp01(1.0f - std::fabs(velocity.Dot(
-        input.view != nullptr ? input.view->viewFwd
-                              : idVec3(0.0f, 0.0f, 1.0f))));
-    color.w *= stage.orientation.viewFade
-        + (1.0f - stage.orientation.viewFade) * facing;
+    if (stage.orientation.viewFade < 1.0f) {
+        idVec3 actualDirection = lengthVector;
+        actualDirection.NormalizeFast();
+        const float denominator = 1.0f - stage.orientation.viewFade;
+        const float blend = denominator > 1.0e-7f
+            ? Clamp01((std::fabs(actualDirection.Dot(viewDirection))
+                - stage.orientation.viewFade) / denominator)
+            : 0.0f;
+        for (int component = 0; component < 4; ++component) {
+            const float faded = stage.colorAttributes.fadeColor[component]
+                * input.entityColor[component];
+            color[component] = color[component] * (1.0f - blend)
+                + faded * blend;
+        }
+    }
     InitializeQuad(output.verts, corners, color);
     const idVec2 texCoords[4] = {
         idVec2(0.0f, 0.0f), idVec2(1.0f, 0.0f),
-        idVec2(1.0f, 1.0f), idVec2(0.0f, 1.0f)
+        idVec2(0.0f, 1.0f), idVec2(1.0f, 1.0f)
     };
     ParticleTexCoords(input, particle, output.verts, texCoords, 4);
-    StoreQuadDepth(input, (origin + tail) * 0.5f, output.quadDepth);
+    StoreQuadDepth(input, origin + lengthVector * 0.5f,
+        output.quadDepth);
     return 4;
 }
 
-idVec3 ParticleOriginAtAge(const particleInput_t& input,
-    const particleGen_t& source, const float age, idVec3* velocity) {
-    particleGen_t sample = source;
-    sample.random = source.originalRandom;
-    sample.cycleAge = (std::max)(0.0f, age);
-    sample.frac = Clamp01(sample.cycleAge / sample.particleLife);
-    sample.parmVal = sample.frac;
-    return ParticleOrigin(input, sample, velocity);
-}
-
 int GenerateTrailVerts(const particleInput_t& input, particleGen_t& particle,
-    particleOutput_t& output) {
+    particleOutput_t& output, const idVec3& origin) {
     const idParticleStage& stage = *input.stage;
     const int segments = (std::max)(1,
         static_cast<int>(stage.orientation.numTrails) + 1);
-    const float timeStep = (std::max)(0.0001f,
-        std::fabs(stage.orientation.segmentLength));
-    const float width = std::fabs(Evaluate(stage.size.size[0], input,
-        particle) * input.sizeScale);
-    const textureAnimationState_t animation =
-        ComputeTextureAnimation(input, particle);
+    const float width = Evaluate(stage.size.size[0], input, particle)
+        * input.sizeScale;
+    const float aspect = Evaluate(stage.size.aspectRatio, input, particle);
+    const float timeStep = stage.orientation.segmentLength * aspect
+        / static_cast<float>(segments);
+    const idRandom2 savedRandom = particle.random;
     int generated = 0;
+    idVec3 currentPoint = origin;
     for (int segment = 0; segment < segments; ++segment) {
-        const float headAge = particle.cycleAge - segment * timeStep;
-        if (headAge < 0.0f && segment > 0) break;
-        const float tailAge = (std::max)(0.0f, headAge - timeStep);
-        idVec3 headVelocity;
-        idVec3 tailVelocity;
-        const idVec3 head = ParticleOriginAtAge(input, particle,
-            (std::max)(0.0f, headAge), &headVelocity);
-        const idVec3 tail = ParticleOriginAtAge(input, particle, tailAge,
-            &tailVelocity);
-        idVec3 direction = head - tail;
-        if (direction.NormalizeFast() == 0.0f) {
-            direction = headVelocity;
-            if (direction.NormalizeFast() == 0.0f) direction.Set(0, 0, 1);
+        const float sampleAge = particle.cycleAge
+            - static_cast<float>(segment + 1) * timeStep;
+        if (sampleAge < 0.0f) {
+            if (timeStep >= 0.0f) break;
+            continue;
         }
-        idVec3 side = direction.Cross(input.localViewOrg - head);
-        if (side.NormalizeFast() == 0.0f) side = input.localViewLeft;
+
+        particleGen_t sample = particle;
+        sample.random = particle.originalRandom;
+        sample.cycleAge = sampleAge;
+        sample.frac = Clamp01(sampleAge / sample.particleLife);
+        idVec3 sampleVelocity;
+        const idVec3 olderPoint = ParticleOrigin(input, sample,
+            &sampleVelocity);
+        idVec3 segmentVector = currentPoint - olderPoint;
+        idVec3 direction = segmentVector;
+        if (direction.NormalizeFast() == 0.0f) continue;
+        const idVec3 midpoint = (currentPoint + olderPoint) * 0.5f;
+        idVec3 viewDirection = midpoint - input.localViewOrg;
+        viewDirection.NormalizeFast();
+        idVec3 side = direction.Cross(viewDirection);
+        if (side.NormalizeFast() == 0.0f) {
+            side = input.localViewLeft;
+            side.NormalizeFast();
+        }
+        if (stage.orientation.aimedSafeQuad) {
+            float blend = std::fabs(viewDirection.Dot(direction));
+            if (stage.orientation.aimedSafeQuadAlign != 1.0f) {
+                const float denominator = (std::max)(1.0e-6f,
+                    stage.orientation.aimedSafeQuadAlign - 1.0e-6f);
+                blend = Clamp01((blend
+                    - (1.0f - stage.orientation.aimedSafeQuadAlign))
+                    / denominator);
+            }
+            const idVec3 safeSegment = viewDirection.Cross(side)
+                * (aspect * width);
+            segmentVector = segmentVector * (1.0f - blend)
+                + safeSegment * blend;
+        }
+        const idVec3 adjustedStart = midpoint - segmentVector * 0.5f;
+        const idVec3 adjustedEnd = midpoint + segmentVector * 0.5f;
         side = side * width;
         const idVec3 corners[4] = {
-            tail - side, tail + side, head + side, head - side
+            adjustedEnd - side, adjustedEnd + side,
+            adjustedStart - side, adjustedStart + side
         };
-        InitializeQuad(output.verts + generated, corners,
-            particle.vertColor);
+        idVec4 color = particle.vertColor;
+        if (stage.orientation.viewFade < 1.0f) {
+            idVec3 actualDirection = segmentVector;
+            actualDirection.NormalizeFast();
+            const float denominator = 1.0f - stage.orientation.viewFade;
+            const float blend = denominator > 1.0e-7f
+                ? Clamp01((std::fabs(actualDirection.Dot(viewDirection))
+                    - stage.orientation.viewFade) / denominator)
+                : 0.0f;
+            for (int component = 0; component < 4; ++component) {
+                const float faded = stage.colorAttributes.fadeColor[component]
+                    * input.entityColor[component];
+                color[component] = color[component] * (1.0f - blend)
+                    + faded * blend;
+            }
+        }
+        InitializeQuad(output.verts + generated, corners, color);
         const float t0 = static_cast<float>(segment)
             / static_cast<float>(segments);
         const float t1 = static_cast<float>(segment + 1)
             / static_cast<float>(segments);
         const idVec2 source[4] = {
-            idVec2(0.0f, t1), idVec2(1.0f, t1),
-            idVec2(1.0f, t0), idVec2(0.0f, t0)
+            idVec2(0.0f, t0), idVec2(1.0f, t0),
+            idVec2(0.0f, t1), idVec2(1.0f, t1)
         };
+        const textureAnimationState_t animation =
+            ComputeTextureAnimation(input, sample);
         for (int vertex = 0; vertex < 4; ++vertex) {
             ParticleTexCoord(input, animation, source[vertex],
                 output.verts[generated + vertex]);
         }
-        StoreQuadDepth(input, (head + tail) * 0.5f,
+        StoreQuadDepth(input, midpoint,
             output.quadDepth != nullptr
                 ? output.quadDepth + generated / 4 : nullptr);
         generated += 4;
+        currentPoint = olderPoint;
     }
+    particle.random = savedRandom;
     return generated;
 }
 
@@ -782,50 +1013,38 @@ int GenerateStaticMeshVerts(const particleInput_t& input,
     const idVec3& origin) {
     const idParticleStage& stage = *input.stage;
     if (input.staticVerts == nullptr || stage.numStaticVerts <= 0) return 0;
+    const textureAnimationState_t animation =
+        ComputeTextureAnimation(input, particle);
     idVec3 scale;
     for (int axis = 0; axis < 3; ++axis) {
         scale[axis] = Evaluate(stage.size.size[axis], input, particle)
             * input.sizeScale;
     }
     const idAngles angles(
-        EvaluateIntegratedAngle(stage.initialRotation.initialAngle[0], input,
-            particle) + EvaluateIntegratedAngle(stage.rotation.rotation[0],
-            input, particle),
-        EvaluateIntegratedAngle(stage.initialRotation.initialAngle[1], input,
-            particle) + EvaluateIntegratedAngle(stage.rotation.rotation[1],
-            input, particle),
-        EvaluateIntegratedAngle(stage.initialRotation.initialAngle[2], input,
-            particle) + EvaluateIntegratedAngle(stage.rotation.rotation[2],
-            input, particle));
-    const idMat3 rotation = angles.ToMat3();
-    const textureAnimationState_t animation =
-        ComputeTextureAnimation(input, particle);
+        Evaluate(stage.initialRotation.initialAngle[0], input, particle)
+            + Evaluate(stage.rotation.rotation[0], input, particle)
+                * particle.particleLife,
+        Evaluate(stage.initialRotation.initialAngle[1], input, particle)
+            + Evaluate(stage.rotation.rotation[1], input, particle)
+                * particle.particleLife,
+        Evaluate(stage.initialRotation.initialAngle[2], input, particle)
+            + Evaluate(stage.rotation.rotation[2], input, particle)
+                * particle.particleLife);
+    idMat3 rotation = angles.ToMat3();
+    if (stage.orientation.type == POR_VIEW) {
+        rotation *= VectorToMat3(origin - input.localViewOrg);
+    }
+    rotation *= input.globalAxis;
     for (int index = 0; index < stage.numStaticVerts; ++index) {
         const idDrawVert& source = input.staticVerts[index];
         idVec3 local(source.xyz.x * scale.x, source.xyz.y * scale.y,
             source.xyz.z * scale.z);
         local = TransformVector(rotation, local);
-        const idVec3 position = origin + (stage.orientation.world
-            ? local : TransformVector(input.globalAxis, local));
-        idVec4 color = particle.vertColor;
-        for (int component = 0; component < 4; ++component) {
-            color[component] *= source.color[component] * (1.0f / 255.0f);
-        }
-        InitializeVertex(output.verts[index], position, color);
-        std::memcpy(output.verts[index].normal, source.normal,
-            sizeof(source.normal));
-        output.verts[index].tangent[3] = source.tangent[3];
+        InitializeVertex(output.verts[index], origin + local,
+            particle.vertColor);
         ParticleTexCoord(input, animation, source.st, output.verts[index]);
-    }
-    for (int quad = 0; quad * 4 < stage.numStaticVerts; ++quad) {
-        idVec3 center(0.0f, 0.0f, 0.0f);
-        const int count = (std::min)(4, stage.numStaticVerts - quad * 4);
-        for (int vertex = 0; vertex < count; ++vertex) {
-            center = center + output.verts[quad * 4 + vertex].xyz;
-        }
-        center = center * (1.0f / static_cast<float>(count));
-        StoreQuadDepth(input, center, output.quadDepth != nullptr
-            ? output.quadDepth + quad : nullptr);
+        output.verts[index].st1[0] = output.verts[index].st[0];
+        output.verts[index].st1[1] = output.verts[index].st[1];
     }
     return stage.numStaticVerts;
 }
@@ -836,26 +1055,50 @@ int CreateParticle(const particleInput_t& input, particleGen_t& particle,
         return 0;
     }
     const idParticleStage& stage = *input.stage;
-    particle.vertColor = ComputeParticleColor(input, particle);
-    if (stage.orientation.type == POR_TRAIL) {
-        return GenerateTrailVerts(input, particle, output);
-    }
     particle.random = particle.originalRandom;
     idVec3 velocity;
     idVec3 origin = ParticleOrigin(input, particle, &velocity);
-    if (stage.orientation.depthOffset != 0.0f) {
-        idVec3 viewDirection = input.localViewOrg - origin;
-        if (viewDirection.NormalizeFast() != 0.0f) {
-            origin = origin + viewDirection * stage.orientation.depthOffset;
-        }
+    particle.vertColor = ComputeParticleColor(input, particle);
+    if (ToColorByte(particle.vertColor.x) == 0
+            && ToColorByte(particle.vertColor.y) == 0
+            && ToColorByte(particle.vertColor.z) == 0) {
+        return 0;
     }
-    if (stage.staticData != nullptr || stage.staticVerts != nullptr) {
-        return GenerateStaticMeshVerts(input, particle, output, origin);
+
+    idVec4 genericParm;
+    for (int component = 0; component < 4; ++component) {
+        genericParm[component] = Evaluate(
+            stage.genericParm.genericParm[component], input, particle);
     }
-    if (stage.orientation.type == POR_AIMED) {
-        return GenerateAimedVerts(input, particle, output, origin, velocity);
+    const float softParticleScale = input.alphaScaleOverride < 1.0f
+        ? input.alphaScaleOverride
+        : stage.colorAttributes.softParticleAlphaScale;
+    const std::uint8_t softParticleByte = static_cast<std::uint8_t>(
+        (std::max)(0, (std::min)(255,
+            static_cast<int>(softParticleScale * 255.0f))));
+
+    int generated = 0;
+    if (stage.orientation.type == POR_TRAIL) {
+        generated = GenerateTrailVerts(input, particle, output, origin);
+    } else if (stage.staticData != nullptr || stage.staticVerts != nullptr) {
+        generated = GenerateStaticMeshVerts(input, particle, output, origin);
+    } else if (stage.orientation.type == POR_AIMED) {
+        generated = GenerateAimedVerts(input, particle, output, origin,
+            velocity);
+    } else {
+        generated = GenerateQuadVerts(input, particle, output, origin,
+            velocity);
     }
-    return GenerateQuadVerts(input, particle, output, origin, velocity);
+    const std::uint8_t genericBytes[4] = {
+        ToColorByte(genericParm.x), ToColorByte(genericParm.y),
+        ToColorByte(genericParm.z), ToColorByte(genericParm.w)
+    };
+    for (int index = 0; index < generated; ++index) {
+        std::memcpy(output.verts[index].normal, genericBytes,
+            sizeof(genericBytes));
+        output.verts[index].tangent[3] = softParticleByte;
+    }
+    return generated;
 }
 
 int GenParticleStage(const deferredParticleGenParms_t* parms,
@@ -869,24 +1112,20 @@ int GenParticleStage(const deferredParticleGenParms_t* parms,
     const idParticleStage& stage = *parms->stage;
     particleInput_t input{};
     input.modelAxis = model.axis;
-    input.globalOrigin = model.origin;
-    input.globalAxis[0] = model.axis[0] * model.scale.x;
-    input.globalAxis[1] = model.axis[1] * model.scale.y;
-    input.globalAxis[2] = model.axis[2] * model.scale.z;
     input.localVelocity = model.velocity;
     input.localVelocity.NormalizeFast();
     input.distribScale = model.distribScale;
-    input.wind = TransformVector(model.axis,
+    input.wind = TransformVector(model.axis.Transpose(),
         idAngles(model.wind.x, model.wind.y, model.wind.z).ToForward() *
             model.wind.w);
     input.entityColor = model.color;
     const float lodBlend = Clamp01(static_cast<float>(model.lod) *
         stage.lodParms.lerpAmount);
-    input.totalParticles = static_cast<int>(std::floor(
+    input.totalParticles = static_cast<int>(
         stage.systemProperties.totalParticles +
         (stage.lodParms.totalParticles -
-            stage.systemProperties.totalParticles) * lodBlend + 0.5f));
-    input.totalParticles = (std::max)(1, input.totalParticles);
+            stage.systemProperties.totalParticles) * lodBlend);
+    if (input.totalParticles <= 0) return 0;
     input.sizeScale = 1.0f +
         (stage.lodParms.sizeScale - 1.0f) * lodBlend;
     input.fade = model.coverage;
@@ -894,18 +1133,43 @@ int GenParticleStage(const deferredParticleGenParms_t* parms,
         ? model.shadow : 1.0f;
     input.alphaScaleOverride = model.alphaScaleOverride;
     if (parms->renderView != nullptr) {
-        input.localViewOrg = parms->renderView->viewOrg;
-        input.localViewLeft = parms->renderView->viewLeft;
-        input.localViewUp = parms->renderView->viewUp;
+        const idMat3 worldToModel = model.axis.Transpose();
+        if (stage.isTransparencySorted) {
+            input.globalOrigin = model.origin;
+            input.globalAxis[0] = model.axis[0] * model.scale.x;
+            input.globalAxis[1] = model.axis[1] * model.scale.y;
+            input.globalAxis[2] = model.axis[2] * model.scale.z;
+            input.localViewOrg = parms->renderView->viewOrg;
+            input.localViewLeft = TransformVector(worldToModel,
+                parms->renderView->viewLeft);
+            input.localViewUp = TransformVector(worldToModel,
+                parms->renderView->viewUp);
+        } else {
+            input.globalOrigin.Zero();
+            input.globalAxis = idMat3(1.0f);
+            input.localViewOrg = TransformVector(worldToModel,
+                parms->renderView->viewOrg - model.origin);
+            input.localViewLeft = TransformVector(worldToModel,
+                parms->renderView->viewLeft);
+            input.localViewUp = TransformVector(worldToModel,
+                parms->renderView->viewUp);
+        }
+    } else if (stage.isTransparencySorted) {
+        input.globalOrigin = model.origin;
+        input.globalAxis[0] = model.axis[0] * model.scale.x;
+        input.globalAxis[1] = model.axis[1] * model.scale.y;
+        input.globalAxis[2] = model.axis[2] * model.scale.z;
+    } else {
+        input.globalOrigin.Zero();
+        input.globalAxis = idMat3(1.0f);
     }
     const int renderTime = parms->renderView != nullptr
         ? parms->renderView->renderTime : 0;
-    const int stageTime = renderTime - static_cast<int>((
-        stage.systemProperties.timeOffset + model.timeOffset) * 1000.0f);
-    const float deadTime = parms->deadTime > 0.0f
-        ? parms->deadTime : stage.maxDeadTime;
+    const int stageTime = static_cast<int>((renderTime * 0.001f
+        - (stage.systemProperties.timeOffset + model.timeOffset))
+        * 1000.0f);
     const int cycleMilliseconds = static_cast<int>((
-        stage.maxParticleLife + deadTime) * 1000.0f);
+        stage.maxParticleLife + parms->deadTime) * 1000.0f);
     const int diversity = (stage.systemProperties.diversity +
         model.diversity) & 0x7FFF;
     return GenerateModelStage(parms, stage, input, diversity, stageTime,
@@ -926,7 +1190,8 @@ int GenEffectStage(const deferredParticleGenParms_t* parms,
     particleInput_t input{};
     input.modelAxis = effect.axis;
     input.globalAxis = effect.axis;
-    input.localVelocity = effect.velocity;
+    input.localVelocity = TransformVector(effect.axis.Transpose(),
+        effect.velocity);
     input.localVelocity.NormalizeFast();
     input.distribScale.Set(1.0f, 1.0f, 1.0f);
     input.wind = effect.wind;
@@ -941,16 +1206,17 @@ int GenEffectStage(const deferredParticleGenParms_t* parms,
     input.fade = 1.0f;
     input.shadow = effect.shadow;
     input.alphaScaleOverride = 1.0f;
-    const int particlesToGenerate = effect.numParticles > 0
-        ? effect.numParticles
-        : (std::max)(1, static_cast<int>(
-            stage.systemProperties.totalParticles));
+    const int particlesToGenerate = (std::max)(0, effect.numParticles);
+    if (particlesToGenerate == 0) return 0;
     input.totalParticles = (std::max)(1, static_cast<int>(
         stage.systemProperties.totalParticles));
     if (parms->renderView != nullptr) {
         input.localViewOrg = parms->renderView->viewOrg;
-        input.localViewLeft = parms->renderView->viewLeft;
-        input.localViewUp = parms->renderView->viewUp;
+        const idMat3 worldToEffect = effect.axis.Transpose();
+        input.localViewLeft = TransformVector(worldToEffect,
+            parms->renderView->viewLeft);
+        input.localViewUp = TransformVector(worldToEffect,
+            parms->renderView->viewUp);
     }
     const int renderTime = parms->renderView != nullptr
         ? parms->renderView->renderTime : effect.currTime;
@@ -982,8 +1248,7 @@ int GenEffectStage(const deferredParticleGenParms_t* parms,
 
         particleGen_t particle;
         particle.index = particleIndex;
-        particle.random.SetSeed(ParticleSeed(
-            stage.systemProperties.diversity + effect.diversity,
+        particle.random.SetSeed(ParticleSeed(effect.diversity,
             particleIndex, 0, false));
         particle.particleLife = (std::max)(0.001f,
             stage.systemProperties.particleLife.Compute(parms->tables,

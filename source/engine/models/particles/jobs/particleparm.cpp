@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 namespace {
 
@@ -28,15 +29,12 @@ float LookupMaximum(const idLookupTable* tables, const int index) {
     if (tables == nullptr || index < 0) {
         return 0.0f;
     }
-
-    // The original inline accessed the table's cached maximum.  That member
-    // is intentionally private in the recovered idlib contract, so sample
-    // the normalized domain conservatively here.
-    float maximum = tables[index].TableLookup(0.0f, false);
-    for (int sample = 1; sample <= 256; ++sample) {
-        maximum = (std::max)(maximum,
-            tables[index].TableLookup(sample * (1.0f / 256.0f), false));
-    }
+    // idLookupTable keeps the recovered cached output maximum at byte 8,
+    // but the read-only idlib contract intentionally leaves it private.
+    float maximum = 0.0f;
+    std::memcpy(&maximum,
+        reinterpret_cast<const unsigned char*>(&tables[index]) + 8,
+        sizeof(maximum));
     return maximum;
 }
 
@@ -119,7 +117,7 @@ float idParticleParm::GetMaxParmVal(const idLookupTable* tables) const {
     }
     case PARTICLE_CALC_GENERIC: {
         const float maximum = (std::max)(val0, val1);
-        return maximum + std::fabs(variance * maximum);
+        return maximum + variance * maximum;
     }
     case PARTICLE_CALC_CURVE_MOD_CURVE:
         return LookupMaximum(tables, tableIdx)
@@ -128,11 +126,11 @@ float idParticleParm::GetMaxParmVal(const idLookupTable* tables) const {
         return LookupMaximum(tables, tableIdx)
             + LookupMaximum(tables, table2Idx);
     case PARTICLE_CALC_PARAMETRIC_EVAL:
-        return (1.0f + std::fabs(variance)) * (std::max)(val0, val1);
+        return (1.0f + variance) * val1;
     case PARTICLE_CALC_PARAMETRIC_INTEGRATE:
-        return 0.5f * (val0 + val1) * (1.0f + std::fabs(variance));
+        return 0.5f * (val0 + val1) * (1.0f + variance);
     case PARTICLE_CALC_PARAMETRIC_INTEGRATE_MINMAX:
-        return (std::max)(val0, val1) * (1.0f + std::fabs(variance));
+        return (std::max)(val0, val1) * (1.0f + variance);
     default:
         return 0.0f;
     }
@@ -140,31 +138,31 @@ float idParticleParm::GetMaxParmVal(const idLookupTable* tables) const {
 
 float idParticleParm::Compute(const idLookupTable* tables,
     const float fraction, idRandom2& random) const {
-    const float frac = (std::max)(0.0f, (std::min)(1.0f, fraction));
     switch (calcType) {
     case PARTICLE_CALC_CURVE_GENERIC:
-        return ApplyVariance(random, Lookup(tables, tableIdx, frac),
+        if (tables == nullptr || tableIdx < 0) return val1;
+        return ApplyVariance(random, Lookup(tables, tableIdx, fraction),
             variance) * val0 + val1;
     case PARTICLE_CALC_GENERIC:
         return ApplyVariance(random, RandomRange(random, val0, val1),
             variance);
     case PARTICLE_CALC_CURVE_MOD_CURVE:
-        return Lookup(tables, tableIdx, frac)
-            * Lookup(tables, table2Idx, frac);
+        return Lookup(tables, tableIdx, fraction)
+            * Lookup(tables, table2Idx, fraction);
     case PARTICLE_CALC_CURVE_ADD_CURVE:
-        return Lookup(tables, tableIdx, frac)
-            + Lookup(tables, table2Idx, frac);
+        return Lookup(tables, tableIdx, fraction)
+            + Lookup(tables, table2Idx, fraction);
     case PARTICLE_CALC_PARAMETRIC_EVAL:
-        return ApplyVariance(random, val0 + (val1 - val0) * frac,
+        return ApplyVariance(random, val0 + (val1 - val0) * fraction,
             variance);
     case PARTICLE_CALC_PARAMETRIC_INTEGRATE: {
         const float integrated =
-            (val0 + 0.5f * (val1 - val0) * frac) * frac;
+            (val0 + 0.5f * (val1 - val0) * fraction) * fraction;
         return ApplyVariance(random, integrated, variance);
     }
     case PARTICLE_CALC_PARAMETRIC_INTEGRATE_MINMAX:
         return ApplyVariance(random,
-            RandomRange(random, val0, val1) * frac, variance);
+            RandomRange(random, val0, val1) * fraction, variance);
     default:
         return 0.0f;
     }
@@ -176,8 +174,6 @@ void SetParticleParmAsIntegrate(idParticleParm* parm, const float from,
     parm->val0 = from;
     parm->val1 = to;
     parm->variance = variance;
-    parm->tableIdx = -1;
-    parm->table2Idx = -1;
     parm->calcType = PARTICLE_CALC_PARAMETRIC_INTEGRATE;
 }
 
@@ -187,8 +183,6 @@ void SetParticleParmAsEval(idParticleParm* parm, const float from,
     parm->val0 = from;
     parm->val1 = to;
     parm->variance = variance;
-    parm->tableIdx = -1;
-    parm->table2Idx = -1;
     parm->calcType = PARTICLE_CALC_PARAMETRIC_EVAL;
 }
 
@@ -198,8 +192,6 @@ void SetParticleParmAsConstant(idParticleParm* parm, const float value,
     parm->val0 = value;
     parm->val1 = value;
     parm->variance = variance;
-    parm->tableIdx = -1;
-    parm->table2Idx = -1;
     parm->calcType = PARTICLE_CALC_GENERIC;
 }
 
@@ -209,7 +201,5 @@ void SetParticleParmAsMinMax(idParticleParm* parm, const float minimum,
     parm->val0 = minimum;
     parm->val1 = maximum;
     parm->variance = 0.0f;
-    parm->tableIdx = -1;
-    parm->table2Idx = -1;
     parm->calcType = PARTICLE_CALC_GENERIC;
 }

@@ -3,6 +3,16 @@
 #include <cstring>
 #include <algorithm>
 
+idVertexBuffer idRenderModelBeam::preAllocatedVertexBuffer[2]{};
+idIndexBuffer idRenderModelBeam::preAllocatedIndexBuffer{};
+bool idRenderModelBeam::preAllocatedBufferInUse = false;
+bool idRenderModelBeam::preAllocatedBufferReady = false;
+idRenderModelBeam::BufferAllocateCallback
+    idRenderModelBeam::bufferAllocateCallback = nullptr;
+idRenderModelBeam::BufferReferenceCallback
+    idRenderModelBeam::bufferReferenceCallback = nullptr;
+idRenderModelBeam::BufferFreeCallback idRenderModelBeam::bufferFreeCallback =
+    nullptr;
 idRenderModelBeam::UpdateCallback idRenderModelBeam::updateCallback = nullptr;
 
 idRenderModelBeam::idRenderModelBeam()
@@ -10,6 +20,23 @@ idRenderModelBeam::idRenderModelBeam()
       usesPreAllocatedBuffer(false) {
     std::memset(vertexBuffer, 0, sizeof(vertexBuffer));
     std::memset(&indexBuffer, 0, sizeof(indexBuffer));
+    g.addAlways = 1;
+    g.noShadow = 1;
+    if (preAllocatedBufferReady && !preAllocatedBufferInUse) {
+        if (bufferReferenceCallback != nullptr) {
+            bufferReferenceCallback(vertexBuffer, preAllocatedVertexBuffer,
+                2, &indexBuffer, &preAllocatedIndexBuffer);
+        } else {
+            std::memcpy(vertexBuffer, preAllocatedVertexBuffer,
+                sizeof(vertexBuffer));
+            indexBuffer = preAllocatedIndexBuffer;
+        }
+        preAllocatedBufferInUse = true;
+        usesPreAllocatedBuffer = true;
+    } else if (bufferAllocateCallback != nullptr) {
+        bufferAllocateCallback(vertexBuffer, 2, &indexBuffer, 32512,
+            48768, 0x1Fu);
+    }
     triangles = new idTriangles[32]{};
     for (int index = 0; index < 32; ++index) {
         triangles[index].bounds[0].Set(-99999.0f, -99999.0f, -99999.0f);
@@ -18,14 +45,40 @@ idRenderModelBeam::idRenderModelBeam()
 }
 
 idRenderModelBeam::~idRenderModelBeam() {
+    if (usesPreAllocatedBuffer)
+        preAllocatedBufferInUse = false;
+    if (bufferFreeCallback != nullptr)
+        bufferFreeCallback(vertexBuffer, 2, &indexBuffer);
     delete[] triangles;
     triangles = nullptr;
 }
 
 void idRenderModelBeam::Init() {
+    if (preAllocatedBufferReady || bufferAllocateCallback == nullptr) return;
+    preAllocatedBufferReady = bufferAllocateCallback(
+        preAllocatedVertexBuffer, 2, &preAllocatedIndexBuffer, 32512,
+        48768, 0x1Fu);
 }
 
 void idRenderModelBeam::Shutdown() {
+    if (preAllocatedBufferReady && bufferFreeCallback != nullptr) {
+        bufferFreeCallback(preAllocatedVertexBuffer, 2,
+            &preAllocatedIndexBuffer);
+    }
+    std::memset(preAllocatedVertexBuffer, 0,
+        sizeof(preAllocatedVertexBuffer));
+    std::memset(&preAllocatedIndexBuffer, 0,
+        sizeof(preAllocatedIndexBuffer));
+    preAllocatedBufferReady = false;
+    preAllocatedBufferInUse = false;
+}
+
+void idRenderModelBeam::SetBufferCallbacks(
+        BufferAllocateCallback allocate, BufferReferenceCallback reference,
+        BufferFreeCallback freeBuffers) {
+    bufferAllocateCallback = allocate;
+    bufferReferenceCallback = reference;
+    bufferFreeCallback = freeBuffers;
 }
 
 void idRenderModelBeam::SetUpdateCallback(UpdateCallback callback) {

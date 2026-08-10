@@ -3,6 +3,8 @@
 #include <cstring>
 #include <new>
 
+idRenderModelDetail::MaterialResolver idRenderModelDetail::materialResolver =
+    nullptr;
 idRenderModelDetail::UpdateCallback idRenderModelDetail::updateCallback =
     nullptr;
 
@@ -10,7 +12,8 @@ idRenderModelDetail::idRenderModelDetail()
     : detailBSP(nullptr), detailGatherParms(nullptr), detailGenParms(nullptr),
       viewData(nullptr), currentIndex(0), detailIndices(nullptr),
       subTreeDetailCounts(nullptr), totalsUsed(nullptr), deferredVerts(nullptr),
-      deferredIndices(nullptr), detailMaterial(nullptr) {
+      deferredIndices(nullptr), detailMaterial(materialResolver != nullptr
+          ? materialResolver("genericDetailVmtr", true) : nullptr) {
     std::memset(vertexBuffers, 0, sizeof(vertexBuffers));
     std::memset(indexBuffers, 0, sizeof(indexBuffers));
     g.addAlways = 1;
@@ -55,6 +58,10 @@ idRenderModelDetail::~idRenderModelDetail() {
             surfaces[index].geometry = nullptr;
         }
     }
+}
+
+void idRenderModelDetail::SetMaterialResolver(MaterialResolver resolver) {
+    materialResolver = resolver;
 }
 
 void idRenderModelDetail::SetUpdateCallback(UpdateCallback callback) {

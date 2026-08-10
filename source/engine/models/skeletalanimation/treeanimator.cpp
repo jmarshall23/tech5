@@ -1,11 +1,14 @@
 #include "models/skeletalanimation/treeanimator.h"
 
 #include "idlib/filesystem/file.h"
+#include "gamelib/animstack/animrecorder.h"
 #include "models/skeletalanimation/declmd6.h"
 #include "models/skeletalanimation/md6allocator.h"
 #include "models/skeletalanimation/md6anim.h"
+#include "models/skeletalanimation/md6animtree.h"
 #include "models/skeletalanimation/md6mesh.h"
 #include "models/skeletalanimation/md6model.h"
+#include "models/skeletalanimation/md6parsetree.h"
 #include "network/serializer.h"
 
 #include <algorithm>
@@ -149,6 +152,361 @@ idMD6Blend::jointMod_t MakeJointMod(const animationPose_t pose,
     modifier.s[0] = modifier.s[1] = modifier.s[2] = 1.0f;
     modifier.mat[0] = modifier.mat[5] = modifier.mat[10] = 1.0f;
     return modifier;
+}
+
+bool CanReadBits(const idBitMsg& message, const int bitCount) {
+    const int bits = bitCount < 0 ? -bitCount : bitCount;
+    const int available = (message.curSize - message.readCount) * 8 +
+        (message.readBit != 0 ? 8 - message.readBit : 0);
+    return bits > 0 && bits <= available;
+}
+
+bool ReadBitsChecked(idBitMsg& message, const int bitCount, int& value) {
+    if (!CanReadBits(message, bitCount)) return false;
+    value = message.ReadBits(bitCount);
+    return true;
+}
+
+std::uint32_t FloatBits(const float value) {
+    std::uint32_t bits = 0;
+    std::memcpy(&bits, &value, sizeof(bits));
+    return bits;
+}
+
+float BitsFloat(const std::uint32_t bits) {
+    float value = 0.0f;
+    std::memcpy(&value, &bits, sizeof(value));
+    return value;
+}
+
+void WriteCompressedMatrix(idBitMsg& message,
+        const idMD6Blend::jointMod_t& modifier) {
+    const idMat3 matrix(
+        modifier.mat[0], modifier.mat[1], modifier.mat[2],
+        modifier.mat[4], modifier.mat[5], modifier.mat[6],
+        modifier.mat[8], modifier.mat[9], modifier.mat[10]);
+    idQuat quaternion = MatrixQuat(matrix);
+    int largest = 0;
+    for (int component = 1; component < 4; ++component) {
+        if (std::fabs(quaternion[component]) >
+                std::fabs(quaternion[largest])) largest = component;
+    }
+    message.WriteBits(largest, 2);
+    const float sign = quaternion[largest] >= 0.0f ? 1.0f : -1.0f;
+    constexpr float quantizer = 16383.0f;
+    for (int offset = 1; offset < 4; ++offset) {
+        const int component = (largest + offset) & 3;
+        message.WriteBits(static_cast<int>(
+            quaternion[component] * sign * quantizer), -15);
+    }
+}
+
+bool ReadCompressedMatrix(idBitMsg& message,
+        idMD6Blend::jointMod_t& modifier) {
+    int largest = 0;
+    if (!ReadBitsChecked(message, 2, largest) || largest > 3) return false;
+    idQuat quaternion(0.0f, 0.0f, 0.0f, 0.0f);
+    constexpr float dequantizer = 1.0f / 16383.0f;
+    float sumSquares = 0.0f;
+    for (int offset = 1; offset < 4; ++offset) {
+        int quantized = 0;
+        if (!ReadBitsChecked(message, -15, quantized)) return false;
+        const int component = (largest + offset) & 3;
+        quaternion[component] = static_cast<float>(quantized) * dequantizer;
+        sumSquares += quaternion[component] * quaternion[component];
+    }
+    quaternion[largest] = std::sqrt(std::fabs(1.0f - sumSquares));
+    const idMat3 matrix = quaternion.ToMat3();
+    modifier.mat[0] = matrix[0][0];
+    modifier.mat[1] = matrix[0][1];
+    modifier.mat[2] = matrix[0][2];
+    modifier.mat[4] = matrix[1][0];
+    modifier.mat[5] = matrix[1][1];
+    modifier.mat[6] = matrix[1][2];
+    modifier.mat[8] = matrix[2][0];
+    modifier.mat[9] = matrix[2][1];
+    modifier.mat[10] = matrix[2][2];
+    return true;
+}
+
+void WriteJointModifiers(idBitMsg& message,
+        const idMD6Blend::jointMod_t* const modifiers, const int count) {
+    for (int index = 0; index < count; ++index) {
+        const idMD6Blend::jointMod_t& modifier = modifiers[index];
+        message.WriteBits(static_cast<unsigned short>(modifier.joint.Get()),
+            16);
+        message.WriteBits(modifier.flags, 8);
+        if ((modifier.flags & idMD6Blend::DRIVER_SCALE) != 0) {
+            for (int component = 0; component < 3; ++component) {
+                message.WriteQuantizedUFloat<255, 8>(modifier.s[component]);
+            }
+        }
+        if ((modifier.flags & idMD6Blend::DRIVER_TRANSLATION) != 0) {
+            message.WriteBits(static_cast<int>(FloatBits(modifier.mat[3])), 32);
+            message.WriteBits(static_cast<int>(FloatBits(modifier.mat[7])), 32);
+            message.WriteBits(static_cast<int>(FloatBits(modifier.mat[11])), 32);
+        }
+        if ((modifier.flags & idMD6Blend::DRIVER_ROTATION) != 0)
+            WriteCompressedMatrix(message, modifier);
+    }
+}
+
+bool ReadJointModifiers(idBitMsg& message,
+        idMD6Blend::jointMod_t* const modifiers, const int count) {
+    for (int index = 0; index < count; ++index) {
+        idMD6Blend::jointMod_t& modifier = modifiers[index];
+        int joint = 0;
+        int flags = 0;
+        if (!ReadBitsChecked(message, 16, joint) ||
+                !ReadBitsChecked(message, 8, flags)) return false;
+        modifier.joint = idJointIndex(static_cast<short>(joint));
+        modifier.flags = static_cast<std::uint16_t>(flags);
+        if ((modifier.flags & idMD6Blend::DRIVER_SCALE) != 0) {
+            for (int component = 0; component < 3; ++component) {
+                int quantized = 0;
+                if (!ReadBitsChecked(message, 8, quantized)) return false;
+                modifier.s[component] = static_cast<float>(quantized);
+            }
+        }
+        if ((modifier.flags & idMD6Blend::DRIVER_TRANSLATION) != 0) {
+            int bits = 0;
+            if (!ReadBitsChecked(message, 32, bits)) return false;
+            modifier.mat[3] = BitsFloat(static_cast<std::uint32_t>(bits));
+            if (!ReadBitsChecked(message, 32, bits)) return false;
+            modifier.mat[7] = BitsFloat(static_cast<std::uint32_t>(bits));
+            if (!ReadBitsChecked(message, 32, bits)) return false;
+            modifier.mat[11] = BitsFloat(static_cast<std::uint32_t>(bits));
+        }
+        if ((modifier.flags & idMD6Blend::DRIVER_ROTATION) != 0 &&
+                !ReadCompressedMatrix(message, modifier)) return false;
+    }
+    return true;
+}
+
+void UpdatePersistenceNode(const idMD6Model* const model,
+        const int timeMilliseconds, const int ticksPerSecond,
+        idMD6Node* const node) {
+    if (node == nullptr) return;
+    switch (node->type) {
+    case idMD6Node::NODE_BLEND_BRANCH:
+        idMD6AnimTree::Update(*static_cast<idMD6BlendBranch*>(node),
+            false, true);
+        break;
+    case idMD6Node::NODE_BLENDA_BRANCH:
+        idMD6AnimTree::Update(*static_cast<idMD6BlendAdditiveBranch*>(node),
+            false);
+        break;
+    case idMD6Node::NODE_FUSION_BRANCH:
+        idMD6AnimTree::Update(*static_cast<idMD6FusionBranch*>(node), false,
+            timeMilliseconds, ticksPerSecond,
+            model != nullptr ? model->skeleton : nullptr);
+        break;
+    case idMD6Node::NODE_BEST_LEAF:
+        idMD6AnimTree::Update(*static_cast<idMD6BestLeaf*>(node));
+        break;
+    default:
+        break;
+    }
+}
+
+idMD6Node* ResolveBestLeaf(idMD6Node* node) {
+    if (node == nullptr || node->type != idMD6Node::NODE_BEST_LEAF)
+        return node;
+    idMD6BestLeaf* const best = static_cast<idMD6BestLeaf*>(node);
+    if (best->leafList.Num() <= 0) return nullptr;
+    return best->leafList[best->bestLeafIndex % best->leafList.Num()];
+}
+
+bool StoreTreeDefault(const idMD6Model* const model,
+        const int timeMilliseconds, const int ticksPerSecond,
+        const idAnimStack& stack, idMD6Node* node, idBitMsg& types,
+        idBitMsg& branches, idBitMsg& leaves, const int depth) {
+    if (node == nullptr || depth > MAX_TREE_COMMANDS) return false;
+    UpdatePersistenceNode(model, timeMilliseconds, ticksPerSecond, node);
+
+    if (IsBranch(node)) {
+        idMD6Branch& branch = *static_cast<idMD6Branch*>(node);
+        types.WriteBits(idMD6Node::NODE_BRANCH, 2);
+        branches.WriteBits(branch.filterGroup, 3);
+        branches.WriteBits(branch.op, 4);
+        branches.WriteBits(static_cast<int>(branch.currentAlpha * 255.0f), 8);
+        branches.WriteBits(static_cast<int>(branch.targetAlpha * 255.0f), 8);
+        branches.WriteBits(static_cast<int>(branch.alphaRate * 255.0f), 16);
+        branches.WriteBits(branch.originBlend, 8);
+        branches.WriteBits(branch.left != nullptr ? 1 : 0, 1);
+        if (branch.left != nullptr && !StoreTreeDefault(model,
+                timeMilliseconds, ticksPerSecond, stack, branch.left, types,
+                branches, leaves, depth + 1)) return false;
+        return branch.right != nullptr && StoreTreeDefault(model,
+            timeMilliseconds, ticksPerSecond, stack, branch.right, types,
+            branches, leaves, depth + 1);
+    }
+
+    node = ResolveBestLeaf(node);
+    if (node == nullptr || (node->type != idMD6Node::NODE_LEAF_PAUSE &&
+            node->type != idMD6Node::NODE_LEAF_PLAY)) return false;
+    idMD6Leaf& leaf = *static_cast<idMD6Leaf*>(node);
+    types.WriteBits(node->type, 2);
+    leaves.WriteBits(leaf.weightGroup, 3);
+    leaves.WriteBits(leaf.wrapMode, 1);
+    idAnimRecorder* const recorder = idAnimRecorder::GetInstance();
+    const unsigned short animationID = recorder != nullptr
+        ? recorder->AddAnimNetworkID(stack, leaf.anim) : 0xFFFFu;
+    leaves.WriteBits(animationID, 16);
+
+    if (node->type == idMD6Node::NODE_LEAF_PLAY) {
+        const idMD6LeafPlay& play = *static_cast<idMD6LeafPlay*>(node);
+        leaves.WriteBits(play.startTime, 32);
+        leaves.WriteBits(static_cast<int>(play.rateScale * 255.0f), 16);
+    } else {
+        const idMD6LeafPause& pause = *static_cast<idMD6LeafPause*>(node);
+        leaves.WriteBits(static_cast<int>(pause.frame *
+            idMD6AnimTree::GetFrameRate(pause)), 16);
+        const idMD6OpaqueList& modifiers =
+            pause.animMods[pause.currentDeferred & 1];
+        leaves.WriteBits(modifiers.num, 8);
+        leaves.WriteBits(pause.flags, 4);
+        WriteJointModifiers(leaves,
+            static_cast<const idMD6Blend::jointMod_t*>(modifiers.list),
+            modifiers.num);
+    }
+    return !types.IsOverflowed() && !branches.IsOverflowed() &&
+        !leaves.IsOverflowed();
+}
+
+idMD6Node* AllocatePersistenceNode(idMD6Allocator* const allocator,
+        const idMD6Node::nodeType_t type) {
+    idMD6Node* node = allocator != nullptr ? allocator->Alloc(type) : nullptr;
+    if (allocator == nullptr) {
+        std::size_t size = 0;
+        if (type == idMD6Node::NODE_BRANCH) size = sizeof(idMD6Branch);
+        else if (type == idMD6Node::NODE_LEAF_PAUSE)
+            size = sizeof(idMD6LeafPause);
+        else if (type == idMD6Node::NODE_LEAF_PLAY)
+            size = sizeof(idMD6LeafPlay);
+        if (size == 0) return nullptr;
+        node = static_cast<idMD6Node*>(_aligned_malloc(size, 16));
+        if (node == nullptr) return nullptr;
+        std::memset(node, 0, size);
+    }
+    if (node == nullptr) return nullptr;
+    if (type == idMD6Node::NODE_BRANCH) {
+        idMD6Branch& branch = *static_cast<idMD6Branch*>(node);
+        std::memset(&branch, 0, sizeof(branch));
+        branch.type = idMD6Node::NODE_BRANCH;
+        branch.leftTimeOverride = branch.rightTimeOverride = -1;
+        branch.filterGroup = MD6_WEIGHTGROUP_MAX;
+        branch.op = idMD6Blend::BOP_MAX;
+        branch.blendType = idMD6Branch::BLEND_LINEAR;
+    } else if (type == idMD6Node::NODE_LEAF_PAUSE) {
+        idMD6AnimTree::Clear(*static_cast<idMD6LeafPause*>(node));
+    } else {
+        idMD6AnimTree::Clear(*static_cast<idMD6LeafPlay*>(node));
+    }
+    return node;
+}
+
+void DestroyPersistenceTree(idMD6Allocator* const allocator,
+        idMD6Node* const node) {
+    if (node == nullptr) return;
+    if (IsBranch(node)) {
+        idMD6Branch* const branch = static_cast<idMD6Branch*>(node);
+        DestroyPersistenceTree(allocator, branch->left);
+        DestroyPersistenceTree(allocator, branch->right);
+    }
+    if (node->type == idMD6Node::NODE_LEAF_PAUSE)
+        idMD6AnimTree::ReleaseAnimMods(*static_cast<idMD6LeafPause*>(node));
+    if (allocator != nullptr) allocator->Free(node);
+    else _aligned_free(node);
+}
+
+idMD6Node* ReadTreeDefault(const idAnimStack& stack,
+        idMD6Allocator* const allocator, idBitMsg& types,
+        idBitMsg& branches, idBitMsg& leaves, const int depth) {
+    if (depth > MAX_TREE_COMMANDS) return nullptr;
+    int typeValue = 0;
+    if (!ReadBitsChecked(types, 2, typeValue)) return nullptr;
+    const idMD6Node::nodeType_t type =
+        static_cast<idMD6Node::nodeType_t>(typeValue);
+
+    if (type == idMD6Node::NODE_LEAF_PAUSE ||
+            type == idMD6Node::NODE_LEAF_PLAY) {
+        idMD6Node* const node = AllocatePersistenceNode(allocator, type);
+        if (node == nullptr) return nullptr;
+        idMD6Leaf& leaf = *static_cast<idMD6Leaf*>(node);
+        int value = 0;
+        if (!ReadBitsChecked(leaves, 3, value)) goto leaf_failure;
+        leaf.weightGroup = static_cast<std::uint8_t>(value);
+        if (!ReadBitsChecked(leaves, 1, value)) goto leaf_failure;
+        leaf.wrapMode = static_cast<std::uint8_t>(value);
+        if (!ReadBitsChecked(leaves, 16, value)) goto leaf_failure;
+        if (idAnimRecorder* const recorder = idAnimRecorder::GetInstance())
+            leaf.anim = recorder->SerializeAnimNetworkID(stack,
+                static_cast<unsigned short>(value));
+
+        if (type == idMD6Node::NODE_LEAF_PLAY) {
+            idMD6LeafPlay& play = *static_cast<idMD6LeafPlay*>(node);
+            if (!ReadBitsChecked(leaves, 32, play.startTime) ||
+                    !ReadBitsChecked(leaves, 16, value)) goto leaf_failure;
+            play.rateScale = static_cast<float>(
+                static_cast<unsigned short>(value)) * (1.0f / 255.0f);
+        } else {
+            idMD6LeafPause& pause = *static_cast<idMD6LeafPause*>(node);
+            if (!ReadBitsChecked(leaves, 16, value)) goto leaf_failure;
+            const int frameRate = idMD6AnimTree::GetFrameRate(pause);
+            pause.frame = frameRate > 0 ? static_cast<float>(
+                static_cast<unsigned short>(value) / frameRate) : 0.0f;
+            if (!ReadBitsChecked(leaves, 8, value)) goto leaf_failure;
+            idMD6AnimTree::SetNumAnimMods(pause, value);
+            if (pause.animMods[0].num != value ||
+                    pause.animMods[1].num != value) goto leaf_failure;
+            if (!ReadBitsChecked(leaves, 4, value)) goto leaf_failure;
+            pause.flags = static_cast<std::int16_t>(value);
+            idMD6OpaqueList& modifiers =
+                pause.animMods[pause.currentDeferred & 1];
+            if (!ReadJointModifiers(leaves,
+                    static_cast<idMD6Blend::jointMod_t*>(modifiers.list),
+                    modifiers.num)) goto leaf_failure;
+        }
+        return node;
+
+leaf_failure:
+        DestroyPersistenceTree(allocator, node);
+        return nullptr;
+    }
+
+    if (type != idMD6Node::NODE_BRANCH) return nullptr;
+    idMD6Branch* const branch = static_cast<idMD6Branch*>(
+        AllocatePersistenceNode(allocator, idMD6Node::NODE_BRANCH));
+    if (branch == nullptr) return nullptr;
+    int value = 0;
+    if (!ReadBitsChecked(branches, 3, value)) goto branch_failure;
+    branch->filterGroup = static_cast<std::uint8_t>(value);
+    if (!ReadBitsChecked(branches, 4, value)) goto branch_failure;
+    branch->op = static_cast<std::uint8_t>(value);
+    if (!ReadBitsChecked(branches, 8, value)) goto branch_failure;
+    branch->currentAlpha = static_cast<float>(value) * (1.0f / 255.0f);
+    if (!ReadBitsChecked(branches, 8, value)) goto branch_failure;
+    branch->targetAlpha = static_cast<float>(value) * (1.0f / 255.0f);
+    if (!ReadBitsChecked(branches, 16, value)) goto branch_failure;
+    branch->alphaRate = static_cast<float>(
+        static_cast<unsigned short>(value)) * (1.0f / 255.0f);
+    if (!ReadBitsChecked(branches, 8, value)) goto branch_failure;
+    branch->originBlend = static_cast<std::uint8_t>(value);
+    if (!ReadBitsChecked(branches, 1, value)) goto branch_failure;
+    if (value != 0) {
+        branch->left = ReadTreeDefault(stack, allocator, types, branches,
+            leaves, depth + 1);
+        if (branch->left == nullptr) goto branch_failure;
+    }
+    branch->right = ReadTreeDefault(stack, allocator, types, branches,
+        leaves, depth + 1);
+    if (branch->right == nullptr) goto branch_failure;
+    return branch;
+
+branch_failure:
+    DestroyPersistenceTree(allocator, branch);
+    return nullptr;
 }
 
 } // namespace
@@ -1094,12 +1452,127 @@ void idTreeAnimator::BitShiftMorphPoints(const unsigned int shift) {
     updateMorphBuffers = 1;
 }
 
-void idTreeAnimator::UpdateTree_r(const idMD6Model*, const int,
-        const int, idMD6Node* const root) {
+void idTreeAnimator::BlendTreeInternal(const int currentTime,
+        const int previousTime, const int gameMillisecondsPerFrame,
+        const int ticksPerSecond, idMD6Node* const tree,
+        idParallelJobList* const parallelJobList, float* const localRotation,
+        float* const localScale, float* const localTranslation,
+        float* const localUserChannels) {
+    (void)parallelJobList;
+    const idMD6Model* const model = TreeModel(*this);
+    const idMD6Skel* const skeleton = TreeSkeleton(*this);
+    if (model == nullptr || skeleton == nullptr || skeleton->data == nullptr ||
+            blendParms == nullptr || commands == nullptr ||
+            originDelta[0] == nullptr) return;
+    if (!idMD6AnimTree::IsValid(tree) && jointMods[currentDeferred].Num() == 0)
+        return;
+
+    const int elapsed = currentTime >= previousTime
+        ? (std::min)(currentTime - previousTime,
+            (std::max)(0, gameMillisecondsPerFrame)) : 0;
+    idBounds parsedBounds;
+    const unsigned short animatorFlags = static_cast<unsigned short>(
+        (clearOriginTransform ? 1 : 0) |
+        (originDeltaLookAhead ? 2 : 0));
+    const int commandCount = ParseTree(model, currentTime - elapsed,
+        currentTime, static_cast<unsigned int>((std::max)(1,
+            ticksPerSecond)), tree, commands, MAX_TREE_COMMANDS, parsedBounds,
+        translatedBounds, normalizedBounds, originDelta[0], animatorFlags);
+    if (commandCount <= 0) return;
+
+    blendParms->skeleton = skeleton->data;
+    blendParms->config = decl != nullptr ? decl->config : nullptr;
+    blendParms->cmds = commands;
+    blendParms->mods = jointMods[currentDeferred].Ptr();
+    blendParms->numCmds = static_cast<unsigned int>(commandCount);
+    blendParms->numMods = static_cast<unsigned int>(
+        jointMods[currentDeferred].Num());
+    blendParms->invertedBasePose = reinterpret_cast<const float*>(
+        skeleton->InverseBasePose());
+    blendParms->invertedBasePoseQuat = reinterpret_cast<const float*>(
+        skeleton->InverseBasePoseQuats());
+    blendParms->jointRemap = model->jointRemap.Ptr();
+    blendParms->clearOriginTransform = clearOriginTransform != 0;
+    blendParms->flags = useDualQuatSkinning != 0;
+    blendParms->boundsSkipJoint = skipJointForBounds;
+    blendParms->referencePose = joints[JOINTS_GAME_REFERENCE] != nullptr
+        ? joints[JOINTS_GAME_REFERENCE]->mat : nullptr;
+    blendParms->finalPose = joints[JOINTS_GAME_FINAL] != nullptr
+        ? joints[JOINTS_GAME_FINAL]->mat : nullptr;
+    blendParms->renderPose = joints[JOINTS_DEFERRED_FINAL] != nullptr
+        ? joints[JOINTS_DEFERRED_FINAL]->mat : nullptr;
+    blendParms->userChannels = userChannels[currentDeferred].Ptr();
+    blendParms->originDelta = originDelta[0];
+    originDelta[0]->time = currentTime;
+    originDelta[0]->done = false;
+
+    std::vector<unsigned char> scratch(64 * 1024);
+    if (localRotation != nullptr && localScale != nullptr &&
+            localTranslation != nullptr) {
+        idMD6Blend::ExecuteCommandsToRSTU(*blendParms, scratch.data(),
+            static_cast<unsigned int>(scratch.size()), localRotation,
+            localScale, localTranslation, localUserChannels);
+        originDelta[0]->done = true;
+    } else {
+        idMD6Blend::ExecuteCommands(*blendParms, scratch.data(),
+            static_cast<unsigned int>(scratch.size()),
+            useDualQuatSkinning != 0);
+        if (joints[JOINTS_GAME_REFERENCE] != nullptr &&
+                joints[JOINTS_DEFERRED_REFERENCE] != nullptr) {
+            idMD6Blend::TransformModelMatrices(skeleton->data,
+                model->jointRemap.Ptr(),
+                joints[JOINTS_GAME_REFERENCE]->mat,
+                blendParms->invertedBasePose,
+                blendParms->invertedBasePoseQuat,
+                joints[JOINTS_DEFERRED_REFERENCE]->mat,
+                useDualQuatSkinning != 0, nullptr);
+        }
+        deferredJobJointBuffer = (nextRenderThreadJointBuffer + 1) & 3;
+        jointBuffers[deferredJobJointBuffer].apiObject =
+            joints[JOINTS_DEFERRED_FINAL];
+        jointBuffers[deferredJobJointBuffer].numJoints = Pad8(NumJoints());
+        if (bufferSyncCallback != nullptr)
+            bufferSyncCallback(this, deferredJobJointBuffer,
+                joints[JOINTS_DEFERRED_FINAL], NumJoints());
+        hasDeferredJoints = 1;
+    }
+
+    if (calcRefBoundsFromJoints && originDelta[0]->jointBounds[0] <=
+            originDelta[0]->jointBounds[3]) {
+        frameBounds[0].Set(originDelta[0]->jointBounds[0],
+            originDelta[0]->jointBounds[1], originDelta[0]->jointBounds[2]);
+        frameBounds[1].Set(originDelta[0]->jointBounds[3],
+            originDelta[0]->jointBounds[4], originDelta[0]->jointBounds[5]);
+        frameBounds[0] = frameBounds[0] + model->minBoundsExpansion;
+        frameBounds[1] = frameBounds[1] + model->maxBoundsExpansion;
+        if (decl != nullptr && decl->config != nullptr) {
+            const idVec3 visualOffset(decl->config->visualOffset[0],
+                decl->config->visualOffset[1], decl->config->visualOffset[2]);
+            frameBounds[0] = frameBounds[0] + visualOffset;
+            frameBounds[1] = frameBounds[1] + visualOffset;
+        }
+    } else if (parsedBounds[0].x <= parsedBounds[1].x &&
+            (parsedBounds[0].x != 0.0f || parsedBounds[0].y != 0.0f ||
+                parsedBounds[0].z != 0.0f || parsedBounds[1].x != 0.0f ||
+                parsedBounds[1].y != 0.0f || parsedBounds[1].z != 0.0f)) {
+        frameBounds = parsedBounds;
+    }
+
+    if (originDelta[1] != nullptr) *originDelta[1] = *originDelta[0];
+    lastBlendTime = currentTime;
+    currentDeferred ^= 1;
+    jointMods[currentDeferred].Clear();
+}
+
+void idTreeAnimator::UpdateTree_r(const idMD6Model* const model,
+        const int timeMilliseconds, const int ticksPerSecond,
+        idMD6Node* const root) {
+    if (root == nullptr) return;
+    UpdatePersistenceNode(model, timeMilliseconds, ticksPerSecond, root);
     if (!IsBranch(root)) return;
     idMD6Branch* const branch = static_cast<idMD6Branch*>(root);
-    UpdateTree_r(nullptr, 0, 0, branch->left);
-    UpdateTree_r(nullptr, 0, 0, branch->right);
+    UpdateTree_r(model, timeMilliseconds, ticksPerSecond, branch->left);
+    UpdateTree_r(model, timeMilliseconds, ticksPerSecond, branch->right);
 }
 
 void idTreeAnimator::UpdateTree(const idMD6Model* const model,
@@ -1115,6 +1588,8 @@ void idTreeAnimator::FreeTree_r(idMD6Allocator* const allocator,
         FreeTree_r(allocator, branch->left);
         FreeTree_r(allocator, branch->right);
     }
+    if (root->type == idMD6Node::NODE_LEAF_PAUSE)
+        idMD6AnimTree::ReleaseAnimMods(*static_cast<idMD6LeafPause*>(root));
     if (allocator != nullptr) allocator->Free(root);
     else _aligned_free(root);
 }
@@ -1125,19 +1600,23 @@ void idTreeAnimator::FreeTree(idMD6Allocator* const allocator,
 }
 
 bool idTreeAnimator::StoreTree(const idMD6Model* const model,
-        const int modelIndex, const int time, const idAnimStack& stack,
+        const int timeMilliseconds, const int ticksPerSecond,
+        const idAnimStack& stack,
         idMD6Node* const root, idBitMsg& nodes, idBitMsg& leaves,
         idBitMsg& modifiers) {
-    return treeStoreCallback != nullptr && treeStoreCallback(model,
-        modelIndex, time, stack, root, nodes, leaves, modifiers);
+    if (treeStoreCallback != nullptr) return treeStoreCallback(model,
+        timeMilliseconds, ticksPerSecond, stack, root, nodes, leaves,
+        modifiers);
+    return StoreTreeDefault(model, timeMilliseconds, ticksPerSecond, stack,
+        root, nodes, leaves, modifiers, 0);
 }
 
 idMD6Node* idTreeAnimator::ReadTree(const idAnimStack& stack,
         idMD6Allocator* const allocator, idBitMsg& nodes, idBitMsg& leaves,
         idBitMsg& modifiers) {
-    return treeReadCallback != nullptr
-        ? treeReadCallback(stack, allocator, nodes, leaves, modifiers)
-        : nullptr;
+    if (treeReadCallback != nullptr)
+        return treeReadCallback(stack, allocator, nodes, leaves, modifiers);
+    return ReadTreeDefault(stack, allocator, nodes, leaves, modifiers, 0);
 }
 
 idMD6Blend::jointMod_t* idTreeAnimator::FindOrCreateJointMod(
@@ -1234,6 +1713,20 @@ void idTreeAnimator::LatchDeferredState() {
     referenceBounds = frameBounds;
     if (originDelta[0] != nullptr && originDelta[1] != nullptr)
         *originDelta[1] = *originDelta[0];
+}
+
+void GameLib_BlendMD6Tree(idTreeAnimator* const animator,
+        idMD6Node* const tree, const int currentTime,
+        idParallelJobList* const parallelJobList, float* const localRotation,
+        float* const localScale, float* const localTranslation,
+        float* const localUserChannels) {
+    if (animator == nullptr) return;
+    const int previousTime = animator->lastBlendTime >= 0
+        ? animator->lastBlendTime : currentTime;
+    const int frameTime = (std::max)(0, currentTime - previousTime);
+    animator->BlendTreeInternal(currentTime, previousTime, frameTime, 60,
+        tree, parallelJobList, localRotation, localScale, localTranslation,
+        localUserChannels);
 }
 
 bool idTreeAnimator::CommitSubclass() {

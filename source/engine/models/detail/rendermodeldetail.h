@@ -6,12 +6,15 @@
 
 class alignas(16) idRenderModelDetail : public idRenderModel {
 public:
+    using MaterialResolver = const idMaterial* (*)(const char* name,
+        bool makeDefault);
     using UpdateCallback = bool (*)(idRenderModelDetail* model,
         const idRenderView* currentView, const idRenderView* nextView,
         idRenderModelUpdateTools* tools);
 
     idRenderModelDetail();
     ~idRenderModelDetail() override;
+    static void SetMaterialResolver(MaterialResolver resolver);
     static void SetUpdateCallback(UpdateCallback callback);
     bool UpdateInView(const idRenderView* currentView,
         const idRenderView* nextView,
@@ -32,6 +35,7 @@ public:
     const idMaterial* detailMaterial;
 
 private:
+    static MaterialResolver materialResolver;
     static UpdateCallback updateCallback;
 };
 

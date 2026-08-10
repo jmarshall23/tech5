@@ -3,6 +3,7 @@
 #include "idlib/filesystem/file.h"
 #include "idlib/filesystem/filesystem.h"
 #include "idlib/hashing/crc16.h"
+#include "idlib/text/cmdargs.h"
 #include "idlib/text/parser.h"
 #include "models/skeletalanimation/declmd6.h"
 #include "models/skeletalanimation/md6alias.h"
@@ -10,6 +11,7 @@
 #include "models/skeletalanimation/md6skel.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 namespace {
@@ -561,4 +563,33 @@ void idAnimationLocal::GetAliasRefs(const aliasHandle_t handle,
             (strongOnly && aliases[handle.Get()].strongReferences == 0))
         return;
     references = aliases[handle.Get()].declarations;
+}
+
+void idAnimationLocal::VerifyAnimations(const idCmdArgs* const args) {
+    float epsilon = 0.1f;
+    float jointRadius = 1.0f;
+    if (args != nullptr && args->Argc() > 1) {
+        epsilon = std::strtof(args->Argv(1), nullptr);
+    }
+    if (args != nullptr && args->Argc() > 2) {
+        jointRadius = std::strtof(args->Argv(2), nullptr);
+    }
+    for (int aliasIndex = 0; aliasIndex < aliases.Num(); ++aliasIndex) {
+        const aliasHandle_t handle(
+            static_cast<unsigned short>(aliasIndex));
+        const aliasEntry_t& entry = aliases[aliasIndex];
+        for (int declarationIndex = 0;
+                declarationIndex < entry.declarations.Num();
+                ++declarationIndex) {
+            const idDeclMD6* const declaration =
+                entry.declarations[declarationIndex];
+            if (declaration == nullptr) continue;
+            const idMD6Anim* const animationForAlias =
+                declaration->AnimForAlias(handle, false);
+            if (animationForAlias != nullptr) {
+                animationForAlias->VerifyBoundingBoxes(declaration,
+                    epsilon, jointRadius);
+            }
+        }
+    }
 }

@@ -1,10 +1,12 @@
 #include "models/skeletalanimation/md6blockalloc.h"
+#include "models/skeletalanimation/md6animtree.h"
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <malloc.h>
+#include <new>
 
 namespace {
 
@@ -29,14 +31,51 @@ unsigned int RecoveredNodeSize(idMD6Node::nodeType_t type) {
 
 std::size_t AllocationSize(idMD6Node::nodeType_t type) {
     std::size_t size = RecoveredNodeSize(type);
-    if (type == idMD6Node::NODE_BRANCH) {
-        size = (std::max)(size, sizeof(idMD6Branch));
-    } else if (type == idMD6Node::NODE_LEAF_PAUSE) {
-        size = (std::max)(size, sizeof(idMD6LeafPause));
-    } else if (type == idMD6Node::NODE_LEAF_PLAY) {
-        size = (std::max)(size, sizeof(idMD6LeafPlay));
+    switch (type) {
+    case idMD6Node::NODE_BRANCH:
+        return (std::max)(size, sizeof(idMD6Branch));
+    case idMD6Node::NODE_LEAF_PAUSE:
+        return (std::max)(size, sizeof(idMD6LeafPause));
+    case idMD6Node::NODE_LEAF_PLAY:
+        return (std::max)(size, sizeof(idMD6LeafPlay));
+    case idMD6Node::NODE_BLEND_BRANCH:
+        return (std::max)(size, sizeof(idMD6BlendBranch));
+    case idMD6Node::NODE_BLENDA_BRANCH:
+        return (std::max)(size, sizeof(idMD6BlendAdditiveBranch));
+    case idMD6Node::NODE_FUSION_BRANCH:
+        return (std::max)(size, sizeof(idMD6FusionBranch));
+    case idMD6Node::NODE_BEST_LEAF:
+        return (std::max)(size, sizeof(idMD6BestLeaf));
+    case idMD6Node::NODE_TAG_FILTER:
+        return (std::max)(size, sizeof(idMD6TagFilter));
+    default:
+        return 0;
     }
-    return size;
+}
+
+void DestroyNode(idMD6Node* node) {
+    if (node == nullptr) return;
+    switch (node->type) {
+    case idMD6Node::NODE_LEAF_PAUSE:
+        idMD6AnimTree::ReleaseAnimMods(
+            *static_cast<idMD6LeafPause*>(node));
+        break;
+    case idMD6Node::NODE_BLEND_BRANCH:
+        static_cast<idMD6BlendBranch*>(node)->~idMD6BlendBranch();
+        break;
+    case idMD6Node::NODE_BLENDA_BRANCH:
+        static_cast<idMD6BlendAdditiveBranch*>(node)
+            ->~idMD6BlendAdditiveBranch();
+        break;
+    case idMD6Node::NODE_FUSION_BRANCH:
+        static_cast<idMD6FusionBranch*>(node)->~idMD6FusionBranch();
+        break;
+    case idMD6Node::NODE_BEST_LEAF:
+        static_cast<idMD6BestLeaf*>(node)->~idMD6BestLeaf();
+        break;
+    default:
+        break;
+    }
 }
 
 idMD6RecoveredBlockState* StateForType(idMD6BlockAlloc& allocator,
@@ -58,9 +97,18 @@ idMD6RecoveredBlockState* StateForType(idMD6BlockAlloc& allocator,
 void InitializeNode(idMD6Node* node, std::size_t size,
     idMD6Node::nodeType_t type) {
     std::memset(node, 0, size);
-    node->type = static_cast<std::uint8_t>(type);
-
-    if (type == idMD6Node::NODE_BRANCH) {
+    if (type == idMD6Node::NODE_BLEND_BRANCH) {
+        new (node) idMD6BlendBranch();
+    } else if (type == idMD6Node::NODE_BLENDA_BRANCH) {
+        new (node) idMD6BlendAdditiveBranch();
+    } else if (type == idMD6Node::NODE_FUSION_BRANCH) {
+        new (node) idMD6FusionBranch();
+    } else if (type == idMD6Node::NODE_BEST_LEAF) {
+        new (node) idMD6BestLeaf();
+    } else if (type == idMD6Node::NODE_TAG_FILTER) {
+        new (node) idMD6TagFilter();
+    } else if (type == idMD6Node::NODE_BRANCH) {
+        node->type = static_cast<std::uint8_t>(type);
         idMD6Branch* branch = static_cast<idMD6Branch*>(node);
         branch->left = nullptr;
         branch->right = nullptr;
@@ -73,6 +121,10 @@ void InitializeNode(idMD6Node* node, std::size_t size,
         branch->targetAlpha = 0.0f;
         branch->alphaRate = 0.0f;
         branch->blendType = idMD6Branch::BLEND_LINEAR;
+    } else if (type == idMD6Node::NODE_LEAF_PAUSE) {
+        idMD6AnimTree::Clear(*static_cast<idMD6LeafPause*>(node));
+    } else if (type == idMD6Node::NODE_LEAF_PLAY) {
+        idMD6AnimTree::Clear(*static_cast<idMD6LeafPlay*>(node));
     }
 }
 
@@ -143,6 +195,9 @@ idMD6BlockAlloc::idMD6BlockAlloc()
 }
 
 idMD6BlockAlloc::~idMD6BlockAlloc() {
+    for (int index = 0; index < nodes.Num(); ++index) {
+        DestroyNode(nodes[index]);
+    }
     DeferredFree();
     ReleaseStateBlocks(playLeaves);
     ReleaseStateBlocks(pauseLeaves);
@@ -166,6 +221,7 @@ idMD6Node* idMD6BlockAlloc::Alloc(idMD6Node::nodeType_t type) {
         return nullptr;
     }
     if (nodes.Append(node) < 0) {
+        DestroyNode(node);
         *reinterpret_cast<void**>(node) = state->free;
         state->free = node;
         --state->active;
@@ -197,6 +253,7 @@ void idMD6BlockAlloc::DeferredFree() {
         if (state == nullptr) {
             continue;
         }
+        DestroyNode(node);
         *reinterpret_cast<void**>(node) = state->free;
         state->free = node;
         if (state->active > 0) {

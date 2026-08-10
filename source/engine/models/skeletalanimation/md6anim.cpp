@@ -23,7 +23,6 @@ namespace {
 
 constexpr unsigned int MD6_ANIM_MAGIC = 641089869u;
 constexpr unsigned int MAX_ANIM_DATA_SIZE = 256u * 1024u * 1024u;
-constexpr std::uint16_t PORTABLE_ANIM_DATA_MARKER = 0x5036u;
 
 bool ReadExact(idFile* file, void* data, unsigned int length) {
     return length == 0 || (file != nullptr && file->Read(data, length) == length);
@@ -112,9 +111,27 @@ std::vector<unsigned char> EncodeRLE(
     return encoded;
 }
 
-std::int16_t QuantizeQuaternionComponent(const float value) {
-    const float clamped = (std::max)(-1.0f, (std::min)(1.0f, value));
-    return static_cast<std::int16_t>(std::lround(clamped * 32767.0f));
+void CompressQuaternion(const float* value, std::uint16_t packed[3]) {
+    int omitted = 0;
+    for (int component = 1; component < 4; ++component) {
+        if (std::fabs(value[component]) > std::fabs(value[omitted]))
+            omitted = component;
+    }
+
+    const float sign = value[omitted] < 0.0f ? -1.0f : 1.0f;
+    constexpr float minimum = -0.7071067811865475244f;
+    constexpr float scale = 23169.767899139602f;
+    for (int stored = 0; stored < 3; ++stored) {
+        const int component = (omitted + stored + 1) & 3;
+        const float normalized = ((std::max)(minimum,
+            (std::min)(-minimum, value[component] * sign)) - minimum) * scale;
+        const int quantized = (std::max)(0, (std::min)(0x7FFF,
+            static_cast<int>(normalized + 0.5f)));
+        packed[stored] = static_cast<std::uint16_t>(quantized);
+    }
+    const unsigned int code = static_cast<unsigned int>(3 - omitted);
+    packed[0] |= static_cast<std::uint16_t>((code & 1u) << 15);
+    packed[1] |= static_cast<std::uint16_t>((code & 2u) << 14);
 }
 
 void NormalizeQuaternion(float* quaternion) {
@@ -353,15 +370,6 @@ bool idMD6Anim::LoadBinary(const char* fileName) {
         _aligned_free(replacement);
         return false;
     }
-    if (dataSize > sizeof(idMD6AnimData)) {
-        std::uint16_t marker = 0;
-        std::memcpy(&marker, reinterpret_cast<const unsigned char*>(
-            replacement) + sizeof(idMD6AnimData), sizeof(marker));
-        if (marker != PORTABLE_ANIM_DATA_MARKER) {
-            _aligned_free(replacement);
-            return false;
-        }
-    }
     idMD6PhaseTrack replacementPhase;
     if (!replacementPhase.LoadBinary(file.file)) {
         _aligned_free(replacement);
@@ -487,11 +495,9 @@ bool idMD6Anim::CompressAnim(const idMD6Skel* skeleton,
             for (const unsigned char joint : channels) {
                 const float* value = rotations +
                     (frame * paddedJoints + joint) * 4;
-                const std::int16_t xyz[3] = {
-                    QuantizeQuaternionComponent(value[0]),
-                    QuantizeQuaternionComponent(value[1]),
-                    QuantizeQuaternionComponent(value[2]) };
-                AppendBytes(setBytes, xyz, sizeof(xyz));
+                std::uint16_t packed[3];
+                CompressQuaternion(value, packed);
+                AppendBytes(setBytes, packed, sizeof(packed));
             }
         };
         auto appendTripleKeys = [&](const float* values, const int frame,
@@ -509,71 +515,52 @@ bool idMD6Anim::CompressAnim(const idMD6Skel* skeleton,
                     userChannels[frame * paddedUsers + channel]);
         };
 
-        AlignBytes(setBytes, 4);
+        AlignBytes(setBytes, 16);
         if (!localOffset(static_cast<unsigned int>(setBytes.size()),
                 set.firstROffset)) return false;
         appendRotationKeys(frameStart, animated[0]);
-        AlignBytes(setBytes, 4);
+        AlignBytes(setBytes, 16);
         if (!localOffset(static_cast<unsigned int>(setBytes.size()),
                 set.firstSOffset)) return false;
         appendTripleKeys(scales, frameStart, paddedJoints, animated[1]);
+        AlignBytes(setBytes, 16);
         if (!localOffset(static_cast<unsigned int>(setBytes.size()),
                 set.firstTOffset)) return false;
         appendTripleKeys(translations, frameStart, paddedJoints, animated[2]);
+        AlignBytes(setBytes, 16);
         if (!localOffset(static_cast<unsigned int>(setBytes.size()),
                 set.firstUOffset)) return false;
         appendUserKeys(frameStart, animated[3]);
 
-        AlignBytes(setBytes, 4);
+        AlignBytes(setBytes, 16);
         if (!localOffset(static_cast<unsigned int>(setBytes.size()),
                 set.rangeROffset)) return false;
-        setBytes.resize(setBytes.size() + animated[0].size() * 3 *
-            sizeof(std::int16_t), 0);
-        AlignBytes(setBytes, 4);
-        if (!localOffset(static_cast<unsigned int>(setBytes.size()),
-                set.rangeSOffset)) return false;
-        setBytes.resize(setBytes.size() + animated[1].size() * 3 *
-            sizeof(float), 0);
-        if (!localOffset(static_cast<unsigned int>(setBytes.size()),
-                set.rangeTOffset)) return false;
-        setBytes.resize(setBytes.size() + animated[2].size() * 3 *
-            sizeof(float), 0);
-        if (!localOffset(static_cast<unsigned int>(setBytes.size()),
-                set.rangeUOffset)) return false;
-        setBytes.resize(setBytes.size() + animated[3].size() * sizeof(float),
-            0);
-
-        AlignBytes(setBytes, 4);
-        if (!localOffset(static_cast<unsigned int>(setBytes.size()),
-                set.nextROffset)) return false;
         for (const unsigned char joint : animated[0]) {
             for (int localFrame = 1; localFrame < frameCount; ++localFrame) {
-                const float* value = rotations +
-                    ((frameStart + localFrame) * paddedJoints + joint) * 4;
-                const std::int16_t xyz[3] = {
-                    QuantizeQuaternionComponent(value[0]),
-                    QuantizeQuaternionComponent(value[1]),
-                    QuantizeQuaternionComponent(value[2]) };
-                AppendBytes(setBytes, xyz, sizeof(xyz));
+                const float* value = rotations + ((frameStart + localFrame) *
+                    paddedJoints + joint) * 4;
+                std::uint16_t packed[3];
+                CompressQuaternion(value, packed);
+                AppendBytes(setBytes, packed, sizeof(packed));
             }
         }
-        AlignBytes(setBytes, 4);
+        AlignBytes(setBytes, 16);
         if (!localOffset(static_cast<unsigned int>(setBytes.size()),
-                set.nextSOffset)) return false;
+                set.rangeSOffset)) return false;
         for (const unsigned char joint : animated[1])
             for (int localFrame = 1; localFrame < frameCount; ++localFrame)
-                AppendBytes(setBytes, scales +
-                    ((frameStart + localFrame) * paddedJoints + joint) * 3,
-                    3 * sizeof(float));
+                AppendBytes(setBytes, scales + ((frameStart + localFrame) *
+                    paddedJoints + joint) * 3, 3 * sizeof(float));
+        AlignBytes(setBytes, 16);
         if (!localOffset(static_cast<unsigned int>(setBytes.size()),
-                set.nextTOffset)) return false;
+                set.rangeTOffset)) return false;
         for (const unsigned char joint : animated[2])
             for (int localFrame = 1; localFrame < frameCount; ++localFrame)
-                AppendBytes(setBytes, translations +
-                    ((frameStart + localFrame) * paddedJoints + joint) * 3,
-                    3 * sizeof(float));
+                AppendBytes(setBytes, translations + ((frameStart + localFrame) *
+                    paddedJoints + joint) * 3, 3 * sizeof(float));
+        AlignBytes(setBytes, 16);
         if (!localOffset(static_cast<unsigned int>(setBytes.size()),
-                set.nextUOffset)) return false;
+                set.rangeUOffset)) return false;
         for (const unsigned char channel : animated[3])
             for (int localFrame = 1; localFrame < frameCount; ++localFrame)
                 AppendValue(setBytes, userChannels[
@@ -581,7 +568,7 @@ bool idMD6Anim::CompressAnim(const idMD6Skel* skeleton,
 
         auto appendFrameBits = [&](const std::vector<unsigned char>& channels,
                 std::uint16_t& offset) -> bool {
-            AlignBytes(setBytes, 4);
+            AlignBytes(setBytes, 16);
             if (!localOffset(static_cast<unsigned int>(setBytes.size()),
                     offset)) return false;
             for (std::size_t channel = 0; channel < channels.size(); ++channel) {
@@ -590,7 +577,7 @@ bool idMD6Anim::CompressAnim(const idMD6Skel* skeleton,
                 setBytes.resize(base + bytesPerChannel, 0);
                 for (int frame = 1; frame < frameCount; ++frame)
                     setBytes[base + frame / 8] |=
-                        static_cast<unsigned char>(1u << (frame & 7));
+                        static_cast<unsigned char>(0x80u >> (frame & 7));
             }
             return true;
         };
@@ -599,8 +586,10 @@ bool idMD6Anim::CompressAnim(const idMD6Skel* skeleton,
                 !appendFrameBits(animated[2], set.TBitsOffset) ||
                 !appendFrameBits(animated[3], set.UBitsOffset)) return false;
         AlignBytes(setBytes, 16);
-        if (setBytes.size() > 0xFFFFu) return false;
+        if (setBytes.size() > 0xFFFFu ||
+                (setBytes.size() > 0x4000u && frameCount > 1)) return false;
         set.totalSize = static_cast<std::uint16_t>(setBytes.size());
+        std::memcpy(set.pad, "_FRAMESET_", sizeof(set.pad));
         std::memcpy(setBytes.data(), &set, sizeof(set));
         return true;
     };
@@ -608,20 +597,16 @@ bool idMD6Anim::CompressAnim(const idMD6Skel* skeleton,
     std::vector<std::vector<unsigned char>> frameSets;
     int frameStart = 0;
     while (frameStart < numFrames) {
-        int frameCount = (std::min)(128, numFrames - frameStart);
+        int frameCount = (std::min)(62, numFrames - frameStart);
         std::vector<unsigned char> setBytes;
         while (frameCount > 0 && !makeFrameSet(frameStart, frameCount,
                 setBytes)) frameCount /= 2;
         if (frameCount <= 0 || frameSets.size() >= 256) return false;
         frameSets.push_back(std::move(setBytes));
-        if (frameStart + frameCount >= numFrames) break;
-        if (frameCount < 2) return false;
-        frameStart += frameCount - 1;
+        frameStart += frameCount;
     }
 
     std::vector<unsigned char> bytes(sizeof(idMD6AnimData), 0);
-    const std::uint16_t mapPrefix = PORTABLE_ANIM_DATA_MARKER;
-    AppendValue(bytes, mapPrefix);
     const std::uint16_t parentCrc = skeleton->data->parentTblCrc.Get();
     AppendValue(bytes, parentCrc);
     const unsigned int mapOffsetsPosition = static_cast<unsigned int>(
@@ -653,11 +638,9 @@ bool idMD6Anim::CompressAnim(const idMD6Skel* skeleton,
     header.constROffset = static_cast<std::uint16_t>(bytes.size());
     for (const unsigned char joint : constant[0]) {
         const float* value = rotations + joint * 4;
-        const std::int16_t xyz[3] = {
-            QuantizeQuaternionComponent(value[0]),
-            QuantizeQuaternionComponent(value[1]),
-            QuantizeQuaternionComponent(value[2]) };
-        AppendBytes(bytes, xyz, sizeof(xyz));
+        std::uint16_t packed[3];
+        CompressQuaternion(value, packed);
+        AppendBytes(bytes, packed, sizeof(packed));
     }
     AlignBytes(bytes, 4);
     if (bytes.size() > 0xFFFFu) return false;
@@ -702,6 +685,29 @@ bool idMD6Anim::CompressAnim(const idMD6Skel* skeleton,
             static_cast<std::uint32_t>(bytes.size() / 16u);
         AppendBytes(bytes, frameSets[setIndex].data(),
             static_cast<unsigned int>(frameSets[setIndex].size()));
+    }
+    for (std::size_t setIndex = 0; setIndex < frameSets.size(); ++setIndex) {
+        const std::size_t nextIndex = setIndex + 1 < frameSets.size()
+            ? setIndex + 1 : setIndex;
+        const unsigned int setOffset = frameSetOffsets[setIndex] * 16u;
+        const unsigned int nextOffset = frameSetOffsets[nextIndex] * 16u;
+        frameSetData_t* set = reinterpret_cast<frameSetData_t*>(
+            bytes.data() + setOffset);
+        const frameSetData_t* next = reinterpret_cast<const frameSetData_t*>(
+            bytes.data() + nextOffset);
+        auto nextKeyOffset = [&](const std::uint16_t localOffset,
+                std::uint16_t& output) -> bool {
+            const unsigned int absolute = nextOffset + localOffset;
+            if (absolute < setOffset || absolute - setOffset > 0xFFFFu)
+                return false;
+            output = static_cast<std::uint16_t>(absolute - setOffset);
+            return true;
+        };
+        if (!nextKeyOffset(next->firstROffset, set->nextROffset) ||
+                !nextKeyOffset(next->firstSOffset, set->nextSOffset) ||
+                !nextKeyOffset(next->firstTOffset, set->nextTOffset) ||
+                !nextKeyOffset(next->firstUOffset, set->nextUOffset))
+            return false;
     }
     AlignBytes(bytes, 16);
     frameSetOffsets.back() = static_cast<std::uint32_t>(bytes.size() / 16u);

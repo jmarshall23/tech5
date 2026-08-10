@@ -1,6 +1,7 @@
 #include "models/skeletalanimation/jobs/md6blend.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cmath>
 #include <cstring>
 #include <vector>
@@ -205,8 +206,33 @@ void BasePose(const idMD6SkelData* skeleton, Pose& pose,
         pose.users[channel] = additive ? 0.0f : userDefaults[channel];
 }
 
+bool HasRecoveredFrameSetLayout(const idMD6AnimData* animation) {
+    if (animation == nullptr || animation->numFrameSets == 0 ||
+            static_cast<unsigned int>(animation->frameSetOffsetTblOffset) +
+                sizeof(std::uint32_t) > animation->totalSize)
+        return false;
+    const std::uint32_t first = *reinterpret_cast<const std::uint32_t*>(
+        Bytes(animation) + animation->frameSetOffsetTblOffset);
+    const unsigned int offset = first * 16u;
+    return offset <= animation->totalSize &&
+        animation->totalSize - offset >= sizeof(frameSetData_t) &&
+        std::memcmp(Bytes(animation) + offset +
+            offsetof(frameSetData_t, pad), "_FRAMESET_", 10) == 0;
+}
+
+bool HasPortableMapPrefix(const idMD6AnimData* animation) {
+    if (animation == nullptr ||
+            animation->totalSize < sizeof(idMD6AnimData) +
+                sizeof(std::uint16_t))
+        return false;
+    const std::uint16_t first = *reinterpret_cast<const std::uint16_t*>(
+        animation + 1);
+    return first == 0x5036u && !HasRecoveredFrameSetLayout(animation);
+}
+
 const std::uint16_t* AnimationMapCrcs(const idMD6AnimData* animation) {
-    return reinterpret_cast<const std::uint16_t*>(animation + 1) + 1;
+    return reinterpret_cast<const std::uint16_t*>(animation + 1) +
+        (HasPortableMapPrefix(animation) ? 1 : 0);
 }
 
 const std::uint16_t* AnimationMapOffsets(const idMD6AnimData* animation) {
@@ -246,6 +272,148 @@ bool FrameBit(const std::uint8_t* bits, const int bytesPerChannel,
         const int channel, const int frame) {
     const std::uint8_t value = bits[channel * bytesPerChannel + frame / 8];
     return (value & (1u << (frame & 7))) != 0;
+}
+
+bool RecoveredFrameSet(const frameSetData_t* set) {
+    return set != nullptr && std::memcmp(set->pad, "_FRAMESET_", 10) == 0;
+}
+
+bool RecoveredFrameBit(const std::uint8_t* bits, const int bytesPerChannel,
+        const int channel, const int frame) {
+    const std::uint8_t value = bits[channel * bytesPerChannel + frame / 8];
+    return (value & (0x80u >> (frame & 7))) != 0;
+}
+
+Quat DecompressQuaternion(const std::uint16_t* packed) {
+    constexpr float minimum = -0.7071067811865475244f;
+    constexpr float inverseScale = 0.00004315968906764315f;
+    const unsigned int code = ((packed[0] >> 15) & 1u) |
+        (((packed[1] >> 15) & 1u) << 1);
+    const int omitted = 3 - static_cast<int>(code);
+    Quat result{};
+    float* components = &result.x;
+    float lengthSquared = 0.0f;
+    for (int stored = 0; stored < 3; ++stored) {
+        const float value = static_cast<float>(packed[stored] & 0x7FFFu) *
+            inverseScale + minimum;
+        components[(omitted + stored + 1) & 3] = value;
+        lengthSquared += value * value;
+    }
+    components[omitted] = std::sqrt((std::max)(0.0f,
+        1.0f - lengthSquared));
+    return Normalize(result);
+}
+
+void RecoveredAnimatedTriples(const std::uint8_t* channels,
+        const int channelCount, const int frame, const int numFrames,
+        const float fraction, const float* firstKeys, const float* rangeKeys,
+        const float* nextKeys, const std::uint8_t* frameBits, float* output,
+        const int outputStride) {
+    const int bytesPerChannel = (numFrames + 7) / 8;
+    int rangeCursor = 0;
+    for (int channel = 0; channel < channelCount; ++channel) {
+        const float* left = firstKeys + channel * 3;
+        const float* right = nextKeys + channel * 3;
+        int leftFrame = 0;
+        int rightFrame = numFrames;
+        bool foundRight = false;
+        for (int scan = 1; scan < numFrames; ++scan) {
+            if (!RecoveredFrameBit(frameBits, bytesPerChannel, channel, scan))
+                continue;
+            const float* key = rangeKeys + rangeCursor * 3;
+            ++rangeCursor;
+            if (scan <= frame) {
+                left = key;
+                leftFrame = scan;
+            } else if (!foundRight) {
+                right = key;
+                rightFrame = scan;
+                foundRight = true;
+            }
+        }
+        float interpolation = rightFrame > leftFrame
+            ? (static_cast<float>(frame - leftFrame) + fraction) /
+                static_cast<float>(rightFrame - leftFrame)
+            : 0.0f;
+        interpolation = (std::max)(0.0f, (std::min)(1.0f, interpolation));
+        const int target = channels[channel] * outputStride;
+        for (int component = 0; component < 3; ++component)
+            output[target + component] = left[component] +
+                (right[component] - left[component]) * interpolation;
+    }
+}
+
+void RecoveredAnimatedScalars(const std::uint8_t* channels,
+        const int channelCount, const int frame, const int numFrames,
+        const float fraction, const float* firstKeys, const float* rangeKeys,
+        const float* nextKeys, const std::uint8_t* frameBits, float* output) {
+    const int bytesPerChannel = (numFrames + 7) / 8;
+    int rangeCursor = 0;
+    for (int channel = 0; channel < channelCount; ++channel) {
+        float left = firstKeys[channel];
+        float right = nextKeys[channel];
+        int leftFrame = 0;
+        int rightFrame = numFrames;
+        bool foundRight = false;
+        for (int scan = 1; scan < numFrames; ++scan) {
+            if (!RecoveredFrameBit(frameBits, bytesPerChannel, channel, scan))
+                continue;
+            const float key = rangeKeys[rangeCursor++];
+            if (scan <= frame) {
+                left = key;
+                leftFrame = scan;
+            } else if (!foundRight) {
+                right = key;
+                rightFrame = scan;
+                foundRight = true;
+            }
+        }
+        float interpolation = rightFrame > leftFrame
+            ? (static_cast<float>(frame - leftFrame) + fraction) /
+                static_cast<float>(rightFrame - leftFrame)
+            : 0.0f;
+        interpolation = (std::max)(0.0f, (std::min)(1.0f, interpolation));
+        output[channels[channel]] = left + (right - left) * interpolation;
+    }
+}
+
+void RecoveredAnimatedRotations(const std::uint8_t* channels,
+        const int channelCount, const int frame, const int numFrames,
+        const float fraction, const std::uint16_t* firstKeys,
+        const std::uint16_t* rangeKeys, const std::uint16_t* nextKeys,
+        const std::uint8_t* frameBits, float* output) {
+    const int bytesPerChannel = (numFrames + 7) / 8;
+    int rangeCursor = 0;
+    for (int channel = 0; channel < channelCount; ++channel) {
+        const std::uint16_t* left = firstKeys + channel * 3;
+        const std::uint16_t* right = nextKeys + channel * 3;
+        int leftFrame = 0;
+        int rightFrame = numFrames;
+        bool foundRight = false;
+        for (int scan = 1; scan < numFrames; ++scan) {
+            if (!RecoveredFrameBit(frameBits, bytesPerChannel, channel, scan))
+                continue;
+            const std::uint16_t* key = rangeKeys + rangeCursor * 3;
+            ++rangeCursor;
+            if (scan <= frame) {
+                left = key;
+                leftFrame = scan;
+            } else if (!foundRight) {
+                right = key;
+                rightFrame = scan;
+                foundRight = true;
+            }
+        }
+        float interpolation = rightFrame > leftFrame
+            ? (static_cast<float>(frame - leftFrame) + fraction) /
+                static_cast<float>(rightFrame - leftFrame)
+            : 0.0f;
+        interpolation = (std::max)(0.0f, (std::min)(1.0f, interpolation));
+        const Quat value = LerpQuat(DecompressQuaternion(left),
+            DecompressQuaternion(right), interpolation);
+        std::memcpy(output + channels[channel] * 4, &value,
+            4 * sizeof(float));
+    }
 }
 
 template<typename Type>
@@ -368,7 +536,9 @@ void DecodePose(const idMD6SkelData* skeleton,
             (animation->flags &
                 idMD6AnimData::ANIM_FLAG_HAS_USER_CHANNEL_DATA) == 0)
         return;
-    const unsigned int mapsEnd = sizeof(idMD6AnimData) + 2u +
+    const unsigned int mapPrefixSize = HasPortableMapPrefix(animation)
+        ? sizeof(std::uint16_t) : 0u;
+    const unsigned int mapsEnd = sizeof(idMD6AnimData) + mapPrefixSize +
         static_cast<unsigned int>(animation->numAnimMaps) *
             (sizeof(std::uint16_t) + 8u * sizeof(std::uint16_t));
     if (animation->numAnimMaps == 0 || mapsEnd > animation->totalSize)
@@ -380,6 +550,9 @@ void DecodePose(const idMD6SkelData* skeleton,
     std::uint8_t rotationChannels[264]{}, scaleChannels[264]{},
         translationChannels[264]{}, userChannels[2056]{};
     const unsigned char* base = Bytes(animation);
+    int localFrame = 0;
+    const frameSetData_t* set = FrameSetForFrame(animation, frame, localFrame);
+    const bool recoveredFormat = RecoveredFrameSet(set);
     const int constR = idMD6Blend::DecodeRLE(base + offsets[0],
         static_cast<std::uint16_t>(paddedJoints), rotationChannels);
     const int constS = idMD6Blend::DecodeRLE(base + offsets[1],
@@ -389,18 +562,27 @@ void DecodePose(const idMD6SkelData* skeleton,
     const int constU = paddedUsers > 0 ? idMD6Blend::DecodeRLE(
         base + offsets[3], static_cast<std::uint16_t>(paddedUsers),
         userChannels) : 0;
-    const std::int16_t* constantRotations =
-        reinterpret_cast<const std::int16_t*>(base + animation->constROffset);
+    const std::uint16_t* constantRotations =
+        reinterpret_cast<const std::uint16_t*>(base + animation->constROffset);
     for (int index = 0; index < constR; ++index) {
         const int joint = rotationChannels[index];
-        const float x = constantRotations[index * 3 + 0] / 32767.0f;
-        const float y = constantRotations[index * 3 + 1] / 32767.0f;
-        const float z = constantRotations[index * 3 + 2] / 32767.0f;
-        pose.rotations[joint * 4 + 0] = x;
-        pose.rotations[joint * 4 + 1] = y;
-        pose.rotations[joint * 4 + 2] = z;
-        pose.rotations[joint * 4 + 3] = std::sqrt((std::max)(0.0f,
-            1.0f - x * x - y * y - z * z));
+        if (recoveredFormat) {
+            const Quat value = DecompressQuaternion(
+                constantRotations + index * 3);
+            std::memcpy(&pose.rotations[joint * 4], &value,
+                4 * sizeof(float));
+        } else {
+            const std::int16_t* xyz = reinterpret_cast<const std::int16_t*>(
+                constantRotations + index * 3);
+            const float x = xyz[0] / 32767.0f;
+            const float y = xyz[1] / 32767.0f;
+            const float z = xyz[2] / 32767.0f;
+            pose.rotations[joint * 4 + 0] = x;
+            pose.rotations[joint * 4 + 1] = y;
+            pose.rotations[joint * 4 + 2] = z;
+            pose.rotations[joint * 4 + 3] = std::sqrt((std::max)(0.0f,
+                1.0f - x * x - y * y - z * z));
+        }
     }
     const float* constantScales = reinterpret_cast<const float*>(
         base + animation->constSOffset);
@@ -417,8 +599,6 @@ void DecodePose(const idMD6SkelData* skeleton,
     for (int index = 0; index < constU; ++index)
         pose.users[userChannels[index]] = constantUsers[index];
 
-    int localFrame = 0;
-    const frameSetData_t* set = FrameSetForFrame(animation, frame, localFrame);
     if (set == nullptr) return;
     const int animR = idMD6Blend::DecodeRLE(base + offsets[4],
         static_cast<std::uint16_t>(paddedJoints), rotationChannels);
@@ -430,28 +610,59 @@ void DecodePose(const idMD6SkelData* skeleton,
         base + offsets[7], static_cast<std::uint16_t>(paddedUsers),
         userChannels) : 0;
     const unsigned char* setBase = reinterpret_cast<const unsigned char*>(set);
-    AnimatedRotations(rotationChannels, animR, localFrame, set->frameRange,
-        frameFraction, reinterpret_cast<const std::int16_t*>(
-            setBase + set->firstROffset),
-        reinterpret_cast<const std::int16_t*>(setBase + set->nextROffset),
-        setBase + set->RBitsOffset, pose.rotations.data());
-    AnimatedTriples(scaleChannels, animS, localFrame, set->frameRange,
-        frameFraction, reinterpret_cast<const float*>(setBase +
-            set->firstSOffset), reinterpret_cast<const float*>(setBase +
-            set->nextSOffset), setBase + set->SBitsOffset,
-        pose.scales.data(), 4, 1.0f);
-    AnimatedTriples(translationChannels, animT, localFrame, set->frameRange,
-        frameFraction, reinterpret_cast<const float*>(setBase +
-            set->firstTOffset), reinterpret_cast<const float*>(setBase +
-            set->nextTOffset), setBase + set->TBitsOffset,
-        pose.translations.data(), 4, 1.0f);
-    if (animU > 0) {
-        const float* first = reinterpret_cast<const float*>(
-            setBase + set->firstUOffset);
-        AnimatedScalars(userChannels, animU, localFrame, set->frameRange,
-            frameFraction, first,
-            reinterpret_cast<const float*>(setBase + set->nextUOffset),
-            setBase + set->UBitsOffset, pose.users.data());
+    if (recoveredFormat) {
+        RecoveredAnimatedRotations(rotationChannels, animR, localFrame,
+            set->frameRange, frameFraction,
+            reinterpret_cast<const std::uint16_t*>(setBase +
+                set->firstROffset),
+            reinterpret_cast<const std::uint16_t*>(setBase +
+                set->rangeROffset),
+            reinterpret_cast<const std::uint16_t*>(setBase +
+                set->nextROffset), setBase + set->RBitsOffset,
+            pose.rotations.data());
+        RecoveredAnimatedTriples(scaleChannels, animS, localFrame,
+            set->frameRange, frameFraction,
+            reinterpret_cast<const float*>(setBase + set->firstSOffset),
+            reinterpret_cast<const float*>(setBase + set->rangeSOffset),
+            reinterpret_cast<const float*>(setBase + set->nextSOffset),
+            setBase + set->SBitsOffset, pose.scales.data(), 4);
+        RecoveredAnimatedTriples(translationChannels, animT, localFrame,
+            set->frameRange, frameFraction,
+            reinterpret_cast<const float*>(setBase + set->firstTOffset),
+            reinterpret_cast<const float*>(setBase + set->rangeTOffset),
+            reinterpret_cast<const float*>(setBase + set->nextTOffset),
+            setBase + set->TBitsOffset, pose.translations.data(), 4);
+        if (animU > 0)
+            RecoveredAnimatedScalars(userChannels, animU, localFrame,
+                set->frameRange, frameFraction,
+                reinterpret_cast<const float*>(setBase + set->firstUOffset),
+                reinterpret_cast<const float*>(setBase + set->rangeUOffset),
+                reinterpret_cast<const float*>(setBase + set->nextUOffset),
+                setBase + set->UBitsOffset, pose.users.data());
+    } else {
+        AnimatedRotations(rotationChannels, animR, localFrame, set->frameRange,
+            frameFraction, reinterpret_cast<const std::int16_t*>(
+                setBase + set->firstROffset),
+            reinterpret_cast<const std::int16_t*>(setBase + set->nextROffset),
+            setBase + set->RBitsOffset, pose.rotations.data());
+        AnimatedTriples(scaleChannels, animS, localFrame, set->frameRange,
+            frameFraction, reinterpret_cast<const float*>(setBase +
+                set->firstSOffset), reinterpret_cast<const float*>(setBase +
+                set->nextSOffset), setBase + set->SBitsOffset,
+            pose.scales.data(), 4, 1.0f);
+        AnimatedTriples(translationChannels, animT, localFrame, set->frameRange,
+            frameFraction, reinterpret_cast<const float*>(setBase +
+                set->firstTOffset), reinterpret_cast<const float*>(setBase +
+                set->nextTOffset), setBase + set->TBitsOffset,
+            pose.translations.data(), 4, 1.0f);
+        if (animU > 0) {
+            const float* first = reinterpret_cast<const float*>(
+                setBase + set->firstUOffset);
+            AnimatedScalars(userChannels, animU, localFrame, set->frameRange,
+                frameFraction, first,
+                reinterpret_cast<const float*>(setBase + set->nextUOffset),
+                setBase + set->UBitsOffset, pose.users.data());
+        }
     }
 }
 
@@ -587,10 +798,13 @@ void FrameFromInfo(const idMD6SkelData* skeleton,
 
 int idMD6Blend::GetAnimMapIndex(const idMD6AnimData* animation,
         const idHandle<unsigned short, invalidCrc_t, 65535> parentTableCrc) {
-    if (animation == nullptr || animation->numAnimMaps == 0 ||
-            sizeof(idMD6AnimData) + 2u +
-                static_cast<unsigned int>(animation->numAnimMaps) *
-                    sizeof(std::uint16_t) > animation->totalSize)
+    if (animation == nullptr || animation->numAnimMaps == 0)
+        return -1;
+    const unsigned int prefixSize = HasPortableMapPrefix(animation)
+        ? sizeof(std::uint16_t) : 0u;
+    if (sizeof(idMD6AnimData) + prefixSize +
+            static_cast<unsigned int>(animation->numAnimMaps) *
+                sizeof(std::uint16_t) > animation->totalSize)
         return -1;
     const std::uint16_t* maps = AnimationMapCrcs(animation);
     for (int index = 0; index < animation->numAnimMaps; ++index)

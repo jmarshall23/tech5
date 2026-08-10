@@ -31,6 +31,14 @@ struct beam_t {
 
 class alignas(16) idRenderModelBeam : public idRenderModel {
 public:
+    using BufferAllocateCallback = bool (*)(idVertexBuffer* vertexBuffers,
+        int numVertexBuffers, idIndexBuffer* indexBuffer, int maxVertices,
+        int maxIndexes, unsigned int vertexMask);
+    using BufferReferenceCallback = void (*)(idVertexBuffer* destination,
+        const idVertexBuffer* source, int numVertexBuffers,
+        idIndexBuffer* destinationIndex, const idIndexBuffer* sourceIndex);
+    using BufferFreeCallback = void (*)(idVertexBuffer* vertexBuffers,
+        int numVertexBuffers, idIndexBuffer* indexBuffer);
     using UpdateCallback = bool (*)(idRenderModelBeam* model,
         const idRenderView* currentView, const idRenderView* nextView,
         idRenderModelUpdateTools* tools);
@@ -39,6 +47,8 @@ public:
     ~idRenderModelBeam() override;
     static void Init();
     static void Shutdown();
+    static void SetBufferCallbacks(BufferAllocateCallback allocate,
+        BufferReferenceCallback reference, BufferFreeCallback freeBuffers);
     static void SetUpdateCallback(UpdateCallback callback);
     bool UpdateInView(const idRenderView* currentView,
         const idRenderView* nextView,
@@ -59,6 +69,13 @@ public:
     bool usesPreAllocatedBuffer;
 
 private:
+    static idVertexBuffer preAllocatedVertexBuffer[2];
+    static idIndexBuffer preAllocatedIndexBuffer;
+    static bool preAllocatedBufferInUse;
+    static bool preAllocatedBufferReady;
+    static BufferAllocateCallback bufferAllocateCallback;
+    static BufferReferenceCallback bufferReferenceCallback;
+    static BufferFreeCallback bufferFreeCallback;
     static UpdateCallback updateCallback;
 };
 

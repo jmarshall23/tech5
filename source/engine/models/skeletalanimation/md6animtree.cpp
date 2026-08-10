@@ -9,7 +9,59 @@
 #include <cstring>
 #include <functional>
 #include <limits>
+#include <malloc.h>
 #include <vector>
+
+idMD6BlendBranch_Base::idMD6BlendBranch_Base(
+        const idMD6Node::nodeType_t nodeType)
+    : coordinateList(0), animationList(0) {
+    type = static_cast<std::uint8_t>(nodeType);
+    left = nullptr;
+    right = nullptr;
+    leftTimeOverride = -1;
+    rightTimeOverride = -1;
+    filterGroup = MD6_WEIGHTGROUP_MAX;
+    op = 10;
+    originBlend = 0;
+    currentAlpha = 0.0f;
+    targetAlpha = 0.0f;
+    alphaRate = 0.0f;
+    blendType = idMD6Branch::BLEND_LINEAR;
+}
+
+idMD6BlendBranch::idMD6BlendBranch()
+    : idMD6BlendBranch(idMD6Node::NODE_BLEND_BRANCH) {
+}
+
+idMD6BlendBranch::idMD6BlendBranch(const idMD6Node::nodeType_t nodeType)
+    : idMD6BlendBranch_Base(nodeType), currentCoordinate(0),
+      userChannelIndices(0), activeCoordinate(0), activeIndices(0),
+      branchList(0), numDimensions(1), isAngleWrapped(false) {
+}
+
+idMD6BlendAdditiveBranch::idMD6BlendAdditiveBranch()
+    : idMD6BlendBranch_Base(idMD6Node::NODE_BLENDA_BRANCH),
+      currentCoordinate(0.0f), activeCoordinate(0.0f),
+      baseAnimation(nullptr) {
+}
+
+idMD6FusionBranch::idMD6FusionBranch()
+    : idMD6BlendBranch(idMD6Node::NODE_FUSION_BRANCH),
+      phaseToFrameLookupData(0) {
+}
+
+idMD6TagFilter::idMD6TagFilter()
+    : tagGroup(nullptr), tagMask(0), tagGroupIndex(0), tagBias(0) {
+    type = idMD6Node::NODE_TAG_FILTER;
+}
+
+idMD6BestLeaf::idMD6BestLeaf()
+    : leafList(0), tagList(0), filterList(0), tagGroupFilter(),
+      tagGroup(nullptr), desiredTag(0), activeTag(0), defaultTag(0),
+      bestLeafIndex(static_cast<std::uint16_t>(-1)), tagBias(0),
+      tagGroupIndex(0) {
+    type = idMD6Node::NODE_BEST_LEAF;
+}
 
 namespace idMD6AnimTree {
 namespace {
@@ -503,8 +555,58 @@ void SetOverrideFrameBounds(idMD6LeafPause& leaf, const bool enabled) {
 }
 
 void SetNumAnimMods(idMD6LeafPause& leaf, const int count) {
-    for (idMD6OpaqueList& list : leaf.animMods)
-        list.num = (std::max)(0, (std::min)(count, list.size));
+    const int requested = (std::max)(0, count);
+    for (idMD6OpaqueList& list : leaf.animMods) {
+        if (requested <= list.size &&
+                (requested == 0 || list.list != nullptr)) {
+            list.num = requested;
+            continue;
+        }
+
+        idMD6Blend::jointMod_t* const replacement =
+            static_cast<idMD6Blend::jointMod_t*>(_aligned_malloc(
+                static_cast<std::size_t>(requested) *
+                    sizeof(idMD6Blend::jointMod_t), 16));
+        if (replacement == nullptr) continue;
+
+        const int retained = (std::min)(list.num, requested);
+        if (retained > 0 && list.list != nullptr) {
+            std::memcpy(replacement, list.list,
+                static_cast<std::size_t>(retained) *
+                    sizeof(idMD6Blend::jointMod_t));
+        }
+        for (int index = retained; index < requested; ++index) {
+            std::memset(&replacement[index], 0,
+                sizeof(idMD6Blend::jointMod_t));
+            replacement[index].joint = idJointIndex();
+        }
+
+        if (list.list != nullptr &&
+                (list.listStatic == 0 || list.listStatic == 2)) {
+            _aligned_free(list.list);
+        }
+        list.list = replacement;
+        list.num = requested;
+        list.size = requested;
+        list.granularity = 0;
+        list.memTag = 30;
+        list.listStatic = 0;
+    }
+}
+
+void ReleaseAnimMods(idMD6LeafPause& leaf) {
+    for (idMD6OpaqueList& list : leaf.animMods) {
+        if (list.list != nullptr &&
+                (list.listStatic == 0 || list.listStatic == 2)) {
+            _aligned_free(list.list);
+        }
+        list.list = nullptr;
+        list.num = 0;
+        list.size = 0;
+        list.granularity = 0;
+        list.memTag = 30;
+        list.listStatic = 0;
+    }
 }
 
 void Init(idMD6Branch& branch, idMD6Node* left, idMD6Node* right,

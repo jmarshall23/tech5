@@ -16,11 +16,15 @@ float idRenderModelGui::smallCharWidth = 8.0f;
 float idRenderModelGui::smallCharHeight = 16.0f;
 
 idRenderModelGui::idRenderModelGui()
-    : surf(nullptr), currentVertexColor(0xffffffffu), numGuiSurfaces(0),
+    : surf(nullptr), currentVertexColor(0u), numGuiSurfaces(0),
       useVirtualSize(false), frameNum(0), waitForFrame(0) {
     std::memset(&guiSurfaces, 0, sizeof(guiSurfaces));
     std::memset(&triangles, 0, sizeof(triangles));
     SetName("_guiModel");
+    g.noInteractions = 1;
+    g.noShadow = 1;
+    g.mvpIsOrthographic = 1;
+    useDeferredPosition = false;
     g.origin.Set(-1.0f, 1.0f, 0.0f);
     deferredOrigin = g.origin;
     SetViewport(0, 0, 1280, 720);
@@ -131,14 +135,23 @@ idDrawVert* idRenderModelGui::AllocTris(const int numVerts,
         surf->material = material;
     }
     if (mappedVertices.Num() + numVerts > 25600 ||
-        mappedIndices.Num() + numIndexes > 40960) return nullptr;
+        mappedIndices.Num() + numIndexes + 3 > 40960) return nullptr;
     const int vertexBase = mappedVertices.Num();
     if (!mappedVertices.SetNum(vertexBase + numVerts)) return nullptr;
     for (int index = 0; index < numIndexes; ++index)
         mappedIndices.Append(static_cast<std::uint16_t>(
             indexes[index] + vertexBase));
+    int storedIndexes = numIndexes;
+    if ((numIndexes & 1) != 0) {
+        const std::uint16_t finalIndex = static_cast<std::uint16_t>(
+            indexes[numIndexes - 1] + vertexBase);
+        mappedIndices.Append(finalIndex);
+        mappedIndices.Append(finalIndex);
+        mappedIndices.Append(finalIndex);
+        storedIndexes += 3;
+    }
     surf->numVerts += numVerts;
-    surf->numIndexes += numIndexes;
+    surf->numIndexes += storedIndexes;
     return mappedVertices.Ptr() + vertexBase;
 }
 

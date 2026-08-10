@@ -90,6 +90,7 @@ idRenderModelEffects::BufferReferenceCallback
     idRenderModelEffects::bufferReferenceCallback = nullptr;
 idRenderModelEffects::ShadowSampleCallback
     idRenderModelEffects::shadowSampleCallback = nullptr;
+int idRenderModelEffects::particleTrailTimeStep = 0;
 
 idRenderModelEffects::idRenderModelEffects()
     : particles(nullptr), particleTrails(nullptr), tracers(nullptr),
@@ -107,7 +108,6 @@ idRenderModelEffects::idRenderModelEffects()
     std::memset(latchedTracerRange, 0, sizeof(latchedTracerRange));
     std::memset(latchedDecalRange, 0, sizeof(latchedDecalRange));
     std::memset(sortedParticleStages, 0, sizeof(sortedParticleStages));
-    g.noInteractions = 1;
     g.noShadow = 1;
     g.addAlways = 1;
 
@@ -199,6 +199,11 @@ void idRenderModelEffects::SetRuntimeCallbacks(
     shadowSampleCallback = shadowSample;
 }
 
+void idRenderModelEffects::SetParticleTrailTimeStep(
+        const int milliseconds) {
+    particleTrailTimeStep = milliseconds;
+}
+
 int idRenderModelEffects::EstimateQuadAllocation(
     const idParticleStage* stage, const effectParticleParms_t* particle,
     const int renderTime) {
@@ -260,7 +265,7 @@ void idRenderModelEffects::AddDecal(const idMaterial* const material,
         for (idDrawVert& vertex : decalVerts[slot].verts) {
             const int shadow = static_cast<int>((std::max)(0.0f,
                 (std::min)(1.0f, shadowSampleCallback(this, vertex.xyz)))
-                * 255.0f + 0.5f);
+                * 255.0f);
             vertex.color[0] = static_cast<std::uint8_t>(shadow);
             vertex.color[1] = static_cast<std::uint8_t>(shadow);
             vertex.color[2] = static_cast<std::uint8_t>(shadow);
@@ -310,7 +315,7 @@ void idRenderModelEffects::AddTracer(const idMaterial* const material,
     } else {
         const float effectiveSpeed = speed != 0.0f ? speed : 1500.0f;
         tracer.lifeTime = static_cast<int>((std::min)(3000.0f,
-            (std::max)(0.0f, travelDistance / effectiveSpeed * 1000.0f)));
+            travelDistance / effectiveSpeed * 1000.0f));
     }
 }
 
@@ -326,8 +331,9 @@ bool idRenderModelEffects::AddParticles(
     }
 
     bool moreParticlesRemain = false;
-    const int packedDiversity = static_cast<int>((std::max)(0.0f,
-        (std::min)(1.0f, diversity)) * 65535.0f);
+    const int packedDiversity = static_cast<int>(diversity * 65535.0f);
+    const float sampledShadow = shadowSampleCallback != nullptr
+        ? shadowSampleCallback(this, origin) : 1.0f;
     for (int stageIndex = 0; stageIndex < particle->stages.Num();
             ++stageIndex) {
         const idParticleStage* const stage = particle->stages[stageIndex];
@@ -383,7 +389,8 @@ bool idRenderModelEffects::AddParticles(
         parms.axis = axis;
         parms.velocity = velocity;
         parms.wind.Zero();
-        parms.shadow = 1.0f;
+        parms.shadow = stage->colorAttributes.useGlobalShadows
+            ? sampledShadow : 1.0f;
         parms.currTime = gameTime;
         parms.numParticles = count;
         parms.color = color;
@@ -422,7 +429,8 @@ void idRenderModelEffects::Update(const int newTime,
         const int end = (std::min)(gameTime, trail.endTime);
         if (trail.lastTime <= end) {
             const int span = trail.endTime - trail.startTime;
-            const int step = (std::max)(1, gameMillisecondsPerFrame);
+            const int step = particleTrailTimeStep > 0
+                ? particleTrailTimeStep : 1;
             unsigned int color = ~0u;
             for (int sampleTime = trail.lastTime; sampleTime <= end;
                     sampleTime += step) {
@@ -615,39 +623,32 @@ bool idRenderModelEffects::UpdateInView(const idRenderView* currentView,
                     tracer.startTime) * 0.001f);
             const idVec3 forward = Normalize(tracer.dir,
                 idVec3(1.0f, 0.0f, 0.0f));
-            const idVec3 head = tracer.origin +
-                forward * (age * tracer.speed);
-            const idVec3 tail = head - forward * tracer.length;
-            const idVec3 center = (head + tail) * 0.5f;
-            const idVec3 toView = Normalize(currentViewOrigin - center,
+            const idVec3 start = tracer.origin
+                + tracer.dir * (age * tracer.speed);
+            const idVec3 end = start + tracer.dir * tracer.length;
+            const idVec3 toView = Normalize(currentViewOrigin
+                - tracer.origin,
                 idVec3(0.0f, 0.0f, 1.0f));
-            const idVec3 side = Normalize(forward.Cross(toView),
+            const idVec3 side = Normalize(tracer.dir.Cross(toView),
                 idVec3(0.0f, 1.0f, 0.0f)) * (tracer.height * 0.5f);
-            const idVec3 up = Normalize(forward.Cross(side), toView) *
-                (tracer.height * 0.5f);
-            const float lifeFraction = tracer.lifeTime > 0
-                ? (std::max)(0.0f, (std::min)(1.0f,
-                    1.0f - age * 1000.0f / tracer.lifeTime)) : 1.0f;
-            const std::uint8_t alpha = static_cast<std::uint8_t>(
-                lifeFraction * 255.0f + 0.5f);
             idDrawVert* const output =
                 frameVertices.data() + firstVertex;
-            InitializeEffectVertex(output[0], tail - side, 0.0f, 0.0f,
-                toView, forward, alpha);
-            InitializeEffectVertex(output[1], tail + side, 0.0f, 1.0f,
-                toView, forward, alpha);
-            InitializeEffectVertex(output[2], head - side, 1.0f, 0.0f,
-                toView, forward, alpha);
-            InitializeEffectVertex(output[3], head + side, 1.0f, 1.0f,
-                toView, forward, alpha);
-            InitializeEffectVertex(output[4], tail - up, 0.0f, 0.0f,
-                side, forward, alpha);
-            InitializeEffectVertex(output[5], tail + up, 0.0f, 1.0f,
-                side, forward, alpha);
-            InitializeEffectVertex(output[6], head - up, 1.0f, 0.0f,
-                side, forward, alpha);
-            InitializeEffectVertex(output[7], head + up, 1.0f, 1.0f,
-                side, forward, alpha);
+            InitializeEffectVertex(output[0], start + side, 0.0f, 0.0f,
+                toView, forward);
+            InitializeEffectVertex(output[1], end + side, 1.0f, 0.0f,
+                toView, forward);
+            InitializeEffectVertex(output[2], start - side, 0.0f, 1.0f,
+                toView, forward);
+            InitializeEffectVertex(output[3], end - side, 1.0f, 1.0f,
+                toView, forward);
+            InitializeEffectVertex(output[4], end - side, 1.0f, 1.0f,
+                -toView, forward);
+            InitializeEffectVertex(output[5], end + side, 1.0f, 0.0f,
+                -toView, forward);
+            InitializeEffectVertex(output[6], start - side, 0.0f, 1.0f,
+                -toView, forward);
+            InitializeEffectVertex(output[7], start + side, 0.0f, 0.0f,
+                -toView, forward);
             const int relativeVertex = firstVertex - surfaceFirstVertex;
             WriteQuadIndices(effectFrameStorage.indices.data() + firstIndex,
                 relativeVertex);
@@ -705,11 +706,14 @@ bool idRenderModelEffects::UpdateInView(const idRenderView* currentView,
                     (endTime - decal.fadeOutStartTime));
             }
             visibility = (std::max)(0.0f, (std::min)(1.0f, visibility));
+            const int visibilityByte = static_cast<int>(visibility * 255.0f);
             for (int vertex = 0; vertex < 4; ++vertex) {
                 for (int channel = 0; channel < 4; ++channel) {
                     output[vertex].color[channel] =
                         static_cast<std::uint8_t>(
-                            output[vertex].color[channel] * visibility);
+                            (static_cast<unsigned int>(
+                                output[vertex].color[channel])
+                                * visibilityByte) >> 8);
                 }
             }
             WriteQuadIndices(effectFrameStorage.indices.data() + firstIndex,
@@ -740,7 +744,7 @@ bool idRenderModelEffects::UpdateInView(const idRenderView* currentView,
             reinterpret_cast<idDrawVert*>(displayVertices),
             const_cast<std::uint16_t*>(unsortedIndices +
                 deferred.indexOffset), firstVertex,
-            firstVertex + deferred.vertCount, deferred.indexOffset,
+            deferred.vertCount, deferred.indexOffset,
             6 * (deferred.vertCount / 4), 3167, displayBuffer);
     }
     deferredStages[displayBuffer].Clear();
@@ -754,14 +758,34 @@ bool idRenderModelEffects::UpdateInView(const idRenderView* currentView,
     for (int group = 0; group < numSortedParticleStages &&
             generationParm < MAX_PARTICLE_GEN_PARMS; ++group) {
         const sortedParticleStage_t& sorted = sortedParticleStages[group];
-        for (int item = 0; item < sorted.num &&
-                generationParm < MAX_PARTICLE_GEN_PARMS; ++item) {
-            effectParticleParms_t& effect = particles[
-                (sorted.first + item) & (MAX_EFFECT_PARTICLES - 1)];
+        int item = 0;
+        while (item < sorted.num
+                && generationParm < MAX_PARTICLE_GEN_PARMS) {
+            const int firstSlot = (sorted.first + item)
+                & (MAX_EFFECT_PARTICLES - 1);
+            effectParticleParms_t& effect = particles[firstSlot];
             effect.currTime = latchedTime;
-            const int numQuads = EstimateQuadAllocation(effect.stage,
+            int numQuads = EstimateQuadAllocation(effect.stage,
                 &effect, latchedTime);
-            if (numQuads <= 0 || effect.stage == nullptr) continue;
+            if (numQuads <= 0 || effect.stage == nullptr) {
+                ++item;
+                continue;
+            }
+
+            int batchCount = 1;
+            while (item + batchCount < sorted.num
+                    && batchCount < 145
+                    && firstSlot + batchCount < MAX_EFFECT_PARTICLES) {
+                effectParticleParms_t& next =
+                    particles[firstSlot + batchCount];
+                if (next.stage != effect.stage) break;
+                next.currTime = latchedTime;
+                const int nextQuads = EstimateQuadAllocation(next.stage,
+                    &next, latchedTime);
+                if (nextQuads <= 0 || numQuads + nextQuads > 128) break;
+                numQuads += nextQuads;
+                ++batchCount;
+            }
 
             deferredParticleGenParms_t& generation =
                 particleGenParms[generationParm];
@@ -772,7 +796,7 @@ bool idRenderModelEffects::UpdateInView(const idRenderView* currentView,
             generation.tables = effect.tables;
             generation.staticVerts = effect.stage->staticVerts;
             generation.visibleInfluenceSpheres = visibleSpheres;
-            generation.numEffectParticleParms = 1;
+            generation.numEffectParticleParms = batchCount;
             generation.numTables = effect.numTables;
             generation.staticVertsSize = effect.stage->numStaticVerts;
             generation.deadTime = effect.stage->maxDeadTime;
@@ -798,12 +822,14 @@ bool idRenderModelEffects::UpdateInView(const idRenderView* currentView,
                     deferredStages[transparencyBuffer].Append(deferred);
                 }
             }
-            if (!allocated) continue;
-            if (particleJobSubmitCallback == nullptr ||
-                !particleJobSubmitCallback(&generation, tools)) {
-                ParticleGenJob(&generation);
+            if (allocated) {
+                if (particleJobSubmitCallback == nullptr ||
+                    !particleJobSubmitCallback(&generation, tools)) {
+                    ParticleGenJob(&generation);
+                }
+                ++generationParm;
             }
-            ++generationParm;
+            item += batchCount;
         }
     }
     return true;

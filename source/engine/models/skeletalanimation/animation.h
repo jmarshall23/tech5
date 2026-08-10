@@ -9,6 +9,7 @@
 #include "framework/resourcelist.h"
 
 class idDeclMD6;
+class idCmdArgs;
 class idJointConversion;
 class idMD6Alias;
 
@@ -177,6 +178,7 @@ public:
     void FinalizeAliasRefs() override;
     void GetAliasRefs(aliasHandle_t handle, bool strongOnly,
         idList<const idDeclMD6*, 5>& references) const override;
+    void VerifyAnimations(const idCmdArgs* args);
 
     jointConversionHandle_t LoadJointConversion(const char* name);
 

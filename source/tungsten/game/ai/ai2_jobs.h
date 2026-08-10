@@ -6,6 +6,8 @@ class idDeclAIPlayerInteraction;
 class idDeclJob;
 class idDeclVoiceOver;
 
+#ifndef TUNGSTEN_AI_VOICE_PRIORITY_T_DEFINED
+#define TUNGSTEN_AI_VOICE_PRIORITY_T_DEFINED
 enum aiVoicePriority_t : int {
     AIVOICEPRIORITY_NONE = 0,
     AIVOICEPRIORITY_LOW = 1,
@@ -14,6 +16,7 @@ enum aiVoicePriority_t : int {
     AIVOICEPRIORITY_PAIN = 4,
     AIVOICEPRIORITY_DEATH = 5
 };
+#endif
 
 // Snapshot of the current aiPlayerInteraction_t and the declaration/list
 // entries read by ai2_jobs.cpp.  The owning declarations remain opaque until

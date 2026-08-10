@@ -5,6 +5,7 @@
 #include "gamelib/animstack/animweb/animwebpath.h"
 #include "models/skeletalanimation/declmd6.h"
 #include "models/skeletalanimation/md6anim.h"
+#include "models/skeletalanimation/md6model.h"
 
 #include <algorithm>
 #include <cmath>
@@ -47,13 +48,30 @@ idVec3 RotateVector(const idQuat& quat, const idVec3& vector) {
 }
 
 idMat3 JointAxis(const idJointMat& joint) {
-    return idMat3(joint.mat[0], joint.mat[1], joint.mat[2],
-        joint.mat[4], joint.mat[5], joint.mat[6],
-        joint.mat[8], joint.mat[9], joint.mat[10]);
+    return idMat3(joint.mat[0], joint.mat[4], joint.mat[8],
+        joint.mat[1], joint.mat[5], joint.mat[9],
+        joint.mat[2], joint.mat[6], joint.mat[10]);
 }
 
 idVec3 JointTranslation(const idJointMat& joint) {
     return idVec3(joint.mat[3], joint.mat[7], joint.mat[11]);
+}
+
+idAngles MatrixAngles(const idMat3& matrix) {
+    constexpr float RAD2DEG = 57.295779513082320876f;
+    const float horizontal = std::sqrt(matrix[0].x * matrix[0].x +
+        matrix[0].y * matrix[0].y);
+    idAngles angles;
+    if (horizontal > 1.0e-6f) {
+        angles.pitch = std::atan2(-matrix[0].z, horizontal) * RAD2DEG;
+        angles.yaw = std::atan2(matrix[0].y, matrix[0].x) * RAD2DEG;
+        angles.roll = std::atan2(-matrix[1].z, matrix[2].z) * RAD2DEG;
+    } else {
+        angles.pitch = std::atan2(-matrix[0].z, horizontal) * RAD2DEG;
+        angles.yaw = std::atan2(-matrix[1].x, matrix[1].y) * RAD2DEG;
+        angles.roll = 0.0f;
+    }
+    return angles;
 }
 
 void SplitPath(const idAnimWebPath& path, idStr& webName,
@@ -179,18 +197,34 @@ void idMD6Util::idJointCache::Set(const idDeclAnimWeb* web,
 void idMD6Util::idJointCache::UpdateCache() {
     validJointCache = false;
     if (md6Decl == nullptr || md6anim == nullptr ||
-            md6anim->animData == nullptr || poseDecodeCallback == nullptr ||
+            md6anim->animData == nullptr ||
             frameNum < 0 || frameNum >= md6anim->animData->numFrames) return;
-    validJointCache = poseDecodeCallback(md6Decl, md6anim, frameNum,
-        jointMatrices, 256);
+    if (poseDecodeCallback != nullptr) {
+        validJointCache = poseDecodeCallback(md6Decl, md6anim, frameNum,
+            jointMatrices, 256);
+        return;
+    }
+    const idMD6Model* const model = md6Decl->model;
+    if (model == nullptr || model->skeleton == nullptr ||
+            model->skeleton->data == nullptr ||
+            model->skeleton->data->numJoints > 256) return;
+    validJointCache = model->GetJointsForAnimFrame(jointMatrices, md6anim,
+        frameNum, idVec3(0.0f, 0.0f, 0.0f), false);
 }
 
 bool idMD6Util::idJointCache::GetDelta(animDelta_t& delta,
         const char* jointName, const char* refJointName) const {
-    if (!validJointCache || md6Decl == nullptr || jointIndexCallback == nullptr ||
+    const idDeclMD6* declaration = md6Decl;
+    if (webRef != nullptr && webRef->models.Num() > 0)
+        declaration = webRef->models[0];
+    if (!validJointCache || declaration == nullptr ||
             jointName == nullptr || refJointName == nullptr) return false;
-    const int joint = jointIndexCallback(md6Decl, jointName);
-    const int reference = jointIndexCallback(md6Decl, refJointName);
+    const int joint = jointIndexCallback != nullptr
+        ? jointIndexCallback(declaration, jointName)
+        : declaration->GetJointIndex(jointName).Get();
+    const int reference = jointIndexCallback != nullptr
+        ? jointIndexCallback(declaration, refJointName)
+        : declaration->GetJointIndex(refJointName).Get();
     if (joint < 0 || joint >= 256 || reference < 0 || reference >= 256)
         return false;
     delta.deltaTranslation = JointTranslation(jointMatrices[joint]);
@@ -198,8 +232,10 @@ bool idMD6Util::idJointCache::GetDelta(animDelta_t& delta,
     if (joint != reference) {
         delta.deltaTranslation = delta.deltaTranslation -
             JointTranslation(jointMatrices[reference]);
-        delta.deltaAxis = JointAxis(jointMatrices[reference]).Transpose() *
-            delta.deltaAxis;
+        const idAngles jointAngles = MatrixAngles(delta.deltaAxis);
+        const idAngles referenceAngles = MatrixAngles(
+            JointAxis(jointMatrices[reference]));
+        delta.deltaAxis = (jointAngles - referenceAngles).ToMat3();
     }
     return true;
 }

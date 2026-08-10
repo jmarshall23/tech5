@@ -31,10 +31,26 @@ bool FindOppositeSharedEdge(const std::uint16_t first[3],
             }
             const std::uint16_t uniqueSecond =
                 second[(secondEdge + 2) % 3];
-            quad[0] = v;
-            quad[1] = uniqueFirst;
-            quad[2] = u;
-            quad[3] = uniqueSecond;
+            // Preserve the renderer's CreateQuads ordering.  The slightly
+            // asymmetric cases are intentional: static particle geometry
+            // consumes the four vertices directly rather than rebuilding
+            // triangle indexes from them.
+            if (firstEdge == 0) {
+                quad[0] = u;
+                quad[1] = uniqueSecond;
+                quad[2] = uniqueFirst;
+                quad[3] = v;
+            } else if (firstEdge == 1) {
+                quad[0] = v;
+                quad[1] = uniqueFirst;
+                quad[2] = uniqueSecond;
+                quad[3] = u;
+            } else {
+                quad[0] = v;
+                quad[1] = uniqueFirst;
+                quad[2] = uniqueSecond;
+                quad[3] = u;
+            }
             return true;
         }
     }

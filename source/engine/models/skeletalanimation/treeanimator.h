@@ -69,7 +69,7 @@ public:
         int meshIndex, int bufferIndex, const std::uint8_t* values,
         int valueCount);
     using TreeStoreCallback = bool (*)(const idMD6Model* model,
-        int modelIndex, int time, const idAnimStack& stack,
+        int timeMilliseconds, int ticksPerSecond, const idAnimStack& stack,
         idMD6Node* root, idBitMsg& nodes, idBitMsg& leaves,
         idBitMsg& modifiers);
     using TreeReadCallback = idMD6Node* (*)(const idAnimStack& stack,
@@ -198,11 +198,16 @@ public:
     void ClearMorphPoints();
     void BitShiftMorphPoints(unsigned int shift);
 
-    static void UpdateTree(const idMD6Model* model, int modelIndex,
-        int time, idMD6Node* root);
+    void BlendTreeInternal(int currentTime, int previousTime,
+        int gameMillisecondsPerFrame, int ticksPerSecond, idMD6Node* tree,
+        idParallelJobList* parallelJobList, float* localRotation,
+        float* localScale, float* localTranslation, float* localUserChannels);
+
+    static void UpdateTree(const idMD6Model* model, int timeMilliseconds,
+        int ticksPerSecond, idMD6Node* root);
     static void FreeTree(idMD6Allocator* allocator, idMD6Node* root);
-    static bool StoreTree(const idMD6Model* model, int modelIndex,
-        int time, const idAnimStack& stack, idMD6Node* root,
+    static bool StoreTree(const idMD6Model* model, int timeMilliseconds,
+        int ticksPerSecond, const idAnimStack& stack, idMD6Node* root,
         idBitMsg& nodes, idBitMsg& leaves, idBitMsg& modifiers);
     static idMD6Node* ReadTree(const idAnimStack& stack,
         idMD6Allocator* allocator, idBitMsg& nodes, idBitMsg& leaves,
@@ -261,8 +266,8 @@ private:
     const idMD6Blend::jointMod_t* FindJointMod(animationPose_t pose,
         idJointIndex joint) const;
     void LatchDeferredState();
-    static void UpdateTree_r(const idMD6Model* model, int modelIndex,
-        int time, idMD6Node* root);
+    static void UpdateTree_r(const idMD6Model* model, int timeMilliseconds,
+        int ticksPerSecond, idMD6Node* root);
     static void FreeTree_r(idMD6Allocator* allocator, idMD6Node* root);
 
     static UpdateCallback updateCallback;

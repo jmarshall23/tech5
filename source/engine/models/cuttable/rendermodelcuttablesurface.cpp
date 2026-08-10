@@ -10,8 +10,8 @@ idRenderModelCuttableSurface::ResourceResolver
 
 idRenderModelCuttableSurface::idRenderModelCuttableSurface()
     : modelResource(nullptr), triangleInterpolator(nullptr), bufferIndex(0) {
+    g.noInteractions = 1;
     g.noShadow = 1;
-    g.addAlways = 1;
 }
 
 idRenderModelCuttableSurface::idRenderModelCuttableSurface(

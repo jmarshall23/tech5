@@ -25,14 +25,21 @@ bool Key(const idToken& token, const char* name) {
 }
 
 float TokenFloat(const idToken& token) {
-    return std::strtof(token.c_str(), nullptr);
+    const char* text = token.c_str();
+    if (text != nullptr && *text == '"') ++text;
+    return std::strtof(text, nullptr);
 }
 
 int ParseParmsOnLine(idParser* parser, float* parms, const int maxParms) {
     if (parser == nullptr || parms == nullptr || maxParms <= 0) return 0;
+    std::fill(parms, parms + maxParms, 0.0f);
     int count = 0;
     idTokenStatic<256> token;
-    while (count < maxParms && parser->ReadTokenOnLine(token) != 0) {
+    while (parser->ReadTokenOnLine(token) != 0) {
+        if (count == maxParms) {
+            parser->Error("too many parms on line");
+            break;
+        }
         if (idStr::Cmp(token.c_str(), "-") == 0) {
             if (parser->ReadTokenOnLine(token) == 0) break;
             parms[count++] = -TokenFloat(token);
@@ -45,10 +52,20 @@ int ParseParmsOnLine(idParser* parser, float* parms, const int maxParms) {
 
 void ParseBounds(idParser* parser, idBounds& bounds) {
     float values[6] = {};
-    for (float& value : values) value = parser->ParseFloat();
+    int count = 0;
+    idTokenStatic<256> token;
+    while (parser != nullptr && parser->ReadTokenOnLine(token) != 0) {
+        if (count == 6) {
+            parser->Error("ParseBounds: too many parms on line");
+            break;
+        }
+        values[count++] = TokenFloat(token);
+    }
     for (int axis = 0; axis < 3; ++axis) {
-        bounds[0][axis] = (std::min)(0.0f, values[axis]);
-        bounds[1][axis] = (std::max)(0.0f, values[axis + 3]);
+        bounds[0][axis] = (std::min)(0.0f,
+            (std::min)(values[axis], values[axis + 3]));
+        bounds[1][axis] = (std::max)(0.0f,
+            (std::max)(values[axis], values[axis + 3]));
     }
 }
 
@@ -61,24 +78,30 @@ void WriteBounds(idFile* file, const char* name, const idBounds& bounds) {
 }
 
 void FinalizeStage(idParticleStage& stage, const idLookupTable* tables) {
-    stage.maxParticleLife = (std::max)(0.0f,
-        stage.systemProperties.particleLife.GetMaxParmVal(tables));
-    stage.maxDeadTime = (std::max)(0.0f,
-        stage.systemProperties.deadTime.GetMaxParmVal(tables));
+    stage.maxParticleLife =
+        stage.systemProperties.particleLife.GetMaxParmVal(tables);
+    stage.maxDeadTime =
+        stage.systemProperties.deadTime.GetMaxParmVal(tables);
     stage.cycleMsec = static_cast<int>(
         (stage.maxParticleLife + stage.maxDeadTime) * 1000.0f);
     stage.bunchTime = stage.systemProperties.emissionTime > 0.0f
         ? stage.systemProperties.emissionTime : stage.maxParticleLife;
-    stage.orientation.numTrails = static_cast<std::int16_t>((std::max)(0,
-        (std::min)(6, static_cast<int>(stage.orientation.numTrails))));
-    const int vertsPerParticle = (std::max)(1, stage.NumVertsPerParticle());
-    const int maximumParticles = (std::max)(1, 512 / vertsPerParticle);
-    stage.systemProperties.totalParticles = static_cast<std::int16_t>(
-        (std::max)(0, (std::min)(maximumParticles,
-            static_cast<int>(stage.systemProperties.totalParticles))));
-    stage.lodParms.totalParticles = static_cast<std::int16_t>(
-        (std::max)(1, (std::min)(maximumParticles,
-            static_cast<int>(stage.lodParms.totalParticles))));
+    const int vertsPerParticle = stage.NumVertsPerParticle();
+    if (vertsPerParticle > 0
+            && static_cast<int>(stage.systemProperties.totalParticles)
+                * vertsPerParticle > 512) {
+        stage.systemProperties.totalParticles =
+            static_cast<std::int16_t>(512 / vertsPerParticle);
+    }
+    if (vertsPerParticle > 0
+            && static_cast<int>(stage.lodParms.totalParticles)
+                * vertsPerParticle > 512) {
+        stage.lodParms.totalParticles =
+            static_cast<std::int16_t>(512 / vertsPerParticle);
+    }
+    if (stage.orientation.numTrails > 6) {
+        stage.orientation.numTrails = 6;
+    }
 }
 
 const char* const distributionNames[] = {
@@ -204,6 +227,16 @@ int idDeclParticle::CalcLodForDistance(const float distanceSquared) const {
 }
 
 const idLookupTable* idDeclParticle::GetTables() const {
+    idDeclParticle* mutableThis = const_cast<idDeclParticle*>(this);
+    const int count = (std::min)(tableDecls.Num(), tables.Num());
+    for (int index = 0; index < count; ++index) {
+        const idDeclTable* declaration = tableDecls[index];
+        if (declaration != nullptr && declaration->table != nullptr
+                && declaration->SourceFileExists()
+                && declaration->EverReloaded()) {
+            mutableThis->tables[index] = *declaration->table;
+        }
+    }
     return tables.Ptr();
 }
 
@@ -425,7 +458,7 @@ idParticleStage* idDeclParticle::ParseParticleStage(idParser* parser,
                     idTokenStatic<256> option;
                     if (parser->ReadTokenOnLine(option) != 0) {
                         stage->orientation.orientToVelOnly =
-                            std::atoi(option.c_str()) != 0;
+                            std::atoi(option.c_str()) == 1;
                     }
                     if (parser->ReadTokenOnLine(option) != 0) {
                         stage->orientation.viewFade = TokenFloat(option);
@@ -544,10 +577,16 @@ idParticleStage* idDeclParticle::ParseParticleStage(idParser* parser,
             parseParm(stage->offset.offset[2]);
         } else if (Key(token, "animationFrames")) {
             stage->texAnimation.numColumns = static_cast<std::uint16_t>(
-                (std::max)(1, (std::min)(64, parser->ParseInt())));
+                parser->ParseInt());
+            if (stage->texAnimation.numColumns > 64) {
+                stage->texAnimation.numColumns = 64;
+            }
         } else if (Key(token, "animationRows")) {
             stage->texAnimation.numRows = static_cast<std::uint16_t>(
-                (std::max)(1, (std::min)(4, parser->ParseInt())));
+                parser->ParseInt());
+            if (stage->texAnimation.numRows > 4) {
+                stage->texAnimation.numRows = 4;
+            }
         } else if (Key(token, "animationRate")) {
             parseParm(stage->texAnimation.rate);
         } else if (Key(token, "useRndStartFrame")) {
@@ -661,7 +700,7 @@ void idDeclParticle::Parse(idParser* parser) {
 
 void idDeclParticle::WriteStage(idFile* file,
     const idParticleStage& stage, const char* stageName,
-    const idParticleStage&, const char* parentName) const {
+    const idParticleStage& parent, const char* parentName) const {
     if (file == nullptr) return;
     file->WriteFloatString("\t\"%s\" {\n\n",
         stageName != nullptr ? stageName : "");
@@ -671,204 +710,375 @@ void idDeclParticle::WriteStage(idFile* file,
     }
     WriteBounds(file, "bounds", stage.bounds);
 
-    if (stage.systemProperties.material != nullptr
-            && materialNameResolver != nullptr) {
-        const char* materialName = materialNameResolver(
-            stage.systemProperties.material);
+    auto writeInt = [&](const char* name, const int value,
+            const int defaultValue) {
+        if (value != defaultValue) {
+            file->WriteFloatString("\t\t%-25s\t%i\n", name, value);
+        }
+    };
+    auto writeFloat = [&](const char* name, const float value,
+            const float defaultValue) {
+        if (value != defaultValue) {
+            file->WriteFloatString("\t\t%-25s\t%.3f\n", name, value);
+        }
+    };
+    auto writeName = [&](const char* name, const char* value,
+            const char* defaultValue) {
+        const char* safeValue = value != nullptr ? value : "";
+        const char* safeDefault = defaultValue != nullptr ? defaultValue : "";
+        if (idStr::Cmp(safeValue, safeDefault) != 0) {
+            file->WriteFloatString("\t\t%-25s\t%s\n", name, safeValue);
+        }
+    };
+    auto writeParm = [&](const char* name, const idParticleParm& parm,
+            const idParticleParm& defaultParm, const char* info = "",
+            const char* parentInfo = "") {
+        WriteParticleParm(file, name, parm, defaultParm, tableDecls,
+            idStr(info), idStr(parentInfo));
+    };
+
+    writeInt("count", stage.systemProperties.totalParticles,
+        parent.systemProperties.totalParticles);
+    if (materialNameResolver != nullptr) {
+        const char* materialName = stage.systemProperties.material != nullptr
+            ? materialNameResolver(stage.systemProperties.material) : "";
+        const char* parentMaterialName =
+            parent.systemProperties.material != nullptr
+                ? materialNameResolver(parent.systemProperties.material) : "";
         if (materialName != nullptr && *materialName != '\0') {
-            file->WriteFloatString("\t\t%-25s\t%s\n", "material",
-                materialName);
+            writeName("material", materialName, parentMaterialName);
         }
     }
     if (stage.staticData != nullptr) {
-        file->WriteFloatString("\t\t%-25s\t%s\n", "staticMesh",
-            stage.staticData->GetName());
+        writeName("staticMesh", stage.staticData->GetName(),
+            parent.staticData != nullptr ? parent.staticData->GetName() : "");
     }
+    writeInt("cycles", stage.systemProperties.cycles,
+        parent.systemProperties.cycles);
+    writeFloat("bunching", stage.systemProperties.spawnBunching,
+        parent.systemProperties.spawnBunching);
+    for (int axis = 0; axis < 3; ++axis) {
+        static const char* const names[3] = { "offsetX", "offsetY", "offsetZ" };
+        writeParm(names[axis], stage.offset.offset[axis],
+            parent.offset.offset[axis]);
+    }
+    writeFloat("boundsExpansion", stage.systemProperties.boundsExpansion,
+        parent.systemProperties.boundsExpansion);
+    WriteParticleBool(file, "randomOnCycle",
+        stage.systemProperties.randomOnCycle,
+        parent.systemProperties.randomOnCycle);
+    writeParm("time", stage.systemProperties.particleLife,
+        parent.systemProperties.particleLife);
+    writeFloat("timeOffset", stage.systemProperties.timeOffset,
+        parent.systemProperties.timeOffset);
+    writeInt("diversity", stage.systemProperties.diversity,
+        parent.systemProperties.diversity);
+    writeFloat("useSysTime", stage.systemProperties.useSysTime,
+        parent.systemProperties.useSysTime);
+    writeFloat("emissionTime", stage.systemProperties.emissionTime,
+        parent.systemProperties.emissionTime);
+    writeParm("deadTime", stage.systemProperties.deadTime,
+        parent.systemProperties.deadTime);
 
-    const idStr emptyInfo;
-    const idStr forceWrite("write");
-    idParticleParm unusedDefault;
-    unusedDefault.Clear();
-    auto writeParm = [&](const char* name, const idParticleParm& parm) {
-        WriteParticleParm(file, name, parm, unusedDefault, tableDecls,
-            emptyInfo, forceWrite);
-    };
-
-    file->WriteFloatString("\t\t%-25s\t%i\n", "count",
-        stage.systemProperties.totalParticles);
-    writeParm("time", stage.systemProperties.particleLife);
-    file->WriteFloatString("\t\t%-25s\t%i\n", "cycles",
-        stage.systemProperties.cycles);
-    file->WriteFloatString("\t\t%-25s\t%.3f\n", "bunching",
-        stage.systemProperties.spawnBunching);
-    file->WriteFloatString("\t\t%-25s\t%.3f\n", "timeOffset",
-        stage.systemProperties.timeOffset);
-    file->WriteFloatString("\t\t%-25s\t%i\n", "diversity",
-        stage.systemProperties.diversity);
-    file->WriteFloatString("\t\t%-25s\t%.3f\n", "useSysTime",
-        stage.systemProperties.useSysTime);
-    file->WriteFloatString("\t\t%-25s\t%.3f\n", "emissionTime",
-        stage.systemProperties.emissionTime);
-    writeParm("deadTime", stage.systemProperties.deadTime);
-    file->WriteFloatString("\t\t%-25s\t%i\n", "randomDistribution",
-        stage.distribution.random ? 1 : 0);
-    file->WriteFloatString("\t\t%-25s\t%s\n", "distributionType",
-        distributionNames[(std::max)(0, (std::min)(
-            NUM_PDIST_TYPES - 1, static_cast<int>(stage.distribution.type)))]);
-    writeParm("distribSizeX", stage.distribution.size[0]);
-    writeParm("distribSizeY", stage.distribution.size[1]);
-    writeParm("distribSizeZ", stage.distribution.size[2]);
-
-    file->WriteFloatString("\t\tdirection {\n");
-    file->WriteFloatString("\t\t\ttype %s\n", directionNames[
-        (std::max)(0, (std::min)(NUM_PDIR_TYPES - 1,
-            static_cast<int>(stage.direction.type)))]);
-    file->WriteFloatString("\t\t\tparms %.3f %.3f %.3f %.3f\n",
-        stage.direction.parms[0], stage.direction.parms[1],
-        stage.direction.parms[2], stage.direction.parms[3]);
-    file->WriteFloatString("\t\t\tangleOffsetStart %.3f %.3f\n",
-        stage.direction.angleOffsetStart[0],
-        stage.direction.angleOffsetStart[1]);
-    file->WriteFloatString("\t\t\tangleOffsetRange %.3f %.3f\n",
-        stage.direction.angleOffsetRange[0],
-        stage.direction.angleOffsetRange[1]);
-    file->WriteFloatString("\t\t}\n");
-
-    file->WriteFloatString("\t\torientation {\n");
-    file->WriteFloatString("\t\t\ttype %s\n", orientationNames[
-        (std::max)(0, (std::min)(NUM_POR_TYPES - 1,
-            static_cast<int>(stage.orientation.type)))]);
-    file->WriteFloatString("\t\t\tworld %i\n",
-        stage.orientation.world ? 1 : 0);
-    file->WriteFloatString("\t\t\tnumTrails %i\n",
-        stage.orientation.numTrails);
-    file->WriteFloatString("\t\t\tsegmentLength %.3f\n",
-        stage.orientation.segmentLength);
-    file->WriteFloatString("\t\t\tviewFade %.3f\n",
-        stage.orientation.viewFade);
-    file->WriteFloatString("\t\t\torientToVelOnly %i\n",
-        stage.orientation.orientToVelOnly ? 1 : 0);
-    file->WriteFloatString("\t\t\taimedSafeQuad %i\n",
-        stage.orientation.aimedSafeQuad ? 1 : 0);
-    file->WriteFloatString("\t\t\taimedSafeQuadAlign %.3f\n",
-        stage.orientation.aimedSafeQuadAlign);
-    file->WriteFloatString("\t\t\tdepthOffset %.3f\n",
-        stage.orientation.depthOffset);
-    file->WriteFloatString("\t\t}\n");
-
-    file->WriteFloatString("\t\t%-25s\t%s\n", "customPathType",
-        customNames[(std::max)(0, (std::min)(NUM_PCUSTOM_TYPES - 1,
-            static_cast<int>(stage.customPath.type)))]);
-    for (int index = 0; index < 5; ++index) {
+    const int customType = (std::max)(0, (std::min)(NUM_PCUSTOM_TYPES - 1,
+        static_cast<int>(stage.customPath.type)));
+    const int parentCustomType = (std::max)(0,
+        (std::min)(NUM_PCUSTOM_TYPES - 1,
+            static_cast<int>(parent.customPath.type)));
+    writeName("customPathType", customNames[customType],
+        customNames[parentCustomType]);
+    static const int customParmCounts[NUM_PCUSTOM_TYPES] = { 0, 5, 3, 2, 1 };
+    for (int index = 0; index < customParmCounts[customType]; ++index) {
         char name[32];
         _snprintf_s(name, sizeof(name), _TRUNCATE, "customPathParm%d", index);
-        writeParm(name, stage.customPath.parms[index]);
+        writeParm(name, stage.customPath.parms[index],
+            parent.customPath.parms[index]);
     }
-    writeParm("speedX", stage.speed.speed[0]);
-    writeParm("speedY", stage.speed.speed[1]);
-    writeParm("speedZ", stage.speed.speed[2]);
-    file->WriteFloatString("\t\t%-25s\t%i\n", "worldAcceleration",
-        stage.acceleration.world ? 1 : 0);
-    writeParm("accelerationX", stage.acceleration.acceleration[0]);
-    writeParm("accelerationY", stage.acceleration.acceleration[1]);
-    writeParm("accelerationZ", stage.acceleration.acceleration[2]);
-    writeParm("frictionX", stage.friction.friction[0]);
-    writeParm("frictionY", stage.friction.friction[1]);
-    writeParm("frictionZ", stage.friction.friction[2]);
-    writeParm("rotationSpeedX", stage.rotation.rotation[0]);
-    writeParm("rotationSpeedY", stage.rotation.rotation[1]);
-    writeParm("rotationSpeedZ", stage.rotation.rotation[2]);
-    writeParm("angleX", stage.initialRotation.initialAngle[0]);
-    writeParm("angleY", stage.initialRotation.initialAngle[1]);
-    writeParm("angleZ", stage.initialRotation.initialAngle[2]);
-    writeParm("spawnLocX", stage.spawnLocation.spawnLocation[0]);
-    writeParm("spawnLocY", stage.spawnLocation.spawnLocation[1]);
-    writeParm("spawnLocZ", stage.spawnLocation.spawnLocation[2]);
-    file->WriteFloatString("\t\t%-25s\t%.3f\n", "pivotX",
-        stage.pivot.pivotOffset.x);
-    file->WriteFloatString("\t\t%-25s\t%.3f\n", "pivotY",
-        stage.pivot.pivotOffset.y);
-    writeParm("sizeX", stage.size.size[0]);
-    writeParm("sizeY", stage.size.size[1]);
-    writeParm("sizeZ", stage.size.size[2]);
-    writeParm("aspect", stage.size.aspectRatio);
-    file->WriteFloatString("\t\t%-25s\t%.3f\n", "fadeIn",
-        stage.colorAttributes.fadeInFraction);
-    file->WriteFloatString("\t\t%-25s\t%.3f\n", "fadeOut",
-        stage.colorAttributes.fadeOutFraction);
-    file->WriteFloatString("\t\t%-25s\t%.3f\n", "fadeIndex",
-        stage.colorAttributes.fadeIndexFraction);
-    file->WriteFloatString(
-        "\t\t%-25s\t%.3f %.3f %.3f %.3f\n", "fadeColor",
-        stage.colorAttributes.fadeColor.x, stage.colorAttributes.fadeColor.y,
-        stage.colorAttributes.fadeColor.z, stage.colorAttributes.fadeColor.w);
-    writeParm("colorR", stage.colorAttributes.baseColor[0]);
-    writeParm("colorG", stage.colorAttributes.baseColor[1]);
-    writeParm("colorB", stage.colorAttributes.baseColor[2]);
-    writeParm("colorA", stage.colorAttributes.baseColor[3]);
-    writeParm("brightness", stage.colorAttributes.brightness);
-    writeParm("genericParmR", stage.genericParm.genericParm[0]);
-    writeParm("genericParmG", stage.genericParm.genericParm[1]);
-    writeParm("genericParmB", stage.genericParm.genericParm[2]);
-    writeParm("genericParmA", stage.genericParm.genericParm[3]);
+
+    const int distributionType = (std::max)(0,
+        (std::min)(NUM_PDIST_TYPES - 1,
+            static_cast<int>(stage.distribution.type)));
+    const int parentDistributionType = (std::max)(0,
+        (std::min)(NUM_PDIST_TYPES - 1,
+            static_cast<int>(parent.distribution.type)));
+    writeName("distributionType", distributionNames[distributionType],
+        distributionNames[parentDistributionType]);
+    WriteParticleBool(file, "randomDistribution", stage.distribution.random,
+        parent.distribution.random);
+    for (int axis = 0; axis < 3; ++axis) {
+        static const char* const names[3] = {
+            "distribSizeX", "distribSizeY", "distribSizeZ"
+        };
+        writeParm(names[axis], stage.distribution.size[axis],
+            parent.distribution.size[axis]);
+    }
+    for (int axis = 0; axis < 3; ++axis) {
+        static const char* const names[3] = {
+            "spawnLocX", "spawnLocY", "spawnLocZ"
+        };
+        writeParm(names[axis], stage.spawnLocation.spawnLocation[axis],
+            parent.spawnLocation.spawnLocation[axis]);
+    }
+
+    const int directionType = (std::max)(0, (std::min)(NUM_PDIR_TYPES - 1,
+        static_cast<int>(stage.direction.type)));
+    const int parentDirectionType = (std::max)(0,
+        (std::min)(NUM_PDIR_TYPES - 1,
+            static_cast<int>(parent.direction.type)));
+    static const int directionParmCounts[NUM_PDIR_TYPES] = { 4, 1, 0 };
+    const int directionParmCount = directionParmCounts[directionType];
+    bool directionParmsDiffer = false;
+    for (int index = 0; index < directionParmCount; ++index) {
+        directionParmsDiffer |= stage.direction.parms[index]
+            != parent.direction.parms[index];
+    }
+    const bool directionStartDiffers =
+        stage.direction.angleOffsetStart[0]
+                != parent.direction.angleOffsetStart[0]
+            || stage.direction.angleOffsetStart[1]
+                != parent.direction.angleOffsetStart[1];
+    const bool directionRangeDiffers =
+        stage.direction.angleOffsetRange[0]
+                != parent.direction.angleOffsetRange[0]
+            || stage.direction.angleOffsetRange[1]
+                != parent.direction.angleOffsetRange[1];
+    if (directionType != parentDirectionType || directionParmsDiffer
+            || directionStartDiffers || directionRangeDiffers) {
+        file->WriteFloatString("\t\tdirection {\n");
+        if (directionType != parentDirectionType) {
+            file->WriteFloatString("\t\t\ttype %s\n",
+                directionNames[directionType]);
+        }
+        if (directionParmsDiffer) {
+            file->WriteFloatString("\t\t\tparms");
+            for (int index = 0; index < directionParmCount; ++index) {
+                file->WriteFloatString(" %.3f", stage.direction.parms[index]);
+            }
+            file->WriteFloatString("\n");
+        }
+        if (directionStartDiffers) {
+            file->WriteFloatString("\t\t\tangleOffsetStart %.3f %.3f\n",
+                stage.direction.angleOffsetStart[0],
+                stage.direction.angleOffsetStart[1]);
+        }
+        if (directionRangeDiffers) {
+            file->WriteFloatString("\t\t\tangleOffsetRange %.3f %.3f\n",
+                stage.direction.angleOffsetRange[0],
+                stage.direction.angleOffsetRange[1]);
+        }
+        file->WriteFloatString("\t\t}\n");
+    }
+
+    const int orientationType = (std::max)(0,
+        (std::min)(NUM_POR_TYPES - 1,
+            static_cast<int>(stage.orientation.type)));
+    const int parentOrientationType = (std::max)(0,
+        (std::min)(NUM_POR_TYPES - 1,
+            static_cast<int>(parent.orientation.type)));
+    const bool orientationDiffers = orientationType != parentOrientationType
+        || stage.orientation.world != parent.orientation.world
+        || stage.orientation.numTrails != parent.orientation.numTrails
+        || stage.orientation.segmentLength != parent.orientation.segmentLength
+        || stage.orientation.viewFade != parent.orientation.viewFade
+        || stage.orientation.orientToVelOnly
+            != parent.orientation.orientToVelOnly
+        || stage.orientation.aimedSafeQuad
+            != parent.orientation.aimedSafeQuad
+        || stage.orientation.aimedSafeQuadAlign
+            != parent.orientation.aimedSafeQuadAlign
+        || stage.orientation.depthOffset != parent.orientation.depthOffset;
+    if (orientationDiffers) {
+        file->WriteFloatString("\t\torientation {\n");
+        if (orientationType != parentOrientationType) {
+            file->WriteFloatString("\t\t\ttype %s\n",
+                orientationNames[orientationType]);
+        }
+        if (stage.orientation.depthOffset != parent.orientation.depthOffset) {
+            file->WriteFloatString("\t\t\tdepthOffset %.3f\n",
+                stage.orientation.depthOffset);
+        }
+        if (orientationType != POR_TRAIL
+                && stage.orientation.world != parent.orientation.world) {
+            file->WriteFloatString("\t\t\tworld %s\n",
+                stage.orientation.world ? "true" : "false");
+        }
+        if (orientationType != POR_VIEW
+                && stage.orientation.viewFade != parent.orientation.viewFade) {
+            file->WriteFloatString("\t\t\tviewFade %.3f\n",
+                stage.orientation.viewFade);
+        }
+        if (orientationType == POR_TRAIL || orientationType == POR_AIMED) {
+            if (stage.orientation.segmentLength
+                    != parent.orientation.segmentLength) {
+                file->WriteFloatString("\t\t\tsegmentLength %.3f\n",
+                    stage.orientation.segmentLength);
+            }
+            if (stage.orientation.aimedSafeQuad
+                    != parent.orientation.aimedSafeQuad) {
+                file->WriteFloatString("\t\t\taimedSafeQuad %s\n",
+                    stage.orientation.aimedSafeQuad ? "true" : "false");
+            }
+            if (stage.orientation.aimedSafeQuad
+                    && stage.orientation.aimedSafeQuadAlign
+                        != parent.orientation.aimedSafeQuadAlign) {
+                file->WriteFloatString("\t\t\taimedSafeQuadAlign %.3f\n",
+                    stage.orientation.aimedSafeQuadAlign);
+            }
+        }
+        if (orientationType == POR_TRAIL
+                && stage.orientation.numTrails
+                    != parent.orientation.numTrails) {
+            file->WriteFloatString("\t\t\tnumTrails %i\n",
+                stage.orientation.numTrails);
+        } else if (orientationType == POR_AIMED
+                && stage.orientation.orientToVelOnly
+                    != parent.orientation.orientToVelOnly) {
+            file->WriteFloatString("\t\t\torientToVelOnly %s\n",
+                stage.orientation.orientToVelOnly ? "true" : "false");
+        }
+        file->WriteFloatString("\t\t}\n");
+    }
+
+    WriteParticleBool(file, "allowRotDirOverride",
+        stage.rotation.allowRotDirOverride,
+        parent.rotation.allowRotDirOverride);
+    for (int axis = 0; axis < 3; ++axis) {
+        static const char* const names[3] = { "angleX", "angleY", "angleZ" };
+        writeParm(names[axis], stage.initialRotation.initialAngle[axis],
+            parent.initialRotation.initialAngle[axis]);
+    }
+    writeFloat("pivotX", stage.pivot.pivotOffset.x,
+        parent.pivot.pivotOffset.x);
+    writeFloat("pivotY", stage.pivot.pivotOffset.y,
+        parent.pivot.pivotOffset.y);
+    for (int axis = 0; axis < 3; ++axis) {
+        static const char* const names[3] = { "speedX", "speedY", "speedZ" };
+        writeParm(names[axis], stage.speed.speed[axis],
+            parent.speed.speed[axis]);
+    }
+    for (int axis = 0; axis < 3; ++axis) {
+        static const char* const names[3] = {
+            "rotationSpeedX", "rotationSpeedY", "rotationSpeedZ"
+        };
+        writeParm(names[axis], stage.rotation.rotation[axis],
+            parent.rotation.rotation[axis]);
+    }
+    WriteParticleBool(file, "worldAcceleration", stage.acceleration.world,
+        parent.acceleration.world);
+    for (int axis = 0; axis < 3; ++axis) {
+        static const char* const names[3] = {
+            "accelerationX", "accelerationY", "accelerationZ"
+        };
+        writeParm(names[axis], stage.acceleration.acceleration[axis],
+            parent.acceleration.acceleration[axis]);
+    }
+    writeParm("gravity", stage.gravity.gravity, parent.gravity.gravity,
+        stage.gravity.world ? "world" : "",
+        parent.gravity.world ? "world" : "");
+    writeParm("windBias", stage.systemProperties.windBias,
+        parent.systemProperties.windBias);
+    for (int axis = 0; axis < 3; ++axis) {
+        static const char* const names[3] = {
+            "frictionX", "frictionY", "frictionZ"
+        };
+        writeParm(names[axis], stage.friction.friction[axis],
+            parent.friction.friction[axis]);
+    }
+    for (int axis = 0; axis < 3; ++axis) {
+        static const char* const names[3] = { "sizeX", "sizeY", "sizeZ" };
+        writeParm(names[axis], stage.size.size[axis], parent.size.size[axis]);
+    }
+    writeParm("aspect", stage.size.aspectRatio, parent.size.aspectRatio);
+
+    const int flipS = (std::max)(0,
+        (std::min)(NUM_PTEXTURE_FLIP_TYPES - 1,
+            static_cast<int>(stage.systemProperties.textureFlipS)));
+    const int parentFlipS = (std::max)(0,
+        (std::min)(NUM_PTEXTURE_FLIP_TYPES - 1,
+            static_cast<int>(parent.systemProperties.textureFlipS)));
+    const int flipT = (std::max)(0,
+        (std::min)(NUM_PTEXTURE_FLIP_TYPES - 1,
+            static_cast<int>(stage.systemProperties.textureFlipT)));
+    const int parentFlipT = (std::max)(0,
+        (std::min)(NUM_PTEXTURE_FLIP_TYPES - 1,
+            static_cast<int>(parent.systemProperties.textureFlipT)));
+    writeName("rndFlipTexS", textureFlipNames[flipS],
+        textureFlipNames[parentFlipS]);
+    writeName("rndFlipTexT", textureFlipNames[flipT],
+        textureFlipNames[parentFlipT]);
+    const int animationType = (std::max)(0,
+        (std::min)(NUM_PANIM_TYPES - 1,
+            static_cast<int>(stage.texAnimation.type)));
+    const int parentAnimationType = (std::max)(0,
+        (std::min)(NUM_PANIM_TYPES - 1,
+            static_cast<int>(parent.texAnimation.type)));
+    writeName("animationType", animationNames[animationType],
+        animationNames[parentAnimationType]);
+    writeInt("animationFrames", stage.texAnimation.numColumns,
+        parent.texAnimation.numColumns);
+    writeInt("animationRows", stage.texAnimation.numRows,
+        parent.texAnimation.numRows);
+    writeParm("animationRate", stage.texAnimation.rate,
+        parent.texAnimation.rate);
+    writeInt("animationStartFrame", stage.texAnimation.startFrame,
+        parent.texAnimation.startFrame);
+    WriteParticleBool(file, "useRndAnimRow", stage.texAnimation.useRandomRow,
+        parent.texAnimation.useRandomRow);
+    WriteParticleBool(file, "skipAnimCrossFade",
+        !stage.texAnimation.useFrameBlending,
+        !parent.texAnimation.useFrameBlending);
+
+    writeFloat("fadeIn", stage.colorAttributes.fadeInFraction,
+        parent.colorAttributes.fadeInFraction);
+    writeFloat("fadeOut", stage.colorAttributes.fadeOutFraction,
+        parent.colorAttributes.fadeOutFraction);
+    writeFloat("fadeIndex", stage.colorAttributes.fadeIndexFraction,
+        parent.colorAttributes.fadeIndexFraction);
+    WriteParticleVec4(file, "fadeColor", stage.colorAttributes.fadeColor,
+        parent.colorAttributes.fadeColor);
+    for (int channel = 0; channel < 4; ++channel) {
+        static const char* const names[4] = {
+            "colorR", "colorG", "colorB", "colorA"
+        };
+        writeParm(names[channel], stage.colorAttributes.baseColor[channel],
+            parent.colorAttributes.baseColor[channel]);
+    }
+    writeParm("brightness", stage.colorAttributes.brightness,
+        parent.colorAttributes.brightness);
+    for (int channel = 0; channel < 4; ++channel) {
+        static const char* const names[4] = {
+            "genericParmR", "genericParmG", "genericParmB", "genericParmA"
+        };
+        writeParm(names[channel], stage.genericParm.genericParm[channel],
+            parent.genericParm.genericParm[channel]);
+    }
     const float softScale = stage.colorAttributes.softParticleAlphaScale > 0.0f
         ? 1.0f / stage.colorAttributes.softParticleAlphaScale : 1.0f;
-    file->WriteFloatString("\t\t%-25s\t%.3f\n",
-        "softParticleAlphaScale", softScale);
-    file->WriteFloatString("\t\t%-25s\t%i\n", "useGlobalShadows",
-        stage.colorAttributes.useGlobalShadows ? 1 : 0);
-    file->WriteFloatString("\t\t%-25s\t%.3f\n", "minShadowVal",
-        stage.colorAttributes.minShadowVal);
-    file->WriteFloatString("\t\t%-25s\t%.3f\n", "entityColorBlendVal",
-        stage.colorAttributes.entityColorBlendVal);
-
-    file->WriteFloatString("\t\t%-25s\t%i\n", "animationFrames",
-        stage.texAnimation.numColumns);
-    file->WriteFloatString("\t\t%-25s\t%i\n", "animationRows",
-        stage.texAnimation.numRows);
-    writeParm("animationRate", stage.texAnimation.rate);
-    if (stage.texAnimation.startFrame < 0) {
-        file->WriteFloatString("\t\t%-25s\t1\n", "useRndStartFrame");
-    } else {
-        file->WriteFloatString("\t\t%-25s\t%i\n", "animationStartFrame",
-            stage.texAnimation.startFrame);
-    }
-    file->WriteFloatString("\t\t%-25s\t%i\n", "useRndAnimRow",
-        stage.texAnimation.useRandomRow ? 1 : 0);
-    file->WriteFloatString("\t\t%-25s\t%s\n", "animationType",
-        animationNames[(std::max)(0, (std::min)(NUM_PANIM_TYPES - 1,
-            static_cast<int>(stage.texAnimation.type)))]);
-    file->WriteFloatString("\t\t%-25s\t%i\n", "skipAnimCrossFade",
-        stage.texAnimation.useFrameBlending ? 0 : 1);
-    file->WriteFloatString("\t\t%-25s\t%s\n", "rndFlipTexS",
-        textureFlipNames[(std::max)(0, (std::min)(
-            NUM_PTEXTURE_FLIP_TYPES - 1,
-            static_cast<int>(stage.systemProperties.textureFlipS)))]);
-    file->WriteFloatString("\t\t%-25s\t%s\n", "rndFlipTexT",
-        textureFlipNames[(std::max)(0, (std::min)(
-            NUM_PTEXTURE_FLIP_TYPES - 1,
-            static_cast<int>(stage.systemProperties.textureFlipT)))]);
-    file->WriteFloatString("\t\t%-25s\t%i\n", "allowRotDirOverride",
-        stage.rotation.allowRotDirOverride ? 1 : 0);
-    file->WriteFloatString("\t\t%-25s\t%.3f\n", "boundsExpansion",
-        stage.systemProperties.boundsExpansion);
-    file->WriteFloatString("\t\t%-25s\t%i\n", "randomOnCycle",
-        stage.systemProperties.randomOnCycle ? 1 : 0);
-    const idStr gravityInfo(stage.gravity.world ? "world" : "");
-    WriteParticleParm(file, "gravity", stage.gravity.gravity, unusedDefault,
-        tableDecls, gravityInfo, forceWrite);
-    writeParm("windBias", stage.systemProperties.windBias);
-    file->WriteFloatString("\t\t%-25s\t%s\n", "sortType",
-        sortNames[(std::max)(0, (std::min)(NUM_PSORT_TYPES - 1,
-            static_cast<int>(stage.systemProperties.sortType)))]);
-    file->WriteFloatString("\t\t%-25s\t%i\n", "lodCount",
-        stage.lodParms.totalParticles);
-    file->WriteFloatString("\t\t%-25s\t%.3f\n", "lodScale",
-        stage.lodParms.sizeScale);
-    file->WriteFloatString("\t\t%-25s\t%.3f\n", "lodLerpAmount",
-        stage.lodParms.lerpAmount);
-    file->WriteFloatString("\t\t%-25s\t%i\n", "lodRadius",
-        stage.lodParms.radius);
+    const float parentSoftScale =
+        parent.colorAttributes.softParticleAlphaScale > 0.0f
+            ? 1.0f / parent.colorAttributes.softParticleAlphaScale : 1.0f;
+    writeFloat("softParticleAlphaScale", softScale, parentSoftScale);
+    WriteParticleBool(file, "useGlobalShadows",
+        stage.colorAttributes.useGlobalShadows,
+        parent.colorAttributes.useGlobalShadows);
+    writeFloat("minShadowVal", stage.colorAttributes.minShadowVal,
+        parent.colorAttributes.minShadowVal);
+    writeFloat("entityColorBlendVal",
+        stage.colorAttributes.entityColorBlendVal,
+        parent.colorAttributes.entityColorBlendVal);
+    writeInt("lodCount", stage.lodParms.totalParticles,
+        parent.lodParms.totalParticles);
+    writeFloat("lodScale", stage.lodParms.sizeScale,
+        parent.lodParms.sizeScale);
+    writeFloat("lodLerpAmount", stage.lodParms.lerpAmount,
+        parent.lodParms.lerpAmount);
+    writeInt("lodRadius", stage.lodParms.radius, parent.lodParms.radius);
+    const int sortType = (std::max)(0, (std::min)(NUM_PSORT_TYPES - 1,
+        static_cast<int>(stage.systemProperties.sortType)));
+    const int parentSortType = (std::max)(0,
+        (std::min)(NUM_PSORT_TYPES - 1,
+            static_cast<int>(parent.systemProperties.sortType)));
+    writeName("sortType", sortNames[sortType], sortNames[parentSortType]);
     file->WriteFloatString("\n\t}\n");
 }
 

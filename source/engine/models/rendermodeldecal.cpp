@@ -262,6 +262,8 @@ idRenderModelDecal::DebugDrawCallback
     idRenderModelDecal::debugDrawCallback = nullptr;
 idRenderModelDecal::InverseVPCallback
     idRenderModelDecal::inverseVPCallback = nullptr;
+idRenderModelDecal::RenderParmResolver
+    idRenderModelDecal::renderParmResolver = nullptr;
 bool idRenderModelDecal::initialized = false;
 
 idRenderModelDecal::idRenderModelDecal()
@@ -284,6 +286,16 @@ idRenderModelDecal::idRenderModelDecal()
     std::memset(&indexBufferQuads, 0, sizeof(indexBufferQuads));
     std::memset(parmPositionToLocalBoxSpace, 0,
         sizeof(parmPositionToLocalBoxSpace));
+    static const char* const renderParmNames[4] = {
+        "decalPosToLocalBoxSpaceX", "decalPosToLocalBoxSpaceY",
+        "decalPosToLocalBoxSpaceZ", "decalPosToLocalBoxSpaceW"
+    };
+    if (renderParmResolver != nullptr) {
+        for (int index = 0; index < 4; ++index) {
+            parmPositionToLocalBoxSpace[index] =
+                renderParmResolver(renderParmNames[index], true);
+        }
+    }
     g.axis = idMat3(1.0f);
     g.noShadow = 1;
     g.addAlways = 1;
@@ -325,6 +337,11 @@ void idRenderModelDecal::SetDebugDrawCallback(DebugDrawCallback callback) {
 
 void idRenderModelDecal::SetInverseVPCallback(InverseVPCallback callback) {
     inverseVPCallback = callback;
+}
+
+void idRenderModelDecal::SetRenderParmResolver(
+        const RenderParmResolver resolver) {
+    renderParmResolver = resolver;
 }
 
 void idRenderModelDecal::SetupInverseVPMatrix(

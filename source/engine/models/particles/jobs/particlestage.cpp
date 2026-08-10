@@ -119,7 +119,6 @@ void idParticleStage::Default(const idLookupTable*) {
     maxDeadTime = systemProperties.deadTime.GetMaxParmVal(nullptr);
     cycleMsec = static_cast<int>((maxParticleLife + maxDeadTime) * 1000.0f);
     bunchTime = maxParticleLife;
-    CalculateBounds(nullptr);
 }
 
 void idParticleStage::SetMaterial(const idMaterial* material) {
@@ -172,20 +171,13 @@ int idParticleStage::NumVertsPerParticle() const {
 }
 
 void idParticleStage::CalculateBounds(const idLookupTable* tables) {
-    maxParticleLife = (std::max)(0.0f,
-        systemProperties.particleLife.GetMaxParmVal(tables));
-    maxDeadTime = (std::max)(0.0f,
-        systemProperties.deadTime.GetMaxParmVal(tables));
-    cycleMsec = static_cast<int>((maxParticleLife + maxDeadTime) * 1000.0f);
-    bunchTime = systemProperties.emissionTime > 0.0f
-        ? systemProperties.emissionTime : maxParticleLife;
-
     bounds[0].Set(1.0e30f, 1.0e30f, 1.0e30f);
     bounds[1].Set(-1.0e30f, -1.0e30f, -1.0e30f);
 
     particleInput_t input{};
     input.stage = this;
     input.tables = tables;
+    input.modelAxis = idMat3(1.0f);
     input.globalAxis = idMat3(1.0f);
     input.stageAxis = idMat3(1.0f);
     input.localViewLeft.Set(0.0f, 1.0f, 0.0f);
@@ -202,16 +194,15 @@ void idParticleStage::CalculateBounds(const idLookupTable* tables) {
     std::uint32_t diversitySeed = 0;
     bool sampledOrigin = false;
     for (int sample = 0; sample < 100 && lifeMilliseconds > 0; ++sample) {
+        particleGen_t particle;
+        particle.index = systemProperties.totalParticles;
+        particle.particleLife = maxParticleLife;
+        particle.random.SetSeed(diversitySeed);
+        particle.originalRandom = particle.random;
         diversitySeed = diversitySeed * 1664525u + 1013904223u;
         const int diversity = static_cast<int>(
             (diversitySeed >> 10) & 0x7FFFu);
         input.stageAxis = ParticleStageAxis(this, diversity);
-
-        particleGen_t particle;
-        particle.index = 0;
-        particle.particleLife = maxParticleLife;
-        particle.random.SetSeed(diversitySeed);
-        particle.originalRandom = particle.random;
         for (int milliseconds = 0; milliseconds < lifeMilliseconds;
                 milliseconds += 16) {
             const int time = (std::min)(milliseconds,

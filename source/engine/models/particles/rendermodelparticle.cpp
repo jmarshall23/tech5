@@ -30,8 +30,8 @@ idRenderModelParticle::idRenderModelParticle(
       particleDecl(declaration) {
     g.noInteractions = 1;
     g.noShadow = 1;
-    g.addAlways = 1;
-    g.noGPUocclusionTest = 1;
+    g.alwaysOcclusionCullBounds = 1;
+    g.noStippleFade = 1;
 
     if (particleDecl != nullptr) {
         SetName(particleDecl->GetName());
@@ -145,14 +145,15 @@ int idRenderModelParticle::EstimateVertAllocation(
         stage->systemProperties.totalParticles
         + (stage->lodParms.totalParticles
             - stage->systemProperties.totalParticles) * lodFraction));
-    const int cycle = (std::max)(1, static_cast<int>(
-        (stage->maxParticleLife + deadTime) * 1000.0f));
+    const int cycle = static_cast<int>(
+        (stage->maxParticleLife + deadTime) * 1000.0f);
+    if (cycle <= 0) return 0;
     const int particleLife = static_cast<int>(
         stage->maxParticleLife * 1000.0f);
     const int bunch = static_cast<int>(stage->systemProperties.spawnBunching
         * stage->bunchTime * 1000.0f);
-    const int stageTime = renderTime - static_cast<int>(
-        (stage->systemProperties.timeOffset + timeOffset) * 1000.0f);
+    const int stageTime = static_cast<int>((renderTime * 0.001f
+        - (stage->systemProperties.timeOffset + timeOffset)) * 1000.0f);
     int vertices = 0;
     for (int index = 0; index < totalParticles; ++index) {
         const int age = stageTime

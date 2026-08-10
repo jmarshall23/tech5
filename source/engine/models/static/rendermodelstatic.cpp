@@ -9,11 +9,10 @@ idRenderModelStatic::TransparencyUpdateCallback
 
 idRenderModelStatic::idRenderModelStatic(const idStaticModel* model)
     : staticModel(model), skin(-1), reloadCount(0) {
-    g.isStatic = 1;
     if (model != nullptr) {
         SetName(model->GetName());
         referenceBounds = model->referenceBounds;
-        g.noGPUocclusionTest = model->usesTransparencySort ? 1 : 0;
+        g.alwaysOcclusionCullBounds = model->usesTransparencySort ? 1 : 0;
     }
 }
 
@@ -70,7 +69,7 @@ bool idRenderModelStatic::CommitSubclass() {
         if (!staticModel->modelIsAutosprite)
             referenceBounds = staticModel->referenceBounds;
         if (staticModel->usesTransparencySort) {
-            g.noGPUocclusionTest = 1;
+            g.alwaysOcclusionCullBounds = 1;
             SetLitTransSortFlag();
         }
         reloadCount = staticModel->reloadCount;

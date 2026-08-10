@@ -502,26 +502,178 @@ bool idStaticModel::ConvertToOBJ(const char* groupName,
 void idStaticModel::BuildAutospriteData() {
     modelIsAutosprite = false;
     usesTransparencySort = false;
-    int commonAutospriteType = -1;
+    if (surfaces.Num() == 0 || materialTraitsCallback == nullptr) return;
+
+    int commonAutospriteType = 0;
     for (int surface = 0; surface < surfaces.Num(); ++surface) {
         materialGenerationTraits_t traits;
-        if (materialTraitsCallback == nullptr ||
-            !materialTraitsCallback(surfaces[surface].material, traits))
-            continue;
+        if (surfaces[surface].material == nullptr ||
+                !materialTraitsCallback(surfaces[surface].material, traits))
+            return;
         usesTransparencySort = usesTransparencySort ||
             traits.transparencySort;
-        if (traits.autospriteType == 0) continue;
-        if (commonAutospriteType < 0) commonAutospriteType =
-            traits.autospriteType;
-        if (traits.autospriteType == commonAutospriteType)
-            modelIsAutosprite = true;
-        else
-            modelIsAutosprite = false;
+        if (traits.autospriteType == 0) return;
+        if (surface == 0) commonAutospriteType = traits.autospriteType;
+        else if (traits.autospriteType != commonAutospriteType) return;
     }
-    // Autosprite vertex expansion is consumed by the renderer. The recovered
-    // model layer retains the authoring quads and records the material mode;
-    // renderer adapters can derive camera-facing axes without corrupting the
-    // portable idDrawVert layout.
+    modelIsAutosprite = true;
+    referenceBounds[0].Set(1.0e30f, 1.0e30f, 1.0e30f);
+    referenceBounds[1].Set(-1.0e30f, -1.0e30f, -1.0e30f);
+    bool haveReferenceBounds = false;
+
+    const auto byte = [](const float value) {
+        return static_cast<std::uint8_t>((std::max)(0,
+            (std::min)(255, static_cast<int>(value))));
+    };
+    const auto createBounds = [](idTriangles& geometry) {
+        geometry.bounds[0].Set(1.0e30f, 1.0e30f, 1.0e30f);
+        geometry.bounds[1].Set(-1.0e30f, -1.0e30f, -1.0e30f);
+        for (int vertex = 0; vertex < geometry.numVerts; ++vertex) {
+            for (int axis = 0; axis < 3; ++axis) {
+                geometry.bounds[0][axis] = (std::min)(
+                    geometry.bounds[0][axis], geometry.verts[vertex].xyz[axis]);
+                geometry.bounds[1][axis] = (std::max)(
+                    geometry.bounds[1][axis], geometry.verts[vertex].xyz[axis]);
+            }
+        }
+    };
+    const int edgeVertices[6][2] = {
+        {0, 1}, {1, 2}, {2, 0}, {3, 4}, {4, 5}, {5, 3}
+    };
+    for (int surface = 0; surface < surfaces.Num(); ++surface) {
+        idTriangles* geometry = surfaces[surface].geometry;
+        if (geometry == nullptr || geometry->verts == nullptr ||
+                geometry->indexes == nullptr || geometry->numVerts <= 0 ||
+                (geometry->numVerts & 3) != 0 ||
+                geometry->numIndexes != 6 * (geometry->numVerts / 4))
+            continue;
+        createBounds(*geometry);
+        float maximumRadius = 0.0f;
+        if (commonAutospriteType == 1) {
+            for (int first = 0; first < geometry->numVerts; first += 4) {
+                idVec3 center(0.0f, 0.0f, 0.0f);
+                for (int corner = 0; corner < 4; ++corner)
+                    center = center + geometry->verts[first + corner].xyz;
+                center = center * 0.25f;
+                float radius = std::sqrt(
+                    (geometry->verts[first].xyz - center).LengthSqr() * 0.5f);
+                radius = (std::min)(255.0f, radius);
+                maximumRadius = (std::max)(maximumRadius, radius);
+                static constexpr std::uint8_t corners[4][2] = {
+                    {255, 255}, {0, 255}, {0, 0}, {255, 0}
+                };
+                static constexpr float texCoords[4][2] = {
+                    {0.0f, 0.0f}, {1.0f, 0.0f},
+                    {1.0f, 1.0f}, {0.0f, 1.0f}
+                };
+                for (int corner = 0; corner < 4; ++corner) {
+                    idDrawVert& vertex = geometry->verts[first + corner];
+                    vertex.xyz = center;
+                    vertex.st.Set(texCoords[corner][0], texCoords[corner][1]);
+                    vertex.tangent[0] = byte(radius);
+                    vertex.tangent[1] = corners[corner][0];
+                    vertex.tangent[2] = corners[corner][1];
+                    vertex.tangent[3] = 0;
+                }
+                const int index = 6 * (first / 4);
+                geometry->indexes[index + 0] =
+                    static_cast<std::uint16_t>(first + 0);
+                geometry->indexes[index + 1] =
+                    static_cast<std::uint16_t>(first + 1);
+                geometry->indexes[index + 2] =
+                    static_cast<std::uint16_t>(first + 2);
+                geometry->indexes[index + 3] =
+                    static_cast<std::uint16_t>(first + 0);
+                geometry->indexes[index + 4] =
+                    static_cast<std::uint16_t>(first + 2);
+                geometry->indexes[index + 5] =
+                    static_cast<std::uint16_t>(first + 3);
+            }
+        } else if (commonAutospriteType == 2) {
+            for (int index = 0; index < geometry->numIndexes; index += 6) {
+                struct edge_t { int a; int b; float lengthSquared; } edges[6];
+                for (int edge = 0; edge < 6; ++edge) {
+                    edges[edge].a = geometry->indexes[index +
+                        edgeVertices[edge][0]];
+                    edges[edge].b = geometry->indexes[index +
+                        edgeVertices[edge][1]];
+                    if (edges[edge].a < 0 ||
+                            edges[edge].a >= geometry->numVerts ||
+                            edges[edge].b < 0 ||
+                            edges[edge].b >= geometry->numVerts) {
+                        edges[edge].lengthSquared =
+                            std::numeric_limits<float>::max();
+                    } else {
+                        edges[edge].lengthSquared =
+                            (geometry->verts[edges[edge].a].xyz -
+                             geometry->verts[edges[edge].b].xyz).LengthSqr();
+                    }
+                }
+                int shortest = 0;
+                int secondShortest = 1;
+                if (edges[secondShortest].lengthSquared <
+                        edges[shortest].lengthSquared)
+                    std::swap(shortest, secondShortest);
+                for (int edge = 2; edge < 6; ++edge) {
+                    if (edges[edge].lengthSquared <
+                            edges[shortest].lengthSquared) {
+                        secondShortest = shortest;
+                        shortest = edge;
+                    } else if (edges[edge].lengthSquared <
+                            edges[secondShortest].lengthSquared) {
+                        secondShortest = edge;
+                    }
+                }
+                if (!std::isfinite(edges[shortest].lengthSquared) ||
+                        !std::isfinite(edges[secondShortest].lengthSquared))
+                    continue;
+                const idVec3 centers[2] = {
+                    (geometry->verts[edges[shortest].a].xyz +
+                        geometry->verts[edges[shortest].b].xyz) * 0.5f,
+                    (geometry->verts[edges[secondShortest].a].xyz +
+                        geometry->verts[edges[secondShortest].b].xyz) * 0.5f
+                };
+                const idVec3 axis = Normalize(centers[1] - centers[0]);
+                const edge_t selected[2] = {
+                    edges[shortest], edges[secondShortest]
+                };
+                for (int end = 0; end < 2; ++end) {
+                    const float radius = 0.5f * std::sqrt(
+                        selected[end].lengthSquared);
+                    maximumRadius = (std::max)(maximumRadius, radius);
+                    const int vertices[2] = {
+                        selected[end].a, selected[end].b
+                    };
+                    for (int side = 0; side < 2; ++side) {
+                        idDrawVert& vertex = geometry->verts[vertices[side]];
+                        vertex.xyz = centers[end];
+                        vertex.SetNormal(axis);
+                        vertex.normal[3] = side == end ? 255 : 0;
+                        vertex.color[0] = byte((std::min)(255.0f, radius));
+                        vertex.color[1] = 0;
+                        vertex.color[2] = 0;
+                        vertex.color[3] = 0;
+                    }
+                }
+            }
+        }
+        for (int axis = 0; axis < 3; ++axis) {
+            geometry->bounds[0][axis] -= maximumRadius;
+            geometry->bounds[1][axis] += maximumRadius;
+        }
+        for (int axis = 0; axis < 3; ++axis) {
+            referenceBounds[0][axis] = (std::min)(referenceBounds[0][axis],
+                geometry->bounds[0][axis]);
+            referenceBounds[1][axis] = (std::max)(referenceBounds[1][axis],
+                geometry->bounds[1][axis]);
+        }
+        haveReferenceBounds = true;
+    }
+    if (!haveReferenceBounds) {
+        referenceBounds[0].Zero();
+        referenceBounds[1].Zero();
+    }
+    referencePosition = (referenceBounds[0] + referenceBounds[1]) * 0.5f;
 }
 
 void idStaticModel::MergeSurfacesAndBuildSourceSurfaces() {

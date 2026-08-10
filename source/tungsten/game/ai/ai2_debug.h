@@ -3,6 +3,7 @@
 #include "../entities/entityptr.h"
 #include "../gametooldefs.h"
 #include "cover/coveractions.h"
+#include "cover/coverquery.h"
 #include "idlib/math/vector.h"
 #include "idlib/handle.h"
 #include "idlib/index.h"
@@ -29,6 +30,22 @@ class idWeapon;
 class idMD6Anim;
 class idEventDef;
 class aiSenseState_t;
+class idAICover;
+class idAIEventVoice;
+class idAIEventProjectile;
+class idAIEventProjectedSphere;
+class idAIEvent_Vehicle;
+class idCmdArgs;
+class idInventoryItem;
+class idSoundShader;
+class idFireParms;
+class idTestFireResults;
+class idFinishFireResults;
+struct testFireWeaponParms_t;
+struct testForBlockedTraceParms_t;
+class idEntityInfluenceTrail;
+enum aiAwareness_t : int;
+enum aiSense_t : int;
 enum secondUnique_t : int;
 enum millisecondUnique_t : int;
 enum invalidJointIndex_t : int;
@@ -135,6 +152,7 @@ public:
 
         idVec3 GetDestination(const idAI2* ai,
             obscurityTest_t test) const;
+        void Update(const idAI2* ai);
     };
 
     enum coverApproach_t : int {
@@ -147,6 +165,42 @@ public:
         COVER_APPROACH_WRAP_AROUND_RIGHT = 6,
         COVER_APPROACH_MAX = 7
     };
+
+    class idAnimWebDefaults {
+    public:
+        idAnimWebDefaults();
+        idAnimWebDefaults(const char* subWebName,
+            const char* stateName, bool enabled);
+
+        idAnimWebPath webPath;
+        idList<int, 5> activeLayers;
+        bool enabled;
+    };
+
+    class idAIVolatile {
+    public:
+        idAIVolatile();
+
+        class idAIFocusInfo {
+        public:
+            idAIFocusInfo();
+
+            std::array<int, 2> foci;
+            float bodyMinimumTurnRate;
+            float bodyMaximumTurnRate;
+            idMat3 bodyAxis;
+            bool enableHeadTracking;
+            bool enableBodyRotation;
+            bool enableAutoFocus;
+            bool enableClosestFocus;
+            idCheckSurroundingsState checkSurroundingsState;
+        };
+
+        idAIFocusInfo focus;
+    };
+
+    idAI2();
+    virtual ~idAI2();
 
     void SetDebugText(const char* text, aiDebugLevel_t debugLevel);
     void ClearErrorFlags(int flags);
@@ -407,13 +461,307 @@ public:
     void SetSuppressHeadTracking(bool suppress);
     int GetRunCycleIndexForType(runIndexType_t type) const;
     int GetIdleIndexForType(runIndexType_t type) const;
+    void PlayAnimWebPathPerfect(const idAnimWebPath& path,
+        const idVec3& position, const idMat3& axis,
+        bool forcedTransition, bool perfectDestination);
+    idPresentable* AllocPresentable(idRenderModel* renderModel);
+    void UpdateInfluenceTrail();
+    bool IsOnElevator();
+    idAnimator_AF::testSolidResult_t StartRagdoll(
+        const idRagdollInfo& info);
+    void StopRagdoll();
+    idAIOrientation& GetMoveOrientation();
+    idAIOrientation& GetBodyOrientation();
+    void SetAxis(const idMat3& axis);
+    bool IsMoveDone(bool checkAlignment);
+    idAIMoveInterface& GetMoveInterface();
+    idAnimWebPath GetEntranceAnimWebPath() const;
+    bool CanFireRobot(int currentTime);
+    void StopFireRobot(int currentTime);
+    idHudBossInfo GetBossHudInfo();
+    void SetAccuracy(aiAccuracy_t accuracy);
+    void GetModelTransform(idVec3& modelOrigin,
+        idMat3& modelAxis) const;
+    void UpdateDrop();
+    bool PlayAdditivePain(idEntity* inflictor, idPlayer* attacker,
+        const idDeclDamage* damageDecl, float damage,
+        const idVec3& impactPoint, const idVec3& impactDirection,
+        idJointIndex jointIndex);
+    void UpdateDeathCollision();
+    aiDirection_t GetMeleeDirection(const idVec3& target,
+        const idVec3& velocity, bool& narrowFront, bool debug) const;
+    aiMelee_t GetMeleeTypeForTarget(const idVec3& targetPosition,
+        const idVec3& targetVelocity, int meleeMask,
+        int preferredMask) const;
+    aiDirection_t GetDirectionTo(const idVec3& position) const;
+    bool IsFacingMe(const idEntity* entity, float dotThreshold) const;
+    bool AmIToEntitysLeft(const idEntity* entity) const;
+    bool StartReloading(idAIFSM* fsm, idAIState* state,
+        int currentTime, equipSlot_t reloadSlot);
+    talkState_t GetTalkState(const idEntity* activator) const;
+    void GetTakedownName(const idList<idStr, 5>& takedowns,
+        idStr& takedownName);
+    usableState_t GetUsableState(const idEntity* activator,
+        const idFocusTrace& focusTrace) const;
+    usableState_t GetOnlineUsableState() const;
+    bool IsCrosshairSubdued(const idEntity* activator,
+        const idFocusTrace& focusTrace, usableState_t usable) const;
+    bool ShouldAddConditionalGoodList(const idPlayer* player,
+        int index) const;
+    bool IsMerchant(const idPlayer* player) const;
+    void SetAnimWebEvent(aiAnimWeb_t web,
+        idAnimWebEvent::priority_t priority,
+        idAnimWebSubWebIndex subWebIndex,
+        idAnimWebStateIndex stateIndex, animWebEvent_t eventType,
+        const idEventDef& eventDefinition);
+    void ClearAnimWebEvent(aiAnimWeb_t web,
+        idAnimWebEvent::priority_t priority, animWebEvent_t eventType);
+    void ClearAllAnimWebEvents(aiAnimWeb_t web,
+        idAnimWebEvent::priority_t priority);
+    void ClearWaitForOverrideAnim(idAnimWebEvent::priority_t priority);
+    bool AnimEventReceived(idAnimWebEvent::priority_t priority) const;
+    bool WaitForOverrideAnim(idAnimWebEvent::priority_t priority,
+        overrideAnim_t overrideAnimation, animWebEvent_t eventType,
+        bool force);
+    bool WaitForAnimToEnd(idAnimWebEvent::priority_t priority,
+        const char* subWebName, const char* stateName,
+        animWebEvent_t eventType);
+    bool WaitForAnimToStart(aiAnimWeb_t web,
+        idAnimWebEvent::priority_t priority, const char* subWebName,
+        const char* stateName, animWebEvent_t eventType);
+    bool WaitForAnimToStartVia(aiAnimWeb_t web,
+        idAnimWebEvent::priority_t priority,
+        idAnimWebSubWebIndex destinationSubWeb,
+        idAnimWebStateIndex destinationState,
+        idAnimWebSubWebIndex viaSubWeb, idAnimWebStateIndex viaState,
+        animWebEvent_t eventType);
+    bool WaitForAnimToStartVia(aiAnimWeb_t web,
+        idAnimWebEvent::priority_t priority, const char* subWebName,
+        const char* stateName, const char* viaSubWebName,
+        const char* viaStateName, animWebEvent_t eventType);
+    void UpdateAttachments();
+    idAAS2TravelSpeeds GetTravelSpeeds() const;
+    bool UpdateExtendedClipModel();
+    void ReleaseCover();
+    void Debug_ScenePoints();
+    bool CoverAvoidanceOptions(bool& dodgeRoomLeft,
+        bool& diveRoomLeft, bool& dodgeCoverLeft,
+        bool& diveCoverLeft, bool& dodgeRoomRight,
+        bool& diveRoomRight, bool& dodgeCoverRight,
+        bool& diveCoverRight, bool& diveRoomForward,
+        bool& diveCoverForward, bool& diveRoomBack,
+        bool& diveCoverBack, bool& coverByCrouching) const;
+    void SetupDiveDodgeOrFlinchAction(aiMoveReason_t moveReason,
+        idAIState* state, idAIFSM* fsm);
+    bool CanHideHelmetGroupTest() const;
+    idAIVoiceController* GetVoiceController(voiceController_t controller);
+    float GetDefaultSpeedByCurrentWalkState() const;
+    void GetViewTransform(idVec3& origin, idMat3& axis) const;
+    float CalcMovementTurnRate(const idVec3& idealDirection,
+        const idVec3& currentDirection) const;
+    void Teleport(const idVec3& origin, const idAngles& angles);
+    float RoleHintNodeScore(const idVec3& point,
+        idAICombatHint::combatHintClass_t hintClass) const;
+    void GetAnimationDelta(const idMD6Anim* animation,
+        idVec3& delta) const;
+    awPathResult_t PlayAnimWebPath(const idAnimWebPath& path,
+        bool forceTransition);
+    bool ShouldScramble() const;
+    bool UpdateGoreLevel(bool painTest);
+    bool RobotBatteryExplodes(idEntity* attacker);
+    void OnActivateRobot(int currentTime, idEntity* activator);
+    void OnActivate(idEntity* activator);
+    void UpdateBodyOrientationWhileMoving();
+    void UpdateBodyOrientationWhileMovingWithFSM();
+    bool StartStaggeringPain(const idAIDamageInfo& information);
+    bool StartStunningPain(const idAIDamageInfo& information);
+    void DamageFeedback(idEntity* victim, idEntity* inflictor,
+        const idDeclDamage* damageDecl, float& damage);
+    bool EnemyTooCloseToGoProne(bool facingMatters,
+        bool obscurityMatters) const;
+    bool WantsToAngryRage() const;
+    bool WantsToTauntRage() const;
+    takedownMode_t CanBeTakenDown(const idEntity* activator) const;
+    void PlayerInteractionDone(bool playerLeft);
+    void AddDynamicGoods(idPlayer* player);
+    bool AwareOfEnemy();
+    bool IsBlockedByFriendly(const idEntity* enemy);
+    float GetFakeEnemyWeight() const;
+    void OnAIEvent_Investigate(const idAIEventSound* event);
+    void OnAIEvent_PlayerAim(const idAIEvent_PlayerAim* event);
+    void ReserveCover(const idAICover& cover);
+    void SetLookFocusEntity(const idEntity* entity, bool keepFocusInView,
+        aimPoint_t aimPoint, int timeout);
+    const aiSenseState_t* GetEnemySenseState(aiSense_t senseType) const;
+    bool IsEnemySenseStateValid(aiSense_t senseType) const;
+    bool CheckForSuspectedToTrailUpdate(int currentTime);
+    bool FindClosestFocus();
+    alertCycle_t GetAlertCycle() const;
+    void LeaveActionNode(bool force);
+    static void RestartPlayerInteractions();
+    void SetRunCycleHint(runIndexType_t runType);
+    float GetCoverTransitionRadius(const idAICover& cover,
+        bool desireScramble, bool desireMicro, idStr& animationName,
+        float& yaw, idVec3& delta, int& frames) const;
+    bool DamageRobot(idEntity* attacker, const idDeclDamage* damageDecl,
+        trace_t* trace);
+    void ThinkRobot(int currentTime);
+    void Hide();
+    bool ShouldDeadThink() const;
+    bool ShouldEnterDormancy();
+    void DamageGroupPopOffArmor(idDamageGroup* damageGroup,
+        idVec3 impactPoint, idVec3 impactDirection, float damage,
+        bool& armorPoppedOff);
+    void KilledNotification(const idEntity* victim,
+        const idEntity* inflictor, const idDeclDamage* damageDecl,
+        float damage);
+    bool IsFacingMeMoreThanAnyoneElse(const idEntity* entity,
+        float dotThreshold) const;
+    bool RelinquishControl();
+    void Takedown(idEntity* activator, bool dualWield,
+        bool reversedGrip, takedownMode_t mode);
+    bool Use(idEntity* activator, usableState_t usable);
+    void SetupInteractionView(idPlayer* player);
+    void EndInteractionView(idPlayer* player);
+    void InteractionCameraDeactivateCallback(idPlayer* player);
+    void SetActionNodeGroupName(const char* groupName);
+    void UpdateAvoidCharacter();
+    void SetFakeEnemy(idEntity* entity);
+    void ClearFakeEnemy();
+    void ClearWorldState();
+    void OnAIEvent_Voice(const idAIEventVoice* event);
+    void OnAIEvent_Footstep(const idAIEventSound* event);
+    void OnAIEvent_Gunfire(const idAIEventSound* event);
+    void OnAIEvent_Explosion(const idAIEventSound* event);
+    void OnAIEvent_ProjectileImpact(const idAIEventSound* event);
+    void OnAIEvent_DeadBodyLand(const idAIEventSound* event);
+    void OnAIEvent_DoorMotion(const idAIEventSound* event);
+    void OnAIEvent_Projectile(const idAIEventProjectile* event);
+    void OnAIEvent_Grenade(const idAIEventProjectedSphere* event);
+    void OnAIEvent_Vehicle(const idAIEvent_Vehicle* event);
+    bool StartMoveToCover(const idAICover& cover, idAIFSM* fsm,
+        idAIState* state, bool allowInterrupt, int currentTime);
+    void Debug_Perception();
+    idAIStateTransition::aiTransCode_t ShouldDiveOrDodgeOrCrouch(
+        const idAIFSM* fsm);
+    void DormantBegin();
+    float FindAutoFocusEntity(const idEntity*& entity);
+    void StartActionScript(int currentTime);
+    void GiveAwarenessOfEntity(const idEntity* entity,
+        alertCycle_t alertCycle);
+    void GiveAwarenessOfNearestPlayer(alertCycle_t alertCycle);
+    void ForceOpenCombat(const idEntity* enemy);
+    void ForcePlayerInteraction(const idEntity* entity);
+    void ForceFollowFriendly(const idEntity* friendly);
+    float PositionScore(const idVec3& candidatePosition,
+        const aiSenseState_t* senseState, float& targetDistanceScore,
+        float& aiDistanceScore, float& groupScore,
+        float& hintNodeScore);
+    static void Cmd_ForceFollow_f(const idCmdArgs& args);
+    float Damage(idEntity* inflictor, idEntity* attacker,
+        const idDeclDamage* damageDecl, float damageScale,
+        const idVec3& direction, trace_t* trace);
+    bool ModifyCrosshairInfo(const idEntity* activator,
+        const idFocusTrace& focusTrace, usableState_t usable,
+        idCrosshairInfo& crosshairInfo) const;
+    void GetKnownEnemiesAsCoverTargets(
+        idList<idCoverQuery::coverTarget_t, 5>& targets,
+        aiAwareness_t minimumAwareness) const;
+    void ForceEntranceAnimationToCombat();
+    void ForceSearchToEntity(idEntity* entity);
+    void ForceAwarenessOfNearestPlayer();
+    void ForceSearchToNearestPlayer();
+    void UpdateGroupStatusConditions();
+    void InitMemory();
+    void InitScriptObjects();
+    void InitFSMs();
+    void InitActionSettings();
+    void InitFireControl();
+    void UpdateMeleeCapabilities();
+    bool EquipItem(idInventoryItem* item, equipSlot_t equipSlot);
+    bool UnequipItem(idInventoryItem* item);
+    void InitHeadTracking();
+    void InitPhysics();
+    void InitAAS();
+    bool InitAnimation();
+    void UpdateTravelFlags();
+    void PlayAmbientSound(const idSoundShader* soundShader);
+    void UpdateEffects();
+    void UpdateMovement();
+    void UpdateConfidenceLevel();
+    void UpdatePathToEnemy(bool forceUpdate);
+    bool CheckForGore();
+    void UpdateWorldState();
+    void OnAIEvent(const idAIEvent* event);
+    void HandlePendingAIEvents();
+    bool UpdateAnimationControllers();
+    bool PathPassesNear(const idVec3& startPoint,
+        const idVec3& goalPoint, int startAreaNum, int goalAreaNum,
+        const idVec3& testPoint, int testAreaNum, float nearDistance,
+        bool debug) const;
+    bool TestFireWeapon(idWeapon* weapon, idFireParms& fireParms,
+        idTestFireResults& results,
+        const testFireWeaponParms_t& parameters);
+    const idEntity* TestForBlockedTrace(const idFireParms& fireParms,
+        const idTestFireResults& results, int& blockedJoint,
+        const testForBlockedTraceParms_t& parameters) const;
+    bool FinishFireWeapon(idWeapon* weapon,
+        const idFireParms& fireParms, idTestFireResults& testResults,
+        idFinishFireResults& finishResults);
+    void UpdateAimFocus();
+    void FindAutoFocus();
+    void UpdateActions(int currentTime);
+    idAICover PrepTakeCoverFromEntity(const idEntity* enemy,
+        const idEntity* coverReference, const idEntity* coverTarget);
+    void EnableInfluenceTrail(idEntityInfluenceTrail influenceTrail);
 
+    void Spawn();
+    virtual void Show();
+    void UpdateFSMs();
+    void StartDeathSystem();
+    bool WaitForTraversal(idAnimWebEvent::priority_t priority,
+        const char* traversalAnimRef, const char* destinationAnimRef,
+        animWebEvent_t eventType);
+    virtual void DormantEnd(int timeDormant);
+    void UpdateLookFocus();
+    void Think_PlayerControl();
+    void ForceTakeCoverFromEntity(const idEntity* enemy,
+        const idEntity* coverReference, const idEntity* coverTarget);
+    void Think_AIControl();
+    static void UpdateDeaths();
+    void ForceTakeCoverFromNearestPlayer(
+        const idEntity* coverReference, const idEntity* coverTarget);
+    void DoSpawnSettings();
+    void DropComplete();
+    void FirstThink();
+    virtual void Think();
+
+    idAIEditable editable;
+    idAIVolatile volatileState;
     idAI2CoreRuntime core;
 };
 
 idAI2::coverApproach_t CoverApproachForDirection(
     const idVec3& relativePosition, bool allowTurnAroundLeft,
     bool allowTurnAroundRight);
+idStr GetCoverTransionAnimName(const idAICover& cover,
+    idAI2::coverApproach_t approach, bool desireScramble,
+    bool desireMicro);
+
+class idAIScriptProxy {
+public:
+    explicit idAIScriptProxy(idAI2* owner = nullptr) : owner(owner) {}
+
+    void PauseFiberTillActionCompletes(idFiberHandle fiberHandle);
+    void PauseThreadTillActionCompletes(idThread* thread);
+    void PauseCurrentThreadTillActionCompletes();
+    void PauseCurrentFiberTillActionCompletes();
+    bool ForceFSMIntoExecutingScript();
+    idEventArg InternalCallEvent(const idEventDef& event,
+        const idEventArg* args);
+
+    idAI2* owner;
+};
 
 struct idAI2DebugRuntime {
     idAI2::aiDebugLevel_t textLevel;
@@ -426,6 +774,7 @@ void Tungsten_SetAI2DebugText(idAI2& ai,
     idAI2::aiDebugLevel_t level, const char* text);
 void Tungsten_SetAI2ErrorFlags(idAI2& ai, int flags);
 int Tungsten_GetAI2DebugLevelValue();
+void AIStats_f(const idCmdArgs& args);
 int Tungsten_GetAI2DebugHealthValue();
 float Tungsten_GetAI2CurrentBaseHealth(const idAI2& ai);
 bool Tungsten_GetAI2DamageGroupDebugInfo(const idDamageGroup& group,

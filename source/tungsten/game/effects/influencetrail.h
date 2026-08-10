@@ -13,6 +13,8 @@ enum invalidInfluenceTrail_t : __int32
 };
 
 // IDA Local Type ordinal 13777; PDB kind: class.
+#ifndef TUNGSTEN_ID_ENTITY_INFLUENCE_TRAIL_DEFINED
+#define TUNGSTEN_ID_ENTITY_INFLUENCE_TRAIL_DEFINED
 class idEntityInfluenceTrail
 {
 public:
@@ -23,6 +25,7 @@ public:
   float trailFadeInTime;
   float trailFadeOutTime;
 };
+#endif
 
 // IDA Local Type ordinal 15524; PDB kind: class.
 class idInfluenceTrail::idInfluenceSphere

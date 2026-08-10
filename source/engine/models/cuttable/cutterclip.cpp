@@ -885,7 +885,45 @@ bool idCutterClip::IsTopHorizontal(int x) const {
     return false;
 }
 
-bool idCutterClip::FixupIntersections() { return true; }
+bool idCutterClip::FixupIntersections() {
+    if (intersectNodes == nullptr || intersectNodes->next == nullptr)
+        return true;
+
+    // Preserve the current AEL ordering in the secondary list.  Intersection
+    // records must be processed in an order where their two edges are
+    // adjacent; every accepted record then swaps those edges for the next
+    // record, just as the recovered scan-line implementation does.
+    sortedEdges = activeEdges;
+    Edge_t* previous = nullptr;
+    for (Edge_t* edge = activeEdges; edge != nullptr;
+            edge = edge->nextAEL) {
+        edge->prevSEL = previous;
+        edge->nextSEL = edge->nextAEL;
+        previous = edge;
+    }
+
+    for (IntersectNode_t* node = intersectNodes; node != nullptr;
+            node = node->next) {
+        const auto adjacent = [](const IntersectNode_t* candidate) {
+            return candidate != nullptr && candidate->edge1 != nullptr &&
+                candidate->edge2 != nullptr &&
+                (candidate->edge1->nextSEL == candidate->edge2 ||
+                    candidate->edge1->prevSEL == candidate->edge2);
+        };
+
+        if (!adjacent(node)) {
+            IntersectNode_t* replacement = node->next;
+            while (replacement != nullptr && !adjacent(replacement))
+                replacement = replacement->next;
+            if (replacement == nullptr) return false;
+            std::swap(node->edge1, replacement->edge1);
+            std::swap(node->edge2, replacement->edge2);
+            std::swap(node->pos, replacement->pos);
+        }
+        SwapEdgeInSEL(node->edge1, node->edge2);
+    }
+    return true;
+}
 
 void idCutterClip::FixHoleLinkage_r(Polygon_t* polygon) {
     if (polygon == nullptr || !polygon->hole) return;

@@ -15,6 +15,8 @@ enum voiceController_t : int {
     VC_MAX = 3
 };
 
+#ifndef TUNGSTEN_AI_VOICE_PRIORITY_T_DEFINED
+#define TUNGSTEN_AI_VOICE_PRIORITY_T_DEFINED
 enum aiVoicePriority_t : int {
     AIVOICEPRIORITY_NONE = 0,
     AIVOICEPRIORITY_LOW = 1,
@@ -26,6 +28,7 @@ enum aiVoicePriority_t : int {
     AIVOICEPRIORITY_PAIN = 4,
     AIVOICEPRIORITY_DEATH = 5
 };
+#endif
 
 struct idVoiceInfo {
     idVoiceInfo();
