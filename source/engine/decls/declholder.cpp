@@ -24,6 +24,7 @@
 #include "decls/declwalkik.h"
 #include "decls/voiceovers/declvoiceover.h"
 #include "decls/voiceovers/declvisemeset.h"
+#include "models/particles/declparticle.h"
 
 namespace {
 
@@ -57,6 +58,7 @@ void Decls_RegisterBuiltinDeclTypes(idDeclManagerLocal& manager) {
     AddType(manager, &idDeclSkins::resourceList);
     AddType(manager, &idDeclVisemeSet::resourceList);
     AddType(manager, &idDeclVoiceOver::resourceList);
+    AddType(manager, &idDeclParticle::resourceList);
 
     // These four classes are implemented in engine/decls, while the original
     // tungsten game registry supplied their tdef type records.
@@ -89,6 +91,8 @@ void Decls_RegisterBuiltinDeclTypes(idDeclManagerLocal& manager) {
         &idDeclVisemeSet::resourceList);
     manager.RegisterDeclFolder("decls/voiceovers", ".vo",
         &idDeclVoiceOver::resourceList);
+    manager.RegisterDeclFolder("particles", ".prt",
+        &idDeclParticle::resourceList);
 }
 
 void Decls_InitializeDeclHolders() {

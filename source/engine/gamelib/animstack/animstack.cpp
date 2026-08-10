@@ -331,67 +331,67 @@ void idAnimStack::BlendStackInternal(const int currentTime,
         blendStack[index]->InternalPostBlendTree(this, currentTime);
 }
 
-int GameLib_GetAnimatorIndex(const idAnimStack* const stack,
-        const idAnimator_Base* const animator) {
+int GameLib_GetAnimatorIndex(const idAnimStack* stack,
+        const idAnimator_Base* animator) {
     return stack != nullptr ? stack->GetAnimatorIndex(animator) : -1;
 }
-void GameLib_AddAnimator(idAnimStack* const stack,
-        idAnimator_Base* const animator) {
+void GameLib_AddAnimator(idAnimStack* stack,
+        idAnimator_Base* animator) {
     if (stack != nullptr) stack->AddAnimator(animator);
 }
-void GameLib_RemoveAnimator(idAnimStack* const stack,
-        idAnimator_Base* const animator) {
+void GameLib_RemoveAnimator(idAnimStack* stack,
+        idAnimator_Base* animator) {
     if (stack != nullptr) stack->RemoveAnimator(animator);
 }
-void GameLib_SetAnimatorFlag(idAnimStack* const stack,
-        idAnimator_Base* const animator, const int flag) {
+void GameLib_SetAnimatorFlag(idAnimStack* stack,
+        idAnimator_Base* animator, int flag) {
     if (stack != nullptr) stack->SetAnimatorFlag(animator,
         static_cast<idAnimStack::animatorFlag_t>(flag));
 }
-void GameLib_ClearAnimatorFlag(idAnimStack* const stack,
-        idAnimator_Base* const animator, const int flag) {
+void GameLib_ClearAnimatorFlag(idAnimStack* stack,
+        idAnimator_Base* animator, int flag) {
     if (stack != nullptr) stack->ClearAnimatorFlag(animator,
         static_cast<idAnimStack::animatorFlag_t>(flag));
 }
-bool GameLib_IsAnimatorFlagSet(const idAnimStack* const stack,
-        const idAnimator_Base* const animator, const int flag) {
+bool GameLib_IsAnimatorFlagSet(const idAnimStack* stack,
+        const idAnimator_Base* animator, int flag) {
     return stack != nullptr && stack->IsAnimatorFlagSet(animator,
         static_cast<idAnimStack::animatorFlag_t>(flag));
 }
-idMD6Branch* GameLib_AllocMD6Branch(idAnimStack* const stack) {
+idMD6Branch* GameLib_AllocMD6Branch(idAnimStack* stack) {
     return stack != nullptr ? static_cast<idMD6Branch*>(
         stack->md6Allocator.Alloc(idMD6Node::NODE_BRANCH)) : nullptr;
 }
-idMD6LeafPlay* GameLib_AllocMD6LeafPlay(idAnimStack* const stack) {
+idMD6LeafPlay* GameLib_AllocMD6LeafPlay(idAnimStack* stack) {
     return stack != nullptr ? static_cast<idMD6LeafPlay*>(
         stack->md6Allocator.Alloc(idMD6Node::NODE_LEAF_PLAY)) : nullptr;
 }
-idMD6LeafPause* GameLib_AllocMD6LeafPause(idAnimStack* const stack) {
+idMD6LeafPause* GameLib_AllocMD6LeafPause(idAnimStack* stack) {
     return stack != nullptr ? static_cast<idMD6LeafPause*>(
         stack->md6Allocator.Alloc(idMD6Node::NODE_LEAF_PAUSE)) : nullptr;
 }
-void GameLib_FreeMD6Branch(idAnimStack* const stack,
-        idMD6Branch* const branch) {
+void GameLib_FreeMD6Branch(idAnimStack* stack,
+        idMD6Branch* branch) {
     if (stack != nullptr) stack->md6Allocator.Free(branch);
 }
-void GameLib_FreeMD6LeafPlay(idAnimStack* const stack,
-        idMD6LeafPlay* const leaf) {
+void GameLib_FreeMD6LeafPlay(idAnimStack* stack,
+        idMD6LeafPlay* leaf) {
     if (stack != nullptr) stack->md6Allocator.Free(leaf);
 }
-void GameLib_FreeMD6LeafPause(idAnimStack* const stack,
-        idMD6LeafPause* const leaf) {
+void GameLib_FreeMD6LeafPause(idAnimStack* stack,
+        idMD6LeafPause* leaf) {
     if (stack != nullptr) stack->md6Allocator.Free(leaf);
 }
-void GameLib_FreeMD6Tree(idAnimStack* const stack, idMD6Node* const root) {
+void GameLib_FreeMD6Tree(idAnimStack* stack, idMD6Node* root) {
     if (stack != nullptr) FreeTree(stack->md6Allocator, root);
 }
-idTreeAnimator* GameLib_GetTreeAnimator(idAnimStack* const stack) {
+idTreeAnimator* GameLib_GetTreeAnimator(idAnimStack* stack) {
     return stack != nullptr ? stack->treeAnimator : nullptr;
 }
-idTreeAnimator* GameLib_GetTreeAnimator(const idAnimStack* const stack) {
+idTreeAnimator* GameLib_GetTreeAnimator(const idAnimStack* stack) {
     return stack != nullptr ? stack->treeAnimator : nullptr;
 }
-bool GameLib_IsMD6NodeValid(const idMD6Node* const node) {
+bool GameLib_IsMD6NodeValid(const idMD6Node* node) {
     return node != nullptr && node->type != idMD6Node::NODE_NONE;
 }
 int GameLib_GetGameTicksPerSecond() { return 60; }

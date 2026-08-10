@@ -156,14 +156,14 @@ void ExpandBounds(idBounds& destination, const idBounds& source) {
 
 // Constraint code calls through these ownership-boundary functions so the
 // circular AF/constraint dependency remains link-clean.
-void GameLib_AddAFFrameConstraint(idPhysics_AF* const physics,
-        idAFConstraint* const constraint) {
+void GameLib_AddAFFrameConstraint(idPhysics_AF* physics,
+        idAFConstraint* constraint) {
     if (physics != nullptr) physics->AddFrameConstraint(constraint);
 }
-float GameLib_GetAFJointFrictionScale(const idPhysics_AF* const physics) {
+float GameLib_GetAFJointFrictionScale(const idPhysics_AF* physics) {
     return physics != nullptr ? physics->GetJointFrictionScale() : 1.0f;
 }
-float GameLib_GetAFContactFrictionScale(const idPhysics_AF* const physics) {
+float GameLib_GetAFContactFrictionScale(const idPhysics_AF* physics) {
     return physics != nullptr ? physics->GetContactFrictionScale() : 1.0f;
 }
 
@@ -1278,4 +1278,3 @@ bool idPhysics_AF::Evaluate(const int timeStepMSec,
     }
     return true;
 }
-

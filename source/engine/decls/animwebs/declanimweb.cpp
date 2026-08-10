@@ -767,11 +767,11 @@ void idDeclAnimWeb::Parse(idParser* const parser) {
     }
 }
 
-int Decls_AnimWebNodeSubWebIndex(const idDeclAnimWebNode* const node) {
+int Decls_AnimWebNodeSubWebIndex(const idDeclAnimWebNode* node) {
     return node != nullptr ? node->subWebIndex.Get() : -1;
 }
 
-const char* Decls_AnimWebSubWebName(const idDeclAnimWeb* const declaration,
+const char* Decls_AnimWebSubWebName(const idDeclAnimWeb* declaration,
         const int subWebIndex) {
     return declaration != nullptr
         ? declaration->GetSubWebName(idDeclAnimWeb::subWebIndex_t(
@@ -779,7 +779,7 @@ const char* Decls_AnimWebSubWebName(const idDeclAnimWeb* const declaration,
 }
 
 const char* Decls_AnimWebNodeStateName(
-        const idDeclAnimWeb* const declaration, const int nodeIndex) {
+        const idDeclAnimWeb* declaration, const int nodeIndex) {
     if (declaration == nullptr || nodeIndex < 0
         || nodeIndex >= declaration->nodes.Num()
         || declaration->nodes[nodeIndex] == nullptr
@@ -788,7 +788,7 @@ const char* Decls_AnimWebNodeStateName(
         declaration->nodes[nodeIndex]->states.stateIndex[0]);
 }
 
-int Decls_AnimWebNodeSubWebIndex(const idDeclAnimWeb* const declaration,
+int Decls_AnimWebNodeSubWebIndex(const idDeclAnimWeb* declaration,
         const int nodeIndex) {
     return declaration != nullptr && nodeIndex >= 0
         && nodeIndex < declaration->nodes.Num()
@@ -796,8 +796,8 @@ int Decls_AnimWebNodeSubWebIndex(const idDeclAnimWeb* const declaration,
         ? declaration->nodes[nodeIndex]->subWebIndex.Get() : -1;
 }
 
-int Decls_AnimWebAddNode(idDeclAnimWeb* const declaration,
-        const char* const subWebName, const char* const stateName,
+int Decls_AnimWebAddNode(idDeclAnimWeb* declaration,
+        const char* subWebName, const char* stateName,
         int& subWebIndex, int& stateIndex) {
     if (declaration == nullptr) return -1;
     idDeclAnimWeb::nodeIndex_t node;
@@ -809,8 +809,8 @@ int Decls_AnimWebAddNode(idDeclAnimWeb* const declaration,
     return node.Get();
 }
 
-int Decls_AnimWebAddSubWeb(idDeclAnimWeb* const declaration,
-        const char* const subWebName) {
+int Decls_AnimWebAddSubWeb(idDeclAnimWeb* declaration,
+        const char* subWebName) {
     return declaration != nullptr
         ? declaration->AddSubWeb(subWebName).Get() : -1;
 }

@@ -1715,11 +1715,11 @@ void idTreeAnimator::LatchDeferredState() {
         *originDelta[1] = *originDelta[0];
 }
 
-void GameLib_BlendMD6Tree(idTreeAnimator* const animator,
-        idMD6Node* const tree, const int currentTime,
-        idParallelJobList* const parallelJobList, float* const localRotation,
-        float* const localScale, float* const localTranslation,
-        float* const localUserChannels) {
+void GameLib_BlendMD6Tree(idTreeAnimator* animator,
+        idMD6Node* tree, int currentTime,
+        idParallelJobList* parallelJobList, float* localRotation,
+        float* localScale, float* localTranslation,
+        float* localUserChannels) {
     if (animator == nullptr) return;
     const int previousTime = animator->lastBlendTime >= 0
         ? animator->lastBlendTime : currentTime;

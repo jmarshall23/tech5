@@ -9,6 +9,9 @@
 #include <cmath>
 #include <cstdlib>
 
+idDeclInfoTemplate<idDeclParticle> idDeclParticle::resourceList(
+    "particle", "idDeclParticle", "prt");
+
 namespace {
 
 template<int count>
@@ -139,6 +142,10 @@ idDeclParticle::idDeclParticle()
 
 idDeclParticle::~idDeclParticle() {
     FreeData();
+}
+
+idDeclInfo* idDeclParticle::GetDeclInfo() const {
+    return &resourceList;
 }
 
 void idDeclParticle::SetMaterialResolver(MaterialResolver resolver,

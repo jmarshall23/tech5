@@ -2,6 +2,7 @@
 
 #include "idlib/text/parser.h"
 #include "idlib/text/tokenstatic.h"
+#include "renderer/declmaterial.h"
 
 #include <cstring>
 
@@ -87,4 +88,16 @@ void idDeclSkins::Parse(idParser* const parser) {
         if (skin.mappings.Num() != 0) skins.Append(skin);
         if (parser->CheckTokenString("}") != 0) return;
     }
+}
+
+const idMaterial* DeclSkins_FindMaterial(const char* name,
+        bool makeDefault) {
+    if (name == nullptr || name[0] == '\0') return nullptr;
+    return static_cast<const idMaterial*>(makeDefault
+        ? idMaterial::resourceList.Load(name, true, false)
+        : idMaterial::resourceList.FindExisting(name, false));
+}
+
+const char* DeclSkins_GetMaterialName(const idMaterial* material) {
+    return material != nullptr ? material->GetName() : "";
 }

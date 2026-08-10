@@ -203,3 +203,314 @@ void idTraceModel::SetupBox(const float size) {
     boxBounds[1].Set(halfSize, halfSize, halfSize);
     SetupBox(boxBounds);
 }
+
+void idTraceModel::Translate(const idVec3& translation) {
+    for (unsigned int vertex = 0; vertex < numVerts; ++vertex) {
+        vertsX[vertex] += translation.x;
+        vertsY[vertex] += translation.y;
+        vertsZ[vertex] += translation.z;
+    }
+    for (unsigned int polygon = 0; polygon < numPolys; ++polygon) {
+        polyPlaneW[polygon] -= translation.x * polyPlaneX[polygon]
+            + translation.y * polyPlaneY[polygon]
+            + translation.z * polyPlaneZ[polygon];
+    }
+    offset = offset + translation;
+    bounds[0] = bounds[0] + translation;
+    bounds[1] = bounds[1] + translation;
+}
+
+bool idTraceModel::Compare(const idTraceModel& other) const {
+    if (type != other.type || numVerts != other.numVerts
+            || numEdges != other.numEdges || numPolys != other.numPolys) {
+        return false;
+    }
+    for (int axis = 0; axis < 3; ++axis) {
+        if (bounds[0][axis] != other.bounds[0][axis]
+                || bounds[1][axis] != other.bounds[1][axis]
+                || offset[axis] != other.offset[axis]) {
+            return false;
+        }
+    }
+    // For the primitive models the recovered implementation treats the type,
+    // extents and offset as the complete identity.
+    if (type < TRM_BONE || type > TRM_CUSTOM) {
+        return true;
+    }
+    for (unsigned int vertex = 0; vertex < numVerts; ++vertex) {
+        if (vertsX[vertex] != other.vertsX[vertex]
+                || vertsY[vertex] != other.vertsY[vertex]
+                || vertsZ[vertex] != other.vertsZ[vertex]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool idTraceModel::ContainsPoint(const idVec3& point) const {
+    for (unsigned int polygon = 0; polygon < numPolys; ++polygon) {
+        const float distance = point.x * polyPlaneX[polygon]
+            + point.y * polyPlaneY[polygon]
+            + point.z * polyPlaneZ[polygon]
+            + polyPlaneW[polygon];
+        if (distance > 0.0f) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void idTraceModel::SetupCylinder(const idBounds& cylinderBounds,
+        int numSides) {
+    if (numSides < 3) {
+        numSides = 3;
+    }
+    if (numSides * 2 > 32) {
+        numSides = 16;
+    }
+    if (numSides * 3 > 32) {
+        numSides = 10;
+    }
+    if (numSides + 2 > 16) {
+        numSides = 14;
+    }
+
+    type = TRM_CYLINDER;
+    numVerts = static_cast<unsigned int>(numSides * 2);
+    numEdges = static_cast<unsigned int>(numSides * 3);
+    numPolys = static_cast<unsigned int>(numSides + 2);
+    maxPolyEdges = static_cast<unsigned int>(numSides);
+    offset = (cylinderBounds[0] + cylinderBounds[1]) * 0.5f;
+
+    const float radiusX = cylinderBounds[1].x - offset.x;
+    const float radiusY = cylinderBounds[1].y - offset.y;
+    constexpr float twoPi = 6.28318530717958647692f;
+    for (int side = 0; side < numSides; ++side) {
+        const float angle = twoPi * static_cast<float>(side)
+            / static_cast<float>(numSides);
+        const float x = offset.x + radiusX * std::cos(angle);
+        const float y = offset.y + radiusY * std::sin(angle);
+        const int next = (side + 1) % numSides;
+
+        vertsX[side] = x;
+        vertsY[side] = y;
+        vertsZ[side] = cylinderBounds[0].z;
+        vertsX[numSides + side] = x;
+        vertsY[numSides + side] = y;
+        vertsZ[numSides + side] = cylinderBounds[1].z;
+
+        edges[side].v[0] = static_cast<std::uint16_t>(side);
+        edges[side].v[1] = static_cast<std::uint16_t>(next);
+        edges[numSides + side].v[0] = static_cast<std::uint16_t>(numSides + side);
+        edges[numSides + side].v[1] = static_cast<std::uint16_t>(numSides + next);
+        edges[2 * numSides + side].v[0] = static_cast<std::uint16_t>(side);
+        edges[2 * numSides + side].v[1] = static_cast<std::uint16_t>(numSides + side);
+
+        numPolyEdges[side] = 4;
+        polyEdges[side][0] = static_cast<std::uint8_t>(side);
+        polyEdges[side][1] = static_cast<std::uint8_t>(2 * numSides + next);
+        polyEdges[side][2] = static_cast<std::uint8_t>(0x80 | (numSides + side));
+        polyEdges[side][3] = static_cast<std::uint8_t>(0x80 | (2 * numSides + side));
+
+        const idVec3 first(vertsX[side], vertsY[side], vertsZ[side]);
+        const idVec3 second(vertsX[next], vertsY[next], vertsZ[next]);
+        const idVec3 upper(vertsX[numSides + next], vertsY[numSides + next],
+            vertsZ[numSides + next]);
+        idVec3 normal = (second - first).Cross(upper - first);
+        normal.NormalizeFast();
+        polyPlaneX[side] = normal.x;
+        polyPlaneY[side] = normal.y;
+        polyPlaneZ[side] = normal.z;
+        polyPlaneW[side] = -normal.Dot(first);
+    }
+
+    const int lowerPolygon = numSides;
+    const int upperPolygon = numSides + 1;
+    numPolyEdges[lowerPolygon] = static_cast<unsigned int>(numSides);
+    numPolyEdges[upperPolygon] = static_cast<unsigned int>(numSides);
+    for (int side = 0; side < numSides; ++side) {
+        polyEdges[lowerPolygon][side] = static_cast<std::uint8_t>(
+            0x80 | (numSides - side - 1));
+        polyEdges[upperPolygon][side] = static_cast<std::uint8_t>(
+            numSides + side);
+    }
+    polyPlaneX[lowerPolygon] = 0.0f;
+    polyPlaneY[lowerPolygon] = 0.0f;
+    polyPlaneZ[lowerPolygon] = -1.0f;
+    polyPlaneW[lowerPolygon] = cylinderBounds[0].z;
+    polyPlaneX[upperPolygon] = 0.0f;
+    polyPlaneY[upperPolygon] = 0.0f;
+    polyPlaneZ[upperPolygon] = 1.0f;
+    polyPlaneW[upperPolygon] = -cylinderBounds[1].z;
+
+    bounds = cylinderBounds;
+    isConvex = true;
+    CalculateInsetSphereRadius();
+    GenerateEdgeNormals();
+    ClearUnused();
+}
+
+void idTraceModel::SetupCylinder(float height, float width, int numSides) {
+    idBounds cylinderBounds;
+    const float halfWidth = width * 0.5f;
+    const float halfHeight = height * 0.5f;
+    cylinderBounds[0].Set(-halfWidth, -halfWidth, -halfHeight);
+    cylinderBounds[1].Set(halfWidth, halfWidth, halfHeight);
+    SetupCylinder(cylinderBounds, numSides);
+}
+
+void idTraceModel::Shrink(float amount) {
+    if (amount <= 0.0f || numVerts == 0 || numPolys == 0) {
+        return;
+    }
+
+    // Shrinking a convex trace model moves every supporting plane inward.
+    // Project each incident vertex onto the moved half-spaces; repeating the
+    // projection converges exactly for orthogonal primitives and closely for
+    // the low-sided convex models used by collision traces.
+    for (unsigned int vertex = 0; vertex < numVerts; ++vertex) {
+        idVec3 point(vertsX[vertex], vertsY[vertex], vertsZ[vertex]);
+        for (int iteration = 0; iteration < 8; ++iteration) {
+            for (unsigned int polygon = 0; polygon < numPolys; ++polygon) {
+                bool incident = false;
+                for (unsigned int polygonEdge = 0;
+                        polygonEdge < numPolyEdges[polygon]; ++polygonEdge) {
+                    const std::uint8_t encoded = polyEdges[polygon][polygonEdge];
+                    const unsigned int edgeIndex = encoded & 0x7Fu;
+                    if (edgeIndex >= numEdges) {
+                        continue;
+                    }
+                    if (edges[edgeIndex].v[0] == vertex
+                            || edges[edgeIndex].v[1] == vertex) {
+                        incident = true;
+                        break;
+                    }
+                }
+                if (!incident) {
+                    continue;
+                }
+                const idVec3 normal(polyPlaneX[polygon], polyPlaneY[polygon],
+                    polyPlaneZ[polygon]);
+                const float distance = normal.Dot(point)
+                    + polyPlaneW[polygon] + amount;
+                point = point - normal * distance;
+            }
+        }
+        vertsX[vertex] = point.x;
+        vertsY[vertex] = point.y;
+        vertsZ[vertex] = point.z;
+    }
+    for (unsigned int polygon = 0; polygon < numPolys; ++polygon) {
+        polyPlaneW[polygon] += amount;
+    }
+
+    bounds[0].Set(vertsX[0], vertsY[0], vertsZ[0]);
+    bounds[1] = bounds[0];
+    for (unsigned int vertex = 1; vertex < numVerts; ++vertex) {
+        bounds[0].x = (std::min)(bounds[0].x, vertsX[vertex]);
+        bounds[0].y = (std::min)(bounds[0].y, vertsY[vertex]);
+        bounds[0].z = (std::min)(bounds[0].z, vertsZ[vertex]);
+        bounds[1].x = (std::max)(bounds[1].x, vertsX[vertex]);
+        bounds[1].y = (std::max)(bounds[1].y, vertsY[vertex]);
+        bounds[1].z = (std::max)(bounds[1].z, vertsZ[vertex]);
+    }
+    CalculateInsetSphereRadius();
+    GenerateEdgeNormals();
+}
+
+void idTraceModel::GetMassProperties(float density, float& mass,
+        idVec3& centerOfMass, idMat3& inertiaTensor) const {
+    double volume = 0.0;
+    double first[3] = {};
+    double second[3] = {};
+    double product[3] = {}; // xy, yz, zx
+
+    const auto vertexForEdge = [this](std::uint8_t encoded) {
+        const unsigned int edgeIndex = encoded & 0x7Fu;
+        const bool reversed = (encoded & 0x80u) != 0;
+        const unsigned int vertex = edgeIndex < numEdges
+            ? edges[edgeIndex].v[reversed ? 1 : 0] : 0;
+        return idVec3(vertsX[vertex], vertsY[vertex], vertsZ[vertex]);
+    };
+
+    for (unsigned int polygon = 0; polygon < numPolys; ++polygon) {
+        if (numPolyEdges[polygon] < 3) {
+            continue;
+        }
+        const idVec3 a = vertexForEdge(polyEdges[polygon][0]);
+        for (unsigned int triangle = 1;
+                triangle + 1 < numPolyEdges[polygon]; ++triangle) {
+            const idVec3 b = vertexForEdge(polyEdges[polygon][triangle]);
+            const idVec3 c = vertexForEdge(polyEdges[polygon][triangle + 1]);
+            const double tetraVolume = static_cast<double>(a.Dot(b.Cross(c))) / 6.0;
+            volume += tetraVolume;
+            first[0] += tetraVolume * (a.x + b.x + c.x) / 4.0;
+            first[1] += tetraVolume * (a.y + b.y + c.y) / 4.0;
+            first[2] += tetraVolume * (a.z + b.z + c.z) / 4.0;
+
+            const double coordinates[3][3] = {
+                { a.x, b.x, c.x }, { a.y, b.y, c.y }, { a.z, b.z, c.z }
+            };
+            for (int axis = 0; axis < 3; ++axis) {
+                const double x = coordinates[axis][0];
+                const double y = coordinates[axis][1];
+                const double z = coordinates[axis][2];
+                second[axis] += tetraVolume * (x * x + y * y + z * z
+                    + x * y + x * z + y * z) / 10.0;
+            }
+            const int firstAxis[3] = { 0, 1, 2 };
+            const int secondAxis[3] = { 1, 2, 0 };
+            for (int pair = 0; pair < 3; ++pair) {
+                const double* p = coordinates[firstAxis[pair]];
+                const double* q = coordinates[secondAxis[pair]];
+                product[pair] += tetraVolume * (
+                    2.0 * (p[0] * q[0] + p[1] * q[1] + p[2] * q[2])
+                    + p[0] * q[1] + p[1] * q[0]
+                    + p[0] * q[2] + p[2] * q[0]
+                    + p[1] * q[2] + p[2] * q[1]) / 20.0;
+            }
+        }
+    }
+
+    if (std::fabs(volume) < 1.0e-12) {
+        mass = 1.0f;
+        centerOfMass.Zero();
+        inertiaTensor = idMat3(1.0f);
+        return;
+    }
+    if (volume < 0.0) {
+        volume = -volume;
+        for (int axis = 0; axis < 3; ++axis) {
+            first[axis] = -first[axis];
+            second[axis] = -second[axis];
+            product[axis] = -product[axis];
+        }
+    }
+
+    centerOfMass.Set(static_cast<float>(first[0] / volume),
+        static_cast<float>(first[1] / volume),
+        static_cast<float>(first[2] / volume));
+    mass = static_cast<float>(volume * density);
+    const double scaledDensity = density;
+    double ixx = scaledDensity * (second[1] + second[2]);
+    double iyy = scaledDensity * (second[0] + second[2]);
+    double izz = scaledDensity * (second[0] + second[1]);
+    double ixy = -scaledDensity * product[0];
+    double iyz = -scaledDensity * product[1];
+    double izx = -scaledDensity * product[2];
+
+    ixx -= mass * (centerOfMass.y * centerOfMass.y
+        + centerOfMass.z * centerOfMass.z);
+    iyy -= mass * (centerOfMass.x * centerOfMass.x
+        + centerOfMass.z * centerOfMass.z);
+    izz -= mass * (centerOfMass.x * centerOfMass.x
+        + centerOfMass.y * centerOfMass.y);
+    ixy += mass * centerOfMass.x * centerOfMass.y;
+    iyz += mass * centerOfMass.y * centerOfMass.z;
+    izx += mass * centerOfMass.z * centerOfMass.x;
+
+    inertiaTensor = idMat3(
+        static_cast<float>(ixx), static_cast<float>(ixy), static_cast<float>(izx),
+        static_cast<float>(ixy), static_cast<float>(iyy), static_cast<float>(iyz),
+        static_cast<float>(izx), static_cast<float>(iyz), static_cast<float>(izz));
+}

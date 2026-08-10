@@ -29,6 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 #include "sys_precompiled.h"
 #include "sys_local.h"
+#include "win32/win_local.h"
 
 const char * sysLanguageNames[] = {
 	ID_LANG_ENGLISH, ID_LANG_FRENCH, ID_LANG_ITALIAN, ID_LANG_GERMAN, ID_LANG_SPANISH, ID_LANG_JAPANESE, NULL
@@ -42,6 +43,15 @@ idSysLocal			sysLocal;
 idSys *				sys = &sysLocal;
 
 idSysLocal::~idSysLocal() = default;
+
+namespace {
+idKeyboard keyboard;
+idMouse mouse;
+}
+
+idJoystick & idSysLocal::Joystick() { return win32.g_Joystick; }
+idKeyboard & idSysLocal::Keyboard() { return keyboard; }
+idMouse & idSysLocal::Mouse() { return mouse; }
 
 int64 idSysLocal::GetClockTicks() { return Sys_GetClockTicks(); }
 

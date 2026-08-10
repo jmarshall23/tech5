@@ -16,6 +16,11 @@
 idParmState renderThreadParmStateObject;
 idParmState * renderThreadParmState = &renderThreadParmStateObject;
 
+void DeclTable_RemoveFromParmState(const idDeclTable* declaration) {
+    if (renderThreadParmState != nullptr)
+        renderThreadParmState->RemoveTable(declaration);
+}
+
 const idDeclRenderParm * expOp_t::GetDest() const {
 	return renderThreadParmState != nullptr && parmIndexDest >= 0 &&
 		parmIndexDest < RENDERPARM_INVALID

@@ -328,6 +328,7 @@ set_target_properties(tech5_compile_ready PROPERTIES FOLDER "Engine")
 if(TECH5_BUILD_STANDALONE_LINKCHECK)
     add_executable(tech5_engine_linkcheck WIN32 EXCLUDE_FROM_ALL
         "${TECH5_SOURCE_ROOT}/engine/standalone/engine_game_stub.cpp"
+        "${TECH5_SOURCE_ROOT}/engine/standalone/engine_gamelib_stub.cpp"
         ${TECH5_COMPONENT_OBJECTS}
     )
     target_link_libraries(tech5_engine_linkcheck PRIVATE

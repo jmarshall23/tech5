@@ -19,6 +19,7 @@ public:
     idDeclParticle();
     ~idDeclParticle() override;
 
+    idDeclInfo* GetDeclInfo() const override;
     bool RebuildTextSource() override;
     const char* DefaultDefinition() const override;
     void LogMissingDecl() const override;
@@ -46,6 +47,8 @@ public:
     idBounds bounds;
     int maxSystemDuration;
     int lodRadius;
+
+    static idDeclInfoTemplate<idDeclParticle> resourceList;
 
 private:
     idParticleStage* ParseParticleStage(idParser* parser,

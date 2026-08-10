@@ -4,6 +4,7 @@
 #include "idlib/text/parser.h"
 #include "idlib/text/str.h"
 #include "idlib/text/tokenstatic.h"
+#include "models/discreteanimation/discreteanimationmodeldata.h"
 
 #include <algorithm>
 #include <cmath>
@@ -453,4 +454,18 @@ void idDeclBreakable::GenerateDecalInfoFromModel(
         const char* const decalModelName) {
     if (declaration != nullptr && decalModelName != nullptr)
         Decls_GenerateBreakableDecalInfo(declaration, decalModelName);
+}
+
+int Decls_LoadBreakableModelPieceCount(const char* modelName) {
+    if (modelName == nullptr || modelName[0] == '\0') return 0;
+    const idDiscreteAnimationModelData* model =
+        static_cast<const idDiscreteAnimationModelData*>(
+            idDiscreteAnimationModelData::resourceList.Load(
+                modelName, false, false));
+    return model != nullptr ? model->traceModels.Num() : 0;
+}
+
+void Decls_GenerateBreakableDecalInfo(const idDeclBreakable*, const char*) {
+    // Decal projection is a renderer tooling operation. Runtime parsing only
+    // needs the authored piece-decal data already stored by idDeclBreakable.
 }

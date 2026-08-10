@@ -3,6 +3,7 @@
 #include "decls/declmanager.h"
 #include "idlib/text/parser.h"
 #include "idlib/text/tokenstatic.h"
+#include "renderer/declrenderparm.h"
 
 #include <cstring>
 
@@ -97,4 +98,24 @@ void idDeclEnv::Parse(idParser* const parser) {
         }
     }
     parser->Error("idDeclEnv::Parse Unexpected End of File");
+}
+
+void DeclEnv_ClearParmBlock(idParmBlock& block) {
+    block.Clear();
+}
+
+void DeclEnv_AppendParmBlock(idParmBlock& destination,
+        const idParmBlock& source) {
+    destination.Append(source);
+}
+
+bool DeclEnv_ParseParmBlock(idParmBlock& block, idParser& parser) {
+    block.Parse(parser);
+    return !parser.HadError();
+}
+
+float DeclEnv_GetBlendDuration(const idParmBlock& block) {
+    const idDeclRenderParm* parm = idDeclRenderParm::FindByName(
+        "envBlendTime", false);
+    return parm != nullptr ? block.GetFloat(parm) : 0.0f;
 }

@@ -616,16 +616,16 @@ void idAnimator_AnimWeb::TriggerEvent(const idDeclAnimWebNode* const node,
         eventParameter);
 }
 
-bool GameLib_AnimWebNodeMatchesEvent(const idDeclAnimWebNode* const node,
-        const idAnimWebSubWebIndex subWeb,
-        const idAnimWebStateIndex state) {
+bool GameLib_AnimWebNodeMatchesEvent(const idDeclAnimWebNode* node,
+        idAnimWebSubWebIndex subWeb,
+        idAnimWebStateIndex state) {
     return GameLib_DoesAnimWebNodeMatchEvent(node, subWeb, state);
 }
 
-void GameLib_TriggerAnimWebEvent(idAnimator_AnimWeb* const web,
-        const idDeclAnimWebNode* const node,
-        const animWebEvent_t eventType, const idAnimWebEvent& event,
-        const int eventParameter) {
+void GameLib_TriggerAnimWebEvent(idAnimator_AnimWeb* web,
+        const idDeclAnimWebNode* node,
+        animWebEvent_t eventType, const idAnimWebEvent& event,
+        int eventParameter) {
     if (web != nullptr)
         web->TriggerEvent(node, eventType, event, eventParameter);
 }
@@ -784,8 +784,8 @@ int idAnimator_AnimWeb::AddBlendVariable(const char* const name,
     return scalars.Append(value);
 }
 
-float GameLib_GetAnimWebOwnerScalar(const idAnimator_AnimWeb* const web,
-        const int scalarIndex) {
+float GameLib_GetAnimWebOwnerScalar(const idAnimator_AnimWeb* web,
+        int scalarIndex) {
     if (web == nullptr || scalarIndex < 0 || scalarIndex >= web->scalars.Num())
         return 0.0f;
     const idAnimWebScalar& scalar = web->scalars[scalarIndex];

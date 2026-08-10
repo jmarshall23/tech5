@@ -731,20 +731,20 @@ void idDeclFX::Parse(idParser* const parser) {
     }
 }
 
-int GameLib_GetFXDeclActionCount(const idDeclFX* const declaration) {
+int GameLib_GetFXDeclActionCount(const idDeclFX* declaration) {
     return declaration != nullptr ? declaration->events.Num() : 0;
 }
 
-int GameLib_GetFXDeclChangeId(const idDeclFX* const declaration) {
+int GameLib_GetFXDeclChangeId(const idDeclFX* declaration) {
     return declaration != nullptr ? declaration->changeId : -1;
 }
 
-const char* GameLib_GetFXDeclName(const idDeclFX* const declaration) {
+const char* GameLib_GetFXDeclName(const idDeclFX* declaration) {
     return declaration != nullptr ? declaration->GetName() : "";
 }
 
-bool GameLib_GetFXActionParameters(const idDeclFX* const declaration,
-        const int actionIndex, idFXActionParameters& parameters) {
+bool GameLib_GetFXActionParameters(const idDeclFX* declaration,
+        int actionIndex, idFXActionParameters& parameters) {
     if (declaration == nullptr || actionIndex < 0
         || actionIndex >= declaration->events.Num()) return false;
     const idFXSingleAction& action = declaration->events[actionIndex];

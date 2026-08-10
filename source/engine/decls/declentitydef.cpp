@@ -381,3 +381,39 @@ void idDeclEntityDef::Parse(idParser* const parser) {
 bool idDeclEntityDef::RebuildTextSource() {
     return Decls_RebuildEntityDefText(*this);
 }
+
+bool Decls_EntityDefIsSubclassOf(const char* className,
+        const char* superClassName) {
+    if (className == nullptr || superClassName == nullptr) return false;
+    if (idStr::Icmp(className, superClassName) == 0) return true;
+    // The concrete game type table is supplied by the game DLL. Keep the
+    // engine-owned root relationship useful in standalone builds.
+    return idStr::Icmp(superClassName, "idEntity") == 0
+        && _strnicmp(className, "id", 2) == 0;
+}
+
+bool Decls_RebuildEntityDefText(idDeclEntityDef& declaration) {
+    idStr state;
+    const char* sourceState = declaration.GetEntityState();
+    const int stateLength = declaration.GetEntityStateLength();
+    for (int index = 0; sourceState != nullptr && index < stateLength; ++index)
+        state.Append(sourceState[index]);
+
+    idFile_Memory output;
+    output.WriteFloatString("{\n");
+    const idDeclEntityDef* parent = nullptr;
+    if (!declaration.inherit.IsEmpty()) {
+        output.WriteFloatString("\tinherit = \"%s\";\n",
+            declaration.inherit.c_str());
+        parent = FindEntityDef(declaration.inherit.c_str(), false);
+    }
+    if (!declaration.className.IsEmpty())
+        output.WriteFloatString("\tclass = \"%s\";\n",
+            declaration.className.c_str());
+    declaration.editorVars.Write(parent, output);
+    if (!state.IsEmpty()) output.Write(state.c_str(), state.Length());
+    output.WriteFloatString("\n}\n");
+    declaration.SetText(output.GetDataPtr(),
+        static_cast<int>(output.Length()));
+    return true;
+}

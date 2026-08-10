@@ -1,6 +1,8 @@
 #include "decls/declmanagerlocal.h"
 
 #include "idlib/csystems/autocomplete.h"
+#include "idlib/csystems/cmdsystem.h"
+#include "idlib/filesystem/filesystem.h"
 #include "idlib/hashing/crc32.h"
 #include "idlib/lib_print.h"
 
@@ -224,4 +226,114 @@ void ShowAvailableDeclLogs(idAutoComplete& completion) {
             index < declManagerLocal.registeredDeclLogTypes.Num(); ++index)
         Decls_CompleteText(completion,
             declManagerLocal.registeredDeclLogTypes[index].c_str());
+}
+
+void Decls_RegisterConsoleCommands(idDeclManagerLocal& manager) {
+    if (cmdSystem == nullptr) return;
+    cmdSystem->AddCommand("listDecls", &idDeclManagerLocal::ListDecls_f,
+        "lists declarations");
+    cmdSystem->AddCommand("touchDecl", &idDeclManagerLocal::TouchDecl_f,
+        "loads a declaration");
+    cmdSystem->AddCommand("reExportDecls",
+        &idDeclManagerLocal::ReExportDecls_f, "re-exports declarations");
+    cmdSystem->AddCommand("makeDeclTree",
+        &idDeclManagerLocal::MakeDeclTree_f, "writes declaration tree data");
+    cmdSystem->AddCommand("reloadDecls", &idDeclManagerLocal::ReloadDecls_f,
+        "reloads declarations");
+    (void)manager;
+}
+
+void Decls_UnregisterConsoleCommands(idDeclManagerLocal&) {
+    // The recovered command-system ABI has no removal operation. Commands
+    // are owned for the command system's lifetime and become inert when the
+    // declaration manager is shut down.
+}
+
+void Decls_CompleteText(idAutoComplete& completion, const char* text) {
+    if (text != nullptr && text[0] != '\0') completion.Append(idStr(text));
+}
+
+void Decls_ExecuteManagerCommand(const char* command,
+        const idCmdArgs& arguments) {
+    if (command == nullptr) return;
+    if (idStr::Icmp(command, "reloadDecls") == 0) {
+        declManagerLocal.Reload(true);
+        return;
+    }
+    if (idStr::Icmp(command, "touchDecl") == 0 && arguments.Argc() >= 3) {
+        idDeclInfo* type = declManagerLocal.GetDeclType(arguments.Argv(1));
+        if (type != nullptr) type->Load(arguments.Argv(2), true, false);
+        return;
+    }
+    if (idStr::Icmp(command, "listDecls") == 0) {
+        for (int typeIndex = 0;
+                typeIndex < declManagerLocal.declTypes.Num(); ++typeIndex) {
+            idDeclInfo* type = declManagerLocal.declTypes[typeIndex];
+            if (type == nullptr) continue;
+            idList<idResource*> resources;
+            type->GetLoadedResources(resources);
+            for (int index = 0; index < resources.Num(); ++index)
+                if (resources[index] != nullptr) resources[index]->List();
+        }
+    }
+}
+
+void Decls_RegisterFolder(idDeclManagerLocal& manager, const char* folder,
+        const char* extension, idDeclInfo* defaultType) {
+    if (fileSystem == nullptr || folder == nullptr || extension == nullptr
+            || defaultType == nullptr) return;
+    idFileList* files = fileSystem->ListFilesTree(folder, extension, true);
+    if (files == nullptr) return;
+    for (int index = 0; index < files->GetNumFiles(); ++index) {
+        const char* fileName = files->GetFile(index);
+        bool alreadyLoaded = false;
+        for (int loaded = 0; loaded < manager.loadedFiles.Num(); ++loaded) {
+            if (manager.loadedFiles[loaded] != nullptr
+                    && idStr::Icmp(manager.loadedFiles[loaded]->fileName.c_str(),
+                        fileName) == 0) {
+                alreadyLoaded = true;
+                break;
+            }
+        }
+        if (alreadyLoaded) continue;
+        idDeclFile* file = new idDeclFile(fileName, defaultType);
+        manager.loadedFiles.Append(file);
+        file->LoadAndParse();
+        manager.checksum ^= static_cast<int>(file->checksum);
+    }
+    fileSystem->FreeFileList(files);
+}
+
+void Decls_AddFileDependency(idDeclManagerLocal& manager,
+        const char* declarationFile, const char* dependencyFile) {
+    if (declarationFile == nullptr || dependencyFile == nullptr) return;
+    int dependencyIndex = -1;
+    for (int index = 0; index < manager.declFileDependencies.Num(); ++index) {
+        if (idStr::Icmp(manager.declFileDependencies[index].fileName.c_str(),
+                dependencyFile) == 0) {
+            dependencyIndex = index;
+            break;
+        }
+    }
+    if (dependencyIndex < 0) {
+        declFileDependency_t dependency{};
+        dependency.fileName.Set(dependencyFile);
+        dependency.timestamp = fileSystem != nullptr
+            ? fileSystem->GetTimestamp(dependencyFile, false) : 0;
+        dependency.dirty = false;
+        dependencyIndex = manager.declFileDependencies.Append(dependency);
+    }
+    for (int index = 0; index < manager.loadedFiles.Num(); ++index) {
+        idDeclFile* file = manager.loadedFiles[index];
+        if (file != nullptr && idStr::Icmp(file->fileName.c_str(),
+                declarationFile) == 0) {
+            file->dependencies.AddUnique(dependencyIndex);
+            break;
+        }
+    }
+}
+
+void Decls_PrintMultiplayerOverride(const char* declarationName) {
+    if (declarationName != nullptr)
+        idLibPrint::Printf("%s\n", declarationName);
 }

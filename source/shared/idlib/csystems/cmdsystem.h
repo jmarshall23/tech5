@@ -89,6 +89,24 @@ private:
 
 extern idCmdSystem* cmdSystem;
 
+template<int minimum, int maximum>
+void idCmdSystem::ArgCompletion_Integer(idAutoComplete& completion) {
+    for (int value = minimum; value <= maximum; ++value) {
+        idStr text;
+        text.Format("%d", value);
+        completion.Append(text);
+    }
+}
+
+template<const char** strings, int numStrings>
+void idCmdSystem::ArgCompletion_String(idAutoComplete& completion) {
+    if (strings == nullptr) return;
+    for (int index = 0;
+            (numStrings < 0 || index < numStrings)
+                && strings[index] != nullptr; ++index)
+        completion.Append(idStr(strings[index]));
+}
+
 #if INTPTR_MAX == INT32_MAX
 static_assert(sizeof(idCmdSystem) == 4, "Recovered idCmdSystem ABI changed");
 static_assert(sizeof(commandDef_s) == 20, "Recovered commandDef_s ABI changed");

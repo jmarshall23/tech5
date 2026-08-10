@@ -3,6 +3,8 @@
 #include "decls/voiceovers/declvisemeset.h"
 #include "decls/voiceovers/lexerutf8.h"
 #include "decls/voiceovers/voicetrack.h"
+#include "idlib/filesystem/filesystem.h"
+#include "idlib/filesystem/file.h"
 
 #include <algorithm>
 #include <cmath>
@@ -258,4 +260,55 @@ bool ConvertPhonemesToAnim(const char* const inputFile,
     idStr output(inputFile);
     output.SetFileExtension("md6anim");
     return track.GenerateAnimation(output.c_str(), visemeSet);
+}
+
+bool Decls_ReadLipsyncIntermediate(const char* fileName, idStr& text) {
+    text.Clear();
+    if (fileSystem == nullptr || fileName == nullptr) return false;
+    void* buffer = nullptr;
+    const int length = fileSystem->ReadFile(fileName, &buffer, nullptr);
+    if (buffer == nullptr || length < 0) return false;
+    const char* bytes = static_cast<const char*>(buffer);
+    for (int index = 0; index < length; ++index) text.Append(bytes[index]);
+    fileSystem->FreeFile(buffer);
+    return true;
+}
+
+bool Decls_WriteLipsyncAnimation(const char* fileName,
+        const idDeclVisemeSet& visemeSet, const float* weights,
+        int numFrames, int numVisemes) {
+    if (fileSystem == nullptr || fileName == nullptr || weights == nullptr
+            || numFrames < 0 || numVisemes < 0) return false;
+    idFile* file = fileSystem->OpenFileWrite(fileName, FSPATH_BASE);
+    if (file == nullptr) return false;
+    file->Printf("MD6 7\ninit {\n");
+    file->Printf("\tcommandLine \"-ex anim -startframe 0 -endframe %i -framerate 30.000000 -errorTolerance 0.600000\"\n",
+        (std::max)(0, numFrames - 1));
+    file->Printf("\tsourceAnim \"\"\n\tsubtractiveAnim \"\"\n");
+    file->Printf("\trotationMask \"\"\n\tscaleMask \"\"\n\ttranslationMask \"\"\n");
+    file->Printf("\tskeletonName \"\"\n\tmeshName \"\"\n");
+    file->Printf("\tnumFrames %i\n\tframeRate 30\n\tnumJoints 0\n",
+        numFrames);
+    file->Printf("\tnumUserChannels %i\n", numVisemes);
+    file->Printf("\ttranslatedBounds ( 0 0 0 ) ( 0 0 0 )\n");
+    file->Printf("\tnormalizedBounds ( 0 0 0 ) ( 0 0 0 )\n");
+    file->Printf("\terrorTolerance 0.600000\n}\n\nflags {\n}\n\njoints {\n}\n\n");
+    file->Printf("userChannels {\n");
+    for (int index = 0; index < numVisemes; ++index) {
+        const char* name = index < visemeSet.visemes.Num()
+            ? visemeSet.visemes[index].name.c_str() : "";
+        file->Printf("\t\"%s\"\n", name);
+    }
+    file->Printf("}\n\nrotationMask {\n}\n\nscaleMask {\n}\n\ntranslationMask {\n}\n\nframes {\n}\n\n");
+    file->Printf("userChannels {\n");
+    for (int frame = 0; frame < numFrames; ++frame) {
+        file->Printf("\t(");
+        for (int channel = 0; channel < numVisemes; ++channel)
+            file->WriteFloatString(" %g",
+                weights[channel * numFrames + frame]);
+        file->Printf(" )\n");
+    }
+    file->Printf("}\n");
+    delete file;
+    return true;
 }

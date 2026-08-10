@@ -62,7 +62,7 @@ struct controllerState_t {
 };
 
 
-class idJoystickWin32 : idJoystick {
+class idJoystickWin32 : public idJoystick {
 public:
 					idJoystickWin32();
 

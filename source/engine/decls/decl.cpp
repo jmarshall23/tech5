@@ -1,11 +1,17 @@
 #include "decls/decl.h"
 
 #include "idlib/hashing/md5.h"
+#include "idlib/hashing/crc32.h"
 #include "idlib/lib_print.h"
+#include "idlib/filesystem/filesystem.h"
 #include "idlib/sys/sys_alloc.h"
+#include "idlib/text/lexer.h"
+#include "idlib/text/parser.h"
+#include "idlib/text/tokenstatic.h"
 
 #include <algorithm>
 #include <cstring>
+#include <string>
 
 bool Decls_ReadSourceText(const idDeclSource* source, idStr& text);
 bool Decls_WriteSourceText(const idDecl& declaration, bool force);
@@ -322,4 +328,151 @@ void idDeclInfo::AddDeclSource(idDeclSource* const source) {
     if (index >= 0)
         declSourceHash.Add(declSourceHash.GenerateKeyForString(
             source->name.c_str(), false), index);
+}
+
+bool Decls_ReadSourceText(const idDeclSource* source, idStr& text) {
+    text.Clear();
+    if (source == nullptr || source->sourceFile == nullptr
+            || fileSystem == nullptr) return false;
+    void* buffer = nullptr;
+    const int length = fileSystem->ReadFile(
+        source->sourceFile->fileName.c_str(), &buffer, nullptr);
+    if (buffer == nullptr || length < 0) return false;
+    const int offset = (std::max)(0, source->sourceTextOffset);
+    const int count = (std::max)(0, (std::min)(source->sourceTextLength,
+        length - offset));
+    std::string recovered(static_cast<const char*>(buffer) + offset,
+        static_cast<std::size_t>(count));
+    fileSystem->FreeFile(buffer);
+    text = recovered.c_str();
+    return true;
+}
+
+bool Decls_WriteSourceText(const idDecl& declaration, bool force) {
+    if (declaration.declSource == nullptr
+            || declaration.declSource->sourceFile == nullptr
+            || fileSystem == nullptr) return false;
+    idDeclSource* source = declaration.declSource;
+    idDeclFile* sourceFile = source->sourceFile;
+    void* oldBuffer = nullptr;
+    const int oldLength = fileSystem->ReadFile(
+        sourceFile->fileName.c_str(), &oldBuffer, nullptr);
+    if (oldLength < 0 && !force) return false;
+    const int offset = oldLength > 0
+        ? (std::max)(0, (std::min)(source->sourceTextOffset, oldLength)) : 0;
+    const int oldCount = oldLength > 0
+        ? (std::max)(0, (std::min)(source->sourceTextLength,
+            oldLength - offset)) : 0;
+    std::string output;
+    if (oldBuffer != nullptr && offset > 0)
+        output.append(static_cast<const char*>(oldBuffer),
+            static_cast<std::size_t>(offset));
+    output.append(declaration.GetText(),
+        static_cast<std::size_t>(declaration.textLength));
+    if (oldBuffer != nullptr && offset + oldCount < oldLength)
+        output.append(static_cast<const char*>(oldBuffer) + offset + oldCount,
+            static_cast<std::size_t>(oldLength - offset - oldCount));
+    if (oldBuffer != nullptr) fileSystem->FreeFile(oldBuffer);
+    const unsigned int written = fileSystem->WriteFile(
+        sourceFile->fileName.c_str(), output.data(),
+        static_cast<unsigned int>(output.size()), FSPATH_BASE);
+    if (written != output.size()) return false;
+    source->sourceTextLength = declaration.textLength;
+    sourceFile->fileSize = static_cast<int>(output.size());
+    sourceFile->timestamp = fileSystem->GetTimestamp(
+        sourceFile->fileName.c_str(), false);
+    sourceFile->checksum = CRC32_BlockChecksum(output.data(),
+        static_cast<int>(output.size()));
+    return true;
+}
+
+bool Decls_ParseText(idDecl& declaration, const char* text, int length,
+        bool) {
+    if (text == nullptr) return false;
+    if (length <= 0) length = static_cast<int>(std::strlen(text));
+    idParser parser(LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT
+        | LEXFL_ALLOWPATHNAMES);
+    if (!parser.LoadMemory(text, length, declaration.GetFileName()))
+        return false;
+    if (!parser.ExpectTokenString("{")) return false;
+    declaration.Parse(&parser);
+    return !parser.HadError();
+}
+
+unsigned int Decls_GetFileTimestamp(const char* fileName) {
+    return fileSystem != nullptr && fileName != nullptr
+        ? fileSystem->GetTimestamp(fileName, false) : 0;
+}
+
+bool Decls_DeclFileChanged(const idDeclFile& file, bool updateTimestamp) {
+    const unsigned int timestamp = Decls_GetFileTimestamp(file.fileName.c_str());
+    const bool changed = timestamp != file.timestamp;
+    if (updateTimestamp)
+        const_cast<idDeclFile&>(file).timestamp = timestamp;
+    return changed;
+}
+
+int Decls_LoadAndParseFile(idDeclFile& file) {
+    if (fileSystem == nullptr || file.fileName.IsEmpty()) return 0;
+    void* buffer = nullptr;
+    unsigned int timestamp = 0;
+    const int length = fileSystem->ReadFile(file.fileName.c_str(), &buffer,
+        &timestamp);
+    if (buffer == nullptr || length <= 0) return 0;
+    file.FreeDynamic();
+    file.timestamp = timestamp;
+    file.fileSize = length;
+    file.checksum = CRC32_BlockChecksum(buffer, length);
+    file.numLines = 1;
+
+    idLexer lexer(LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT
+        | LEXFL_ALLOWPATHNAMES);
+    if (!lexer.LoadMemory(static_cast<const char*>(buffer),
+            static_cast<unsigned int>(length), file.fileName.c_str())) {
+        fileSystem->FreeFile(buffer);
+        return 0;
+    }
+
+    int declarations = 0;
+    idToken token;
+    while (lexer.ReadToken(token)) {
+        idDeclInfo* type = file.defaultType;
+        idStr declarationName;
+        const int sourceLine = token.line;
+        const int sourceOffset = token.whiteSpaceStart_p != nullptr
+            ? static_cast<int>(token.whiteSpaceStart_p
+                - static_cast<const char*>(buffer))
+            : lexer.GetFileOffset() - token.Length();
+
+        if (idStr::Cmp(token.c_str(), "{") == 0) {
+            declarationName = file.fileName.c_str();
+            declarationName.StripFileExtension();
+            if (type == nullptr || !lexer.SkipBracedSection(false)) break;
+        } else {
+            idResourceList* list = idResourceList::ForTypeName(token.c_str());
+            if (list != nullptr) type = static_cast<idDeclInfo*>(list);
+            else if (type != nullptr) declarationName = token.c_str();
+            if (declarationName.IsEmpty() && !lexer.ReadToken(token)) break;
+            if (declarationName.IsEmpty()) declarationName = token.c_str();
+            if (!lexer.ExpectTokenString("{")) break;
+            if (!lexer.SkipBracedSection(false)) break;
+        }
+        const int sourceEnd = lexer.GetFileOffset();
+        file.AddDecl(type, declarationName.c_str(), sourceLine,
+            sourceOffset, sourceEnd - sourceOffset);
+        ++declarations;
+        file.numLines = lexer.GetLineNum();
+    }
+    fileSystem->FreeFile(buffer);
+    return declarations;
+}
+
+void Decls_PrintDeclaration(const idDecl& declaration, bool listOnly) {
+    if (listOnly) {
+        idLibPrint::Printf("%s\n", declaration.GetName());
+        return;
+    }
+    idLibPrint::Printf("%s (%s:%d)\n%s\n", declaration.GetName(),
+        declaration.GetFileName(), declaration.GetLineNum(),
+        declaration.GetText());
 }

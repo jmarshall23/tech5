@@ -88,3 +88,17 @@ bool idDeclTypeInfo::RebuildTextSource() {
     if (emptyState != parent) delete emptyState;
     return resourceError == nullptr;
 }
+
+bool Decls_ReadTypeInfoState(idDeclTypeInfo&, idParser& parser,
+        const idDeclTypeInfo*) {
+    // Generic type-info declarations carry their reflected payload in game
+    // supplied subclasses. The engine base still owns and validates the
+    // braced declaration lifetime.
+    return parser.SkipBracedSection(false) != 0 && !parser.HadError();
+}
+
+bool Decls_WriteTypeInfoState(const idDeclTypeInfo&,
+        const idDeclTypeInfo*, idStr& text) {
+    text.Clear();
+    return true;
+}

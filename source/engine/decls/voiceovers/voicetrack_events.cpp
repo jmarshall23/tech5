@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <new>
 
@@ -361,6 +362,62 @@ bool idVoiceGameEvent::operator==(const idVoiceGameEvent& other) const {
         && eventNum == other.eventNum && args.argSize == other.args.argSize
         && (args.argSize == 0 || std::memcmp(args.args, other.args.args,
             args.argSize) == 0);
+}
+
+bool Decls_ParseVoiceGameEvent(idVoiceGameEvent& event, idVoiceTrack*,
+        idLexer& lexer) {
+    idToken token;
+    if (!lexer.ExpectAnyToken(token)) return false;
+    event.eventNum = ClampShort(std::atoi(token.c_str()));
+
+    idStr arguments[2];
+    int count = 0;
+    while (lexer.ReadToken(token)) {
+        if (idStr::Cmp(token.c_str(), "{") == 0) {
+            lexer.UnreadToken();
+            break;
+        }
+        if (count < 2) arguments[count++] = token.c_str();
+    }
+
+    delete[] event.args.args;
+    event.args.args = nullptr;
+    event.args.numArgs = static_cast<std::uint16_t>(count);
+    int byteCount = 0;
+    for (int index = 0; index < count; ++index)
+        byteCount += arguments[index].Length() + 1;
+    event.args.argSize = event.args.buffSize =
+        static_cast<std::uint16_t>(byteCount);
+    if (byteCount != 0) {
+        event.args.args = new (std::nothrow) std::uint8_t[byteCount];
+        if (event.args.args == nullptr) return false;
+        int offset = 0;
+        for (int index = 0; index < count; ++index) {
+            event.args.argOffsets[index] = static_cast<std::uint16_t>(offset);
+            event.args.argTypes[index] = 0;
+            event.args.argExTypes[index] = 0;
+            const int length = arguments[index].Length() + 1;
+            std::memcpy(event.args.args + offset, arguments[index].c_str(),
+                static_cast<std::size_t>(length));
+            offset += length;
+        }
+    }
+    ParseEventTimes(event, lexer);
+    return lexer.ExpectTokenString("}") && !lexer.HadError();
+}
+
+void Decls_WriteVoiceGameEvent(const idVoiceGameEvent& event,
+        const idVoiceTrack*, idFile_String& file) {
+    file.WriteFloatString("\t\t%s %d", event.GetName(), event.eventNum);
+    for (int index = 0; index < event.args.numArgs && index < 2; ++index) {
+        const char* argument = event.args.args != nullptr
+                && event.args.argOffsets[index] < event.args.argSize
+            ? reinterpret_cast<const char*>(event.args.args
+                + event.args.argOffsets[index]) : "";
+        file.WriteFloatString(" \"%s\"", argument);
+    }
+    file.WriteFloatString(" {\n\t\t\tstart %d\n\t\t\tduration %d\n\t\t}\n",
+        event.startMS, event.durationMS);
 }
 
 idVoiceTextEvent::idVoiceTextEvent() : idVoiceEvent(), text() { eventType = VOICEEVENT_TEXT; }
