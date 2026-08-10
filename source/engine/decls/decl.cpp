@@ -282,7 +282,6 @@ idResource* idDeclInfo::Alloc(const char* const resourceName) {
     if (declaration == nullptr) return nullptr;
     declaration->SetName(resourceName);
     declaration->declSource = FindDeclSource(resourceName);
-    Add(declaration);
     return declaration;
 }
 
