@@ -17,7 +17,7 @@ void idPlayerProfile::SetDefaults() {
     achievementBits = 0;
     achievementBits2 = 0;
     dlcReleaseVersion = 0;
-    stats.SetNum(500);
+    stats.SetNum(MAX_PLAYER_PROFILE_STATS);
     for (int index = 0; index < stats.Num(); ++index) {
         stats[index].i = 0;
     }
@@ -26,11 +26,17 @@ void idPlayerProfile::SetDefaults() {
 bool idPlayerProfile::Serialize(idSerializer*) { return false; }
 bool idPlayerProfile::UpdateDisplayModeFromCvars() { return false; }
 bool idPlayerProfile::CommitDisplayChanges() { return false; }
-float idPlayerProfile::GetMouseSensitivity() { return 1.0f; }
-int idPlayerProfile::GetLevel() { return 0; }
-int idPlayerProfile::GetChosenEmblem() { return 0; }
+float idPlayerProfile::GetMouseSensitivity() const { return 1.0f; }
+int idPlayerProfile::GetLevel() const { return 0; }
+int idPlayerProfile::GetChosenEmblem() const { return 0; }
 void idPlayerProfile::SetInvertLook(bool) {}
-unsigned int idPlayerProfile::GetSubtitleLanguageMask() { return 0xFFFFFFFFu; }
+unsigned int idPlayerProfile::GetSubtitleLanguageMask() const { return 0xFFFFFFFFu; }
+
+idPlayerProfile* idPlayerProfile::CreatePlayerProfile(const int deviceIndex) {
+    idPlayerProfile* const profile = new idPlayerProfile();
+    profile->deviceNum = deviceIndex;
+    return profile;
+}
 
 void idPlayerProfile::SetAchievement(const int achievement) {
     if (achievement >= 0 && achievement < 64) {
@@ -46,6 +52,14 @@ bool idPlayerProfile::GetAchievement(const int achievement) const {
     }
     return achievement >= 64 && achievement < 128
         && (achievementBits2 & (std::uint64_t(1) << (achievement - 64))) != 0;
+}
+
+void idPlayerProfile::ClearAchievement(const int achievement) {
+    if (achievement >= 0 && achievement < 64) {
+        achievementBits &= ~(std::uint64_t(1) << achievement);
+    } else if (achievement >= 64 && achievement < 128) {
+        achievementBits2 &= ~(std::uint64_t(1) << (achievement - 64));
+    }
 }
 
 void idPlayerProfile::StatSetInt(const int stat, const int value) {

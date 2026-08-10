@@ -59,6 +59,15 @@ public:
         return len;
     }
 
+    void CapLength(const int newLength) {
+        const int cappedLength = (std::max)(newLength, 0);
+        if (len <= cappedLength) {
+            return;
+        }
+        len = cappedLength;
+        data[len] = '\0';
+    }
+
     bool IsEmpty() const {
         return len == 0;
     }
@@ -195,6 +204,26 @@ public:
         const char* const safeLeft = left == nullptr ? "" : left;
         const char* const safeRight = right == nullptr ? "" : right;
         return std::strcmp(safeLeft, safeRight);
+    }
+
+    // Recovered shared/idlib/text/str.cpp returns -1, 0, or 1 rather than
+    // exposing the implementation-defined magnitude from strncmp.
+    static int Cmpn(const char* left, const char* right, int count) {
+        const unsigned char* a = reinterpret_cast<const unsigned char*>(
+            left == nullptr ? "" : left);
+        const unsigned char* b = reinterpret_cast<const unsigned char*>(
+            right == nullptr ? "" : right);
+        while (count-- > 0) {
+            if (*a != *b) {
+                return *a < *b ? -1 : 1;
+            }
+            if (*a == 0) {
+                return 0;
+            }
+            ++a;
+            ++b;
+        }
+        return 0;
     }
 
     static int Icmp(const char* left, const char* right) {

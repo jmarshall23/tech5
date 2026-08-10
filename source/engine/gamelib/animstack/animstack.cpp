@@ -28,15 +28,6 @@ bool IsBranch(const idMD6Node* const node) {
         node->type == idMD6Node::NODE_FUSION_BRANCH);
 }
 
-std::size_t NodeAllocationSize(const idMD6Node::nodeType_t type) {
-    switch (type) {
-    case idMD6Node::NODE_LEAF_PLAY: return sizeof(idMD6LeafPlay);
-    case idMD6Node::NODE_LEAF_PAUSE: return sizeof(idMD6LeafPause);
-    case idMD6Node::NODE_BRANCH: return sizeof(idMD6Branch);
-    default: return 128;
-    }
-}
-
 void FreeTree(idMD6BlockAlloc& allocator, idMD6Node* node) {
     if (node == nullptr) return;
     if (IsBranch(node)) {
@@ -50,66 +41,6 @@ void FreeTree(idMD6BlockAlloc& allocator, idMD6Node* node) {
     }
     allocator.Free(node);
 }
-}
-
-idMD6Allocator::~idMD6Allocator() = default;
-
-idMD6BlockAlloc::idMD6BlockAlloc()
-    : playLeaves{}
-    , pauseLeaves{}
-    , branches{}
-    , blendBranches{}
-    , blendAdditiveBranches{}
-    , fusionBranches{}
-    , bestLeaves{}
-    , tagFilters{}
-    , nodes(16)
-    , nodesToDelete(16) {
-    playLeaves.allowAllocs = pauseLeaves.allowAllocs =
-        branches.allowAllocs = blendBranches.allowAllocs =
-        blendAdditiveBranches.allowAllocs = fusionBranches.allowAllocs =
-        bestLeaves.allowAllocs = tagFilters.allowAllocs = true;
-}
-
-idMD6BlockAlloc::~idMD6BlockAlloc() {
-    while (nodes.Num() > 0) Free(nodes[nodes.Num() - 1]);
-}
-
-idMD6Node* idMD6BlockAlloc::Alloc(const idMD6Node::nodeType_t type) {
-    const std::size_t size = NodeAllocationSize(type);
-    void* const memory = ::operator new(size, std::nothrow);
-    if (memory == nullptr) return nullptr;
-    std::memset(memory, 0, size);
-    idMD6Node* const node = static_cast<idMD6Node*>(memory);
-    node->type = static_cast<std::uint8_t>(type);
-    if (nodes.Append(node) < 0) {
-        ::operator delete(memory);
-        return nullptr;
-    }
-    return node;
-}
-
-void idMD6BlockAlloc::Free(idMD6Node* const node) {
-    if (node == nullptr) return;
-    const int index = nodes.FindIndex(node);
-    if (index >= 0) nodes.RemoveIndex(index);
-    ::operator delete(node);
-}
-
-void idMD6BlockAlloc::Condense() { nodesToDelete.Clear(); }
-unsigned int idMD6BlockAlloc::Size() {
-    unsigned int bytes = 0;
-    for (int index = 0; index < nodes.Num(); ++index)
-        bytes += static_cast<unsigned int>(NodeAllocationSize(
-            static_cast<idMD6Node::nodeType_t>(nodes[index]->type)));
-    return bytes;
-}
-int idMD6BlockAlloc::NumNodes() { return nodes.Num(); }
-idMD6Node* idMD6BlockAlloc::NodeForIndex(const int index) {
-    return index >= 0 && index < nodes.Num() ? nodes[index] : nullptr;
-}
-const idMD6Node* idMD6BlockAlloc::NodeForIndex(const int index) const {
-    return index >= 0 && index < nodes.Num() ? nodes[index] : nullptr;
 }
 
 idAnimStack::idAnimStack()

@@ -57,9 +57,9 @@ If you have questions concerning this license or the applicable additional terms
 // retain that Windows behavior locally without adding a framework dependency.
 static const int MAX_EDIT_LINE = 256;
 
-class idEditField {
+class idWinConsoleEditField {
 public:
-	idEditField() : cursor( 0 ) { buffer[ 0 ] = '\0'; }
+	idWinConsoleEditField() : cursor( 0 ) { buffer[ 0 ] = '\0'; }
 	char * GetBuffer() { return buffer; }
 	const char * GetBuffer() const { return buffer; }
 	int GetCursor() const { return cursor; }
@@ -116,13 +116,13 @@ typedef struct {
 	 
 	WNDPROC		SysInputLineWndProc;
 
-	idEditField	historyEditLines[COMMAND_HISTORY];
+	idWinConsoleEditField	historyEditLines[COMMAND_HISTORY];
 
 	int			nextHistoryLine;// the last line in the history buffer, not masked
 	int			historyLine;	// the line being displayed from history buffer
 								// will be <= nextHistoryLine
 
-	idEditField	consoleField;
+	idWinConsoleEditField	consoleField;
 
 } WinConData;
 

@@ -30,113 +30,12 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "sys_savegame.h"
 #include "sys_session_savegames.h"
+#include "framework/playerprofile.h"
 
 
 class idSaveGameProcessorSaveProfile;
 class idSaveGameProcessorLoadProfile;
 class idLocalUser;
-
-union profileStatValue_t {
-	int i;
-	float f;
-};
-
-// PDB-authoritative RAGE profile layout.  The platform/game layer can derive
-// from this class; the concrete base implementation is a safe Windows
-// fallback for the recovered system code.
-class idPlayerProfile {
-	friend class idLocalUser;
-	friend class idProfileMgr;
-public:
-	static const int MAX_PLAYER_PROFILE_STATS = 500;
-	enum state_t {
-		IDLE = 0,
-		SAVING = 1,
-		LOADING = 2,
-		SAVE_REQUESTED = 3,
-		LOAD_REQUESTED = 4,
-		ERR = 5
-	};
-
-	virtual ~idPlayerProfile() {}
-	virtual void SetDefaults() {
-		hasUser = true;
-		achievementBits = 0;
-		achievementBits2 = 0;
-		dlcReleaseVersion = 0;
-		stats.SetNum( MAX_PLAYER_PROFILE_STATS );
-		for ( int index = 0; index < stats.Num(); ++index ) stats[ index ].i = 0;
-	}
-	virtual bool Serialize( idSerializer * serializer ) {
-		if ( serializer == NULL ) return false;
-		serializer->Serialize( achievementBits );
-		serializer->Serialize( achievementBits2 );
-		serializer->Serialize( dlcReleaseVersion );
-		for ( int index = 0; index < stats.Num(); ++index ) serializer->Serialize( stats[ index ].i );
-		return true;
-	}
-	virtual bool UpdateDisplayModeFromCvars() { return false; }
-	virtual bool CommitDisplayChanges() { return false; }
-	virtual float GetMouseSensitivity() const { return 1.0f; }
-	virtual int GetLevel() const { return 0; }
-	virtual int GetChosenEmblem() const { return 0; }
-	virtual void SetInvertLook( bool ) {}
-	virtual uint32 GetSubtitleLanguageMask() const { return 0; }
-
-	static idPlayerProfile * CreatePlayerProfile( int deviceIndex ) {
-		idPlayerProfile * profile = new idPlayerProfile();
-		profile->deviceNum = deviceIndex;
-		return profile;
-	}
-
-	bool Serialize( idSerializer & serializer ) { return Serialize( &serializer ); }
-	int GetDeviceNumForProfile() const { return deviceNum; }
-	void SetDeviceNumForProfile( int value ) { deviceNum = value; }
-	state_t GetState() const { return state; }
-	state_t GetRequestedState() const { return requestedState; }
-	bool IsDirty() const { return true; }
-	void SaveSettings( bool = true ) {
-		if ( state != SAVING && requestedState == IDLE ) requestedState = SAVE_REQUESTED;
-	}
-	void LoadSettings() {
-		if ( hasUser && state != LOADING && requestedState == IDLE ) requestedState = LOAD_REQUESTED;
-	}
-	bool GetAchievement( int id ) const {
-		if ( id < 0 || id >= 128 ) return false;
-		return id < 64 ? ( achievementBits & BIT64( id ) ) != 0 :
-			( achievementBits2 & BIT64( id - 64 ) ) != 0;
-	}
-	void SetAchievement( int id ) {
-		if ( id >= 0 && id < 64 ) achievementBits |= BIT64( id );
-		else if ( id >= 64 && id < 128 ) achievementBits2 |= BIT64( id - 64 );
-	}
-	void ClearAchievement( int id ) {
-		if ( id >= 0 && id < 64 ) achievementBits &= ~BIT64( id );
-		else if ( id >= 64 && id < 128 ) achievementBits2 &= ~BIT64( id - 64 );
-	}
-	int GetDlcReleaseVersion() const { return dlcReleaseVersion; }
-	void SetDlcReleaseVersion( int value ) { dlcReleaseVersion = value; }
-	void StatSetInt( int stat, int value ) { if ( stat >= 0 && stat < stats.Num() ) stats[ stat ].i = value; }
-	void StatSetFloat( int stat, float value ) { if ( stat >= 0 && stat < stats.Num() ) stats[ stat ].f = value; }
-	int StatGetInt( int stat ) const { return stat >= 0 && stat < stats.Num() ? stats[ stat ].i : 0; }
-	float StatGetFloat( int stat ) const { return stat >= 0 && stat < stats.Num() ? stats[ stat ].f : 0.0f; }
-	void MarkDirty( bool ) {}
-
-protected:
-	idPlayerProfile() : state( IDLE ), requestedState( IDLE ), deviceNum( -1 ), hasUser( false ),
-		achievementBits( 0 ), achievementBits2( 0 ), dlcReleaseVersion( 0 ) { SetDefaults(); }
-	void SetState( state_t value ) { state = value; }
-	void SetRequestedState( state_t value ) { requestedState = value; }
-
-	__declspec( align( 8 ) ) state_t state;
-	state_t requestedState;
-	int deviceNum;
-	bool hasUser;
-	uint64 achievementBits;
-	uint64 achievementBits2;
-	int dlcReleaseVersion;
-	idStaticList< profileStatValue_t, MAX_PLAYER_PROFILE_STATS > stats;
-};
 
 /*
 ================================================

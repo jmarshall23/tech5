@@ -105,9 +105,9 @@ private:
 void Sys_InitNetworking();
 void Sys_ShutdownNetworking();
 bool Sys_StringToNetAdr(const char* text, netadr_t* address, bool doDNSResolve);
-const char* Sys_NetAdrToString(const netadr_t& address);
-bool Sys_IsLANAddress(const netadr_t& address);
-bool Sys_CompareNetAdrBase(const netadr_t& left, const netadr_t& right);
+const char* Sys_NetAdrToString(netadr_t address);
+bool Sys_IsLANAddress(netadr_t address);
+bool Sys_CompareNetAdrBase(netadr_t left, netadr_t right);
 int Sys_GetLocalIPCount();
 const char* Sys_GetLocalIP(int index);
 #endif

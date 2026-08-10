@@ -185,6 +185,16 @@ idOutOfMemoryCallback idMem::GetOutOfMemoryCallback() const {
     return outOfMemoryCallback.load(std::memory_order_acquire);
 }
 
+void* Sys_Alloc(const unsigned int size, const memTag_t tag,
+        const align_t alignment, const heapType_t heap) {
+    return mem.AllocWithLocation("Sys_Alloc PC replacement", size, tag,
+        false, alignment, heap);
+}
+
+void Sys_Free(void* const pointer) {
+    mem.Free(pointer);
+}
+
 void idMem::WriteMemoryReport(const char* const directory,
     const char* const fileName) const {
     char path[MAX_PATH];

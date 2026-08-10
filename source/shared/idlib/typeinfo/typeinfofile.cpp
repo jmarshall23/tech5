@@ -1,21 +1,5 @@
-#ifdef __IDLIB__
-#include "idlib/precompiled.h"
-#ifdef nullptr
-#undef nullptr
-#endif
-#ifdef strcmp
-#undef strcmp
-#endif
-#ifdef snprintf
-#undef snprintf
-#endif
-#ifdef vsnprintf
-#undef vsnprintf
-#endif
-#else
 #include "../math/vector.h"
 #include "../text/str.h"
-#endif
 
 #include "typeinfofile.h"
 
