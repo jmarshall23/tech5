@@ -1,5 +1,7 @@
 #pragma once
 
+#include "render_types.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\renderer\jobs\render\rendersort.h
 // Recovered logical types: 1
@@ -16,3 +18,5 @@ struct renderSortParms_t
   drawSurf_t **sortedDrawSurfs;
   renderPassSurfaces_t *renderPasses;
 };
+
+void RenderSort( const renderSortParms_t * parms );

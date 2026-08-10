@@ -1,5 +1,7 @@
 #pragma once
 
+#include "render_types.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\renderer\jobs\render\renderdimshadows.h
 // Recovered logical types: 1
@@ -39,3 +41,5 @@ struct renderDimShadowsParms_t
   int *numDimShadows;
   unsigned __int8 *modelDimShadowState;
 };
+
+void RenderDimShadows( const renderDimShadowsParms_t * parms );

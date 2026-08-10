@@ -1,5 +1,7 @@
 #pragma once
 
+#include "render_types.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\renderer\jobs\render\rendercull.h
 // Recovered logical types: 1
@@ -20,3 +22,5 @@ struct renderCullParms_t
   unsigned __int8 *worldAreaSubspaceBoundsCulled;
   unsigned __int8 *worldAreaGeometryBoundsCulled;
 };
+
+void RenderCull( const renderCullParms_t * parms );

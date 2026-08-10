@@ -1,42 +1,54 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\renderer\rendermodelcommitted.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../models/rendermodel.h"
+#include "jobs/approximatelighting/approximatelighting.h"
+#include "idlib/geometry/rendermatrix.h"
 
+class idRenderWorldLocal;
+struct worldArea_t;
 
-// IDA Local Type ordinal 13636; PDB kind: class.
-class __declspec(align(8)) idRenderModelCommitted
-{
+class alignas( 16 ) idRenderModelCommitted {
 public:
-  const char *name;
-  idRenderWorldLocal *world;
-  idRenderIndex index;
-  idBounds referenceBounds;
-  idRenderModelParms r;
-  idStaticParmBlock<32> renderParmBlock;
-  idList<idRenderModelSurface,62> surfaces;
-  idRenderModelCommitted *nextOnPostCommitList;
-  idList<worldArea_t *,62> references;
-  idRenderModelCommitted *nextAddAlwaysModel;
-  idRenderModelCommitted *nextDimShadowModel;
-  idRenderModelCommitted *referenceModel;
-  int guiFrameCount;
-  idVec4 maxVisibleRange;
-  idBounds globalReferenceBounds;
-  idVec3 localLightingPoint;
-  idRenderMatrix modelMatrix;
-  idRenderMatrix inverseModelMatrix;
-  approximateLighting_t approximateLighting;
-  idVec4 highlightColor;
-  __int8 isLitTransSort : 1;
-  __int8 hasUniqueVirtualTexture : 1;
-  __int8 mayMakeInteractions : 1;
-  __int8 mayCastShadows : 1;
-  __int8 mayBeDrawn : 1;
-  __int8 needsApproximatedLighting : 1;
-  __int8 needsReferences : 1;
-  __int8 lightCenterInitialized : 1;
-  idRenderMatrix mvpMatrix;
+	idRenderModelCommitted();
+	~idRenderModelCommitted();
+
+	void UnlinkAddAlways();
+	void UnlinkDimShadow();
+	void SetFlagsFromSurfaces();
+	void CreateReferences();
+	void CheckBounds();
+	const idVec3 & GetLightingPoint();
+	void FreeReferences();
+	void PostCommit();
+	bool CastsDimShadows() const;
+
+	const char * name;
+	idRenderWorldLocal * world;
+	idRenderIndex index;
+	idBounds referenceBounds;
+	idRenderModelParms r;
+	idStaticParmBlock<32> renderParmBlock;
+	idList<idRenderModelSurface,62> surfaces;
+	idRenderModelCommitted * nextOnPostCommitList;
+	idList<worldArea_t *,62> references;
+	idRenderModelCommitted * nextAddAlwaysModel;
+	idRenderModelCommitted * nextDimShadowModel;
+	idRenderModelCommitted * referenceModel;
+	int guiFrameCount;
+	idVec4 maxVisibleRange;
+	idBounds globalReferenceBounds;
+	idVec3 localLightingPoint;
+	idRenderMatrix modelMatrix;
+	idRenderMatrix inverseModelMatrix;
+	approximateLighting_t approximateLighting;
+	idVec4 highlightColor;
+	unsigned char isLitTransSort : 1;
+	unsigned char hasUniqueVirtualTexture : 1;
+	unsigned char mayMakeInteractions : 1;
+	unsigned char mayCastShadows : 1;
+	unsigned char mayBeDrawn : 1;
+	unsigned char needsApproximatedLighting : 1;
+	unsigned char needsReferences : 1;
+	unsigned char lightCenterInitialized : 1;
+	idRenderMatrix mvpMatrix;
 };

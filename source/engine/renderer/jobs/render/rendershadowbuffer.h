@@ -1,5 +1,7 @@
 #pragma once
 
+#include "render_types.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\renderer\jobs\render\rendershadowbuffer.h
 // Recovered logical types: 1
@@ -23,3 +25,11 @@ struct renderShadowBufferParms_t
   shadowBufferOptions_t options;
   unsigned __int8 *modelConsideredAsOccluder;
 };
+
+void GetPointLightViewMatrix( int face, idRenderMatrix & matrix );
+void GetSpotLightViewMatrix( const idVec3 & origin, const idVec3 & target,
+	const idVec3 & up, idRenderMatrix & matrix );
+void GetParallelLightViewMatrix( const idVec3 & direction,
+	idRenderMatrix & matrix );
+void GetPointShadowProjectionMatrix( float zNear, float zFar,
+	idRenderMatrix & matrix );

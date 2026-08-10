@@ -1,5 +1,7 @@
 #pragma once
 
+#include "render_types.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\renderer\jobs\render\renderdepth.h
 // Recovered logical types: 1
@@ -31,3 +33,5 @@ struct renderDepthParms_t
   drawSurf_t *drawSurfs;
   int *numDrawSurfs;
 };
+
+void RenderDepth( const renderDepthParms_t * parms );

@@ -1,5 +1,9 @@
 #pragma once
 
+#include "render_types.h"
+#include "../../renderview.h"
+#include "../../renderworld_local.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\renderer\jobs\render\rendergather.h
 // Recovered logical types: 1
@@ -46,3 +50,8 @@ struct renderGatherParms_t
   const idRenderLightCommitted **occlusionTestLights;
   int *numOcclusionTestLights;
 };
+
+bool InterpretOcclusionQuery( const renderSettings_t * settings,
+	const idRenderView * renderView, std::int64_t queryNumber,
+	bool forceVisible, int * result );
+void RenderGather( const renderGatherParms_t * parms );

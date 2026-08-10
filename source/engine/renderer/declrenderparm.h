@@ -1,38 +1,50 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\renderer\declrenderparm.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../decls/decl.h"
+#include "parmblock.h"
+#include "renderer_types.h"
 
+class idImage;
+class idParser;
 
-// IDA Local Type ordinal 13548; PDB kind: class.
-class idDeclRenderParm : public idDecl
-{
+// A render parm is both a declaration and the stable identity used by the
+// expression bytecode.  Retail reserved index 2047 as the invalid value.
+class alignas( 4 ) idDeclRenderParm : public idDecl {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 13549.
-  virtual ~idDeclRenderParm();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+	idDeclRenderParm();
+	~idDeclRenderParm() override;
 
-  int parmIndex;
-  parmType_t parmType;
-  parmCreator_t creator;
-  bool cubeFilterTexture;
-  parmValue_t declaredValue;
-  parmEdit_t edit;
-  float editRange[2];
+	idDeclInfo * GetDeclInfo() const override;
+	const char * DefaultDefinition() const override;
+	void Parse( idParser * parser ) override;
+	void FreeData() override;
+	void Print() override;
+	void List() override;
+	unsigned int Size() const override;
+
+	void ParseStringToValue( const char * text, parmValue_t & value ) const;
+	void ParseValue( idParser & parser, parmValue_t & value ) const;
+	static bool ParseVectorConstant( idParser & parser, float vector[4] );
+	static const idDeclRenderParm * FindByIndex( int index );
+	static const idDeclRenderParm * FindByName( const char * name,
+		bool makeDefault = true );
+
+	int parmIndex;
+	parmType_t parmType;
+	parmCreator_t creator;
+	bool cubeFilterTexture;
+	parmValue_t declaredValue;
+	parmEdit_t edit;
+	float editRange[2];
+
+	static idDeclInfoTemplate< idDeclRenderParm > resourceList;
+
+private:
+	const idImage * ParseImageLine( idParser & parser ) const;
+	void RegisterParm();
 };
+
+#if defined( _WIN32 ) && !defined( _WIN64 )
+static_assert( sizeof( idDeclRenderParm ) == 100,
+	"Recovered render-parm declaration ABI changed" );
+#endif

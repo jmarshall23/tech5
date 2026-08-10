@@ -1,5 +1,8 @@
 #pragma once
 
+#include "render_types.h"
+#include "../../renderview.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\renderer\jobs\render\renderdynamicenv.h
 // Recovered logical types: 1
@@ -27,3 +30,5 @@ struct renderDynamicEnvParms_t
   idMat3 envMapRotation;
   envBlend_t *envBlend;
 };
+
+void RenderDynamicEnv( const renderDynamicEnvParms_t * parms );

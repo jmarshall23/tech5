@@ -1,5 +1,8 @@
 #pragma once
 
+#include "render_types.h"
+#include "../../renderview.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\renderer\jobs\render\renderocclusion.h
 // Recovered logical types: 1
@@ -29,3 +32,5 @@ struct renderOcclusionParms_t
   const idTriangles *zeroOneCubeTris;
   occlusionState_t *occlusionState;
 };
+
+void RenderOcclusion( const renderOcclusionParms_t * parms );

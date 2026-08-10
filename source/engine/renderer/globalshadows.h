@@ -1,14 +1,30 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\renderer\globalshadows.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/geometry/rendermatrix.h"
 
+class idRenderWorldLocal;
 
-// IDA Local Type ordinal 13566; PDB kind: class.
-class idGlobalShadows
-{
+struct alignas( 4 ) shadowMap_t {
+	shadowMap_t();
+	~shadowMap_t();
+	float ShadowSample( const idVec3 & worldPoint ) const;
+
+	int width;
+	unsigned short * map;
+	idRenderMatrix mvp;
+	float coordinateBias;
+	float depthBias;
+	bool useShadowMap;
+};
+
+class idGlobalShadows {
 public:
-  shadowMap_t *shadowMap;
+	idGlobalShadows();
+	~idGlobalShadows();
+	float ShadowSample( const idVec3 & worldPoint ) const;
+	const shadowMap_t * GetShadowMap() const;
+	void LoadGlobalShadows( idRenderWorldLocal * world );
+	void WriteShadowVisualizationModel( const char * fileName );
+
+	shadowMap_t * shadowMap;
 };

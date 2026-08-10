@@ -1,37 +1,49 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\renderer\materialmap.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/list.h"
+#include "idlib/math/vector.h"
+#include "idlib/text/atomicstring.h"
+#include "idlib/text/str.h"
 
+class idFile;
+class idMaterial;
 
-// IDA Local Type ordinal 13328; PDB kind: class.
-class idMaterialMapping
-{
-public:
-  idAtomicString materialName;
-  unsigned int materialChecksum;
-  unsigned int materialTimestamp;
-  int x;
-  int y;
-  int width;
-  int height;
-  idVec4 scaleBias;
-  idVirtualImageFile specularFile;
-  idVirtualImageFile coverFile;
-  idVirtualImageFile diffuseFile;
-  idVirtualImageFile bumpFile;
-  idVirtualImageFile powerFile;
+struct idVirtualImageFile {
+	idAtomicString fileName;
+	unsigned int timeStamp;
 };
 
-// IDA Local Type ordinal 13330; PDB kind: class.
-class idMaterialMap
-{
+class idMaterialMapping {
 public:
-  idStr name;
-  int width;
-  int height;
-  unsigned int skinFileTimeStamp;
-  idList<idMaterialMapping,46> mappings;
+	idMaterialMapping();
+
+	idAtomicString materialName;
+	unsigned int materialChecksum;
+	unsigned int materialTimestamp;
+	int x;
+	int y;
+	int width;
+	int height;
+	idVec4 scaleBias;
+	idVirtualImageFile specularFile;
+	idVirtualImageFile coverFile;
+	idVirtualImageFile diffuseFile;
+	idVirtualImageFile bumpFile;
+	idVirtualImageFile powerFile;
+};
+
+class idMaterialMap {
+public:
+	idMaterialMap();
+	const idMaterialMapping * FindMapping( const char * materialName ) const;
+	bool GetImageDimensions( int & imageWidth, int & imageHeight ) const;
+	void Clear();
+	bool Load( idFile * file );
+	void Save( idFile * file ) const;
+
+	idStr name;
+	int width;
+	int height;
+	unsigned int skinFileTimeStamp;
+	idList< idMaterialMapping, 46 > mappings;
 };

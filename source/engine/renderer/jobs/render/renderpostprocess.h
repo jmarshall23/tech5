@@ -1,5 +1,7 @@
 #pragma once
 
+#include "render_types.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\renderer\jobs\render\renderpostprocess.h
 // Recovered logical types: 1
@@ -27,3 +29,5 @@ struct renderPostProcessParms_t
   const idImage *imgDistortion;
   const idTriangles *unitSquareTris;
 };
+
+void RenderPostProcess( const renderPostProcessParms_t * parms );

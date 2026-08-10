@@ -1,20 +1,29 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\renderer\seenbits.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include <cstdint>
 
-
-// IDA Local Type ordinal 13646; PDB kind: class.
-class idSeenBits
-{
+class idSeenBits {
 public:
-  int merges;
-  int layoutVersion;
-  int width;
-  int coarsestLevel;
-  __int64 bitArraySize;
-  unsigned __int8 *bits;
-  __int64 levelOffset[32];
+	idSeenBits();
+	~idSeenBits();
+	idSeenBits( const idSeenBits & ) = delete;
+	idSeenBits & operator=( const idSeenBits & ) = delete;
+
+	bool Init( int pageWidth, int coarsestMip, int version = 0 );
+	void Clear();
+	bool Get( int level, int x, int y ) const;
+	void Set( int level, int x, int y );
+	void Clear( int level, int x, int y );
+	void Merge( const idSeenBits & source );
+
+	int merges;
+	int layoutVersion;
+	int width;
+	int coarsestLevel;
+	std::int64_t bitArraySize;
+	unsigned char * bits;
+	std::int64_t levelOffset[32];
+
+private:
+	std::int64_t BitIndex( int level, int x, int y ) const;
 };

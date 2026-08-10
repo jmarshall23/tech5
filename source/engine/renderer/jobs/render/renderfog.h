@@ -1,5 +1,7 @@
 #pragma once
 
+#include "render_types.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\renderer\jobs\render\renderfog.h
 // Recovered logical types: 1
@@ -14,3 +16,5 @@ struct renderFogParms_t
   const idDeclRenderProg *progGlobalFog;
   const idTriangles *unitSquareTris;
 };
+
+void RenderFog( const renderFogParms_t * parms );

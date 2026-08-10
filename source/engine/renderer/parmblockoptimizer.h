@@ -1,15 +1,21 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\renderer\parmblockoptimizer.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+class idDeclRenderParm;
+class idParmBlock;
 
-
-// IDA Local Type ordinal 22930; PDB kind: class.
-class idParmBlockOptimizer
-{
+class idParmBlockOptimizer {
 public:
-  int usedParms[200];
-  int numUsedParms;
+	idParmBlockOptimizer();
+	void AddUsedParm( const idDeclRenderParm * parm );
+	void AddUsedParmIndex( int parmIndex );
+	void OptimizeParmBlockForUsedParms( idParmBlock & parmBlock );
+
+	int usedParms[200];
+	int numUsedParms;
+
+	static int c_retainedOps;
+	static int c_removedOps;
+
+private:
+	bool IsUsed( int parmIndex ) const;
 };

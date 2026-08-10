@@ -1,5 +1,8 @@
 #pragma once
 
+#include "render_types.h"
+#include "../../renderworld_local.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\renderer\jobs\render\renderwalkbsp.h
 // Recovered logical types: 1
@@ -23,3 +26,5 @@ struct renderWalkBSPParms_t
   nodeWorldArea_t *nodeWorldAreas;
   int *numNodeWorldAreas;
 };
+
+void RenderWalkBSP( const renderWalkBSPParms_t * parms );

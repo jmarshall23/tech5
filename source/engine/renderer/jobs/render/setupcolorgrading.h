@@ -1,5 +1,7 @@
 #pragma once
 
+#include "render_types.h"
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\renderer\jobs\render\setupcolorgrading.h
 // Recovered logical types: 1
@@ -20,3 +22,5 @@ struct setupColorGradingParms_t
   const idDeclRenderParm *rpColorGradingLUT;
   idImage *imageLUT;
 };
+
+void SetupColorGrading( const setupColorGradingParms_t * parms );

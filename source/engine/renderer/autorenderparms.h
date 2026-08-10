@@ -1,5 +1,7 @@
 #pragma once
 
+class idDeclRenderParm;
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\renderer\autorenderparms.h
 // Recovered logical types: 1
@@ -10,6 +12,8 @@
 class idAutoRenderParms
 {
 public:
+	idAutoRenderParms();
+
   const idDeclRenderParm *If;
   const idDeclRenderParm *Time;
   const idDeclRenderParm *Color;
