@@ -137,6 +137,17 @@ public:
             obscurityTest_t test) const;
     };
 
+    enum coverApproach_t : int {
+        COVER_APPROACH_FORWARD = 0,
+        COVER_APPROACH_LEFT = 1,
+        COVER_APPROACH_RIGHT = 2,
+        COVER_APPROACH_TURN_AROUND_LEFT = 3,
+        COVER_APPROACH_TURN_AROUND_RIGHT = 4,
+        COVER_APPROACH_WRAP_AROUND_LEFT = 5,
+        COVER_APPROACH_WRAP_AROUND_RIGHT = 6,
+        COVER_APPROACH_MAX = 7
+    };
+
     void SetDebugText(const char* text, aiDebugLevel_t debugLevel);
     void ClearErrorFlags(int flags);
     static int GetDebugLevel();
@@ -373,9 +384,36 @@ public:
     void GetFireAtLastKnownDuration(const idWeapon* weapon,
         int& minimum, int& maximum);
     idVec3 GetEyeOffset() const;
+    void SetEnableAutoFocus(bool enable);
+    void SetSpeakingVO();
+    void SetActionScript(const idList<idScriptAction, 5>& script,
+        idEntity* scriptExecutor, idEntity* activator);
+    void EndActionScript();
+    void OnActionScriptFinished(int currentTime);
+    void SetActionScriptFlag(int flags, bool setFlag);
+    bool ActionScriptFlagIsSet(int flags) const;
+    idAIActionFSM* GetActionFSM();
+    idAIAction* GetCurrentAction() const;
+    idFiniteStateMachine::fsmStatus_t GetActionStatus() const;
+    bool IsIdling() const;
+    void SetAlertCycle(alertCycle_t alertCycle);
+    void SetIdealAimFocusPoint(const idVec3& point, int timeout,
+        aiFocus_t focusType);
+    void SetIdealLookFocusPoint(const idVec3& point, int timeout,
+        aiFocus_t focusType);
+    void ClearAimFocus();
+    void ClearLookFocus();
+    void SetEnableHeadTracking(bool enable);
+    void SetSuppressHeadTracking(bool suppress);
+    int GetRunCycleIndexForType(runIndexType_t type) const;
+    int GetIdleIndexForType(runIndexType_t type) const;
 
     idAI2CoreRuntime core;
 };
+
+idAI2::coverApproach_t CoverApproachForDirection(
+    const idVec3& relativePosition, bool allowTurnAroundLeft,
+    bool allowTurnAroundRight);
 
 struct idAI2DebugRuntime {
     idAI2::aiDebugLevel_t textLevel;

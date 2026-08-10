@@ -1143,7 +1143,7 @@ idAIStateTransition::aiTransCode_t DebugDodge(
     if (ai != nullptr && ai->core.debugLevel > 0
             && ai->core.dodgeDebugLevel > 0
             && Services(*ai) != nullptr) {
-        const bool succeeded = transition != idAIStateTransition::AITRANS_NONE;
+        const bool succeeded = transition != 0;
         Services(*ai)->DrawDodgeDebug(*ai, text, succeeded);
         if (succeeded) {
             char message[320];
@@ -1328,4 +1328,421 @@ bool OkToFocus(const idVec3& target, const idVec3& origin,
         return false;
     }
     return actualDirection.Dot(requestedDirection) > -0.000000050005699f;
+}
+
+// Retail symbol: ?SetEnableAutoFocus@idAI2@@QAAX_N@Z
+// EA: 0x829F43A0, RVA: 0x009F43A0
+void idAI2::SetEnableAutoFocus(const bool enable) {
+    if (enable && !core.enableAutoFocus) {
+        core.lookFocusTimeout = core.currentTime;
+    }
+    core.enableAutoFocus = enable;
+}
+
+idCheckSurroundingsState::idCheckSurroundingsState()
+    : services(nullptr), unitsPerInch(1.0f), velocityScale(1.0f),
+      currentTime(0), directions{}, lookInterest{},
+      lookedAtEntitySpawnIds{}, lookedAtEntityTimes{} {
+    constexpr float diagonal = 0.7071067811865475f;
+    directions = {{
+        idVec3(1.0f, 0.0f, 0.0f),
+        idVec3(diagonal, diagonal, 0.0f),
+        idVec3(0.0f, 1.0f, 0.0f),
+        idVec3(-diagonal, diagonal, 0.0f),
+        idVec3(-1.0f, 0.0f, 0.0f),
+        idVec3(-diagonal, -diagonal, 0.0f),
+        idVec3(0.0f, -1.0f, 0.0f),
+        idVec3(diagonal, -diagonal, 0.0f)
+    }};
+    lookedAtEntitySpawnIds.fill(0x1FFF);
+}
+
+// Retail symbol: ?DistanceExponentToDistance@idCheckSurroundingsState@@ABAMH@Z
+// EA: 0x829F4410, RVA: 0x009F4410
+float idCheckSurroundingsState::DistanceExponentToDistance(
+        const unsigned int distanceExponent) const {
+    return std::pow(std::sqrt(2.0f),
+        static_cast<float>(distanceExponent))
+        * 10.0f * unitsPerInch * 12.0f;
+}
+
+// Retail symbol: ?FindNetDirectionInterest@idCheckSurroundingsState@@ABAMPBVidAI2@@ABVidVec3@@@Z
+// EA: 0x829F4478, RVA: 0x009F4478
+float idCheckSurroundingsState::FindNetDirectionInterest(
+        const idAI2* const ai, const idVec3& testDirection) const {
+    if (ai == nullptr) {
+        return 0.0f;
+    }
+    float netInterest = 0.0f;
+    const idVec3 scaledVelocity = ai->core.linearVelocity * velocityScale;
+    for (int index = 0; index < 8; ++index) {
+        const float alignment = testDirection.Dot(directions[index]);
+        if (alignment > 0.0f) {
+            const float directionalInterest = lookInterest[index]
+                + scaledVelocity.Dot(directions[index]);
+            netInterest += directionalInterest
+                * alignment * alignment;
+        }
+    }
+    return netInterest;
+}
+
+// Retail symbol: ?GetLookedAtElapsedTime@idCheckSurroundingsState@@QBAHPBVidEntity@@@Z
+// EA: 0x829F4660, RVA: 0x009F4660
+int idCheckSurroundingsState::GetLookedAtElapsedTime(
+        const idEntity* const entity) const {
+    const int spawnId = services != nullptr
+        ? services->EntitySpawnId(entity) : 0x1FFF;
+    for (int index = 0; index < 4; ++index) {
+        if (lookedAtEntitySpawnIds[index] == spawnId) {
+            return std::min(10000,
+                currentTime - lookedAtEntityTimes[index]);
+        }
+    }
+    return 10000;
+}
+
+// Retail symbol: ?SetLastLookedAtTime@idCheckSurroundingsState@@QAAXPBVidEntity@@H@Z
+// EA: 0x829F4700, RVA: 0x009F4700
+void idCheckSurroundingsState::SetLastLookedAtTime(
+        const idEntity* const entity, const int setTime) {
+    const int spawnId = services != nullptr
+        ? services->EntitySpawnId(entity) : 0x1FFF;
+    for (int index = 0; index < 4; ++index) {
+        if (lookedAtEntitySpawnIds[index] == spawnId) {
+            lookedAtEntityTimes[index] = setTime;
+            return;
+        }
+    }
+    int replace = 0;
+    for (int index = 0; index < 4; ++index) {
+        if (lookedAtEntitySpawnIds[index] == 0x1FFF) {
+            replace = index;
+            break;
+        }
+        if (lookedAtEntityTimes[index] < lookedAtEntityTimes[replace]) {
+            replace = index;
+        }
+    }
+    lookedAtEntitySpawnIds[replace] = spawnId;
+    lookedAtEntityTimes[replace] = setTime;
+}
+
+// Retail symbol: `idAI2::FindClosestFocus'::`2'::idLookDebug::~idLookDebug
+// EA: 0x829F47E8, RVA: 0x009F47E8
+idAI2LookDebug::~idAI2LookDebug() {
+    if (owner != nullptr && text != nullptr) {
+        owner->LookDebug(text, 1, duration);
+    }
+}
+
+// Retail symbol: ?SetSpeakingVO@idAI2@@QAAXXZ
+// EA: 0x829F4808, RVA: 0x009F4808
+void idAI2::SetSpeakingVO() {
+    if (core.actorClass != 2 && Services(*this) != nullptr) {
+        Services(*this)->EnableInteractionFaceAnimation(
+            *this, core.faceAnimationFlags);
+    }
+}
+
+// Retail symbol: ?SetActionScript@idAI2@@QAAXABV?$idList@VidScriptAction@@$04@@PAVidEntity@@1@Z
+// EA: 0x829F4910, RVA: 0x009F4910
+void idAI2::SetActionScript(
+        const idList<idScriptAction, 5>& script,
+        idEntity* const scriptExecutor, idEntity* const activator) {
+    if (!core.dead && Services(*this) != nullptr) {
+        Services(*this)->SetActionScript(
+            *this, script, scriptExecutor, activator);
+        core.actionScriptRunning = true;
+    }
+}
+
+// Retail symbol: ?EndActionScript@idAI2@@QAAXXZ
+// EA: 0x829F4970, RVA: 0x009F4970
+void idAI2::EndActionScript() {
+    if (Services(*this) != nullptr) {
+        Services(*this)->ClearActionScript(*this);
+    }
+    core.actionScriptRunning = false;
+}
+
+// Retail symbol: ?OnActionScriptFinished@idAI2@@QAAXH@Z
+// EA: 0x829F4980, RVA: 0x009F4980
+void idAI2::OnActionScriptFinished(const int currentTime) {
+    (void)currentTime;
+    core.painStimulusEnabled = core.defaultPainStimulusEnabled;
+}
+
+// Retail symbol: ?SetActionScriptFlag@idAI2@@QAAXH_N@Z
+// EA: 0x829F4998, RVA: 0x009F4998
+void idAI2::SetActionScriptFlag(const int flags,
+        const bool setFlag) {
+    if (setFlag) {
+        core.actionScriptFlags |= flags;
+    } else {
+        core.actionScriptFlags &= ~flags;
+    }
+}
+
+// Retail symbol: ?ActionScriptFlagIsSet@idAI2@@QBA_NH@Z
+// EA: 0x829F49C0, RVA: 0x009F49C0
+bool idAI2::ActionScriptFlagIsSet(const int flags) const {
+    return core.actionScriptRunning
+        && (core.actionScriptFlags & flags) != 0;
+}
+
+// Retail symbol: ?GetActionFSM@idAI2@@QAAPAVidAIActionFSM@@XZ
+// EA: 0x829F4A30, RVA: 0x009F4A30
+idAIActionFSM* idAI2::GetActionFSM() {
+    return Services(*this) != nullptr
+        ? Services(*this)->GetActionFSM(*this) : nullptr;
+}
+
+// Retail symbol: ?GetCurrentAction@idAI2@@QBAPAVidAIAction@@XZ
+// EA: 0x829F4A38, RVA: 0x009F4A38
+idAIAction* idAI2::GetCurrentAction() const {
+    return Services(*this) != nullptr
+        ? Services(*this)->GetCurrentAction(*this) : nullptr;
+}
+
+// Retail symbol: ?GetActionStatus@idAI2@@QBA?AW4fsmStatus_t@idFiniteStateMachine@@XZ
+// EA: 0x829F4A50, RVA: 0x009F4A50
+idFiniteStateMachine::fsmStatus_t idAI2::GetActionStatus() const {
+    return core.actionStatus;
+}
+
+// Retail symbol: ?IsIdling@idAI2@@QBA_NXZ
+// EA: 0x829F4A58, RVA: 0x009F4A58
+bool idAI2::IsIdling() const {
+    return GetCurrentAction() != nullptr && core.currentActionIsIdle;
+}
+
+// Retail symbol: ?SetAlertCycle@idAI2@@QAAXW4alertCycle_t@@@Z
+// EA: 0x829F4AA8, RVA: 0x009F4AA8
+void idAI2::SetAlertCycle(const alertCycle_t alertCycle) {
+    int nextCycle = static_cast<int>(alertCycle);
+    if (core.alwaysInCombat && nextCycle != 5 && nextCycle != 6) {
+        nextCycle = 3;
+    }
+    if (core.alertCycle != nextCycle) {
+        core.previousAlertCycle = core.alertCycle;
+    }
+    core.alertCycle = nextCycle;
+    if (nextCycle == 3) {
+        core.highestAlertCycle = 3;
+        if (core.previousAlertCycle != 3) {
+            core.lastSurprisedTime = core.currentTime;
+        }
+    } else if (nextCycle == 2) {
+        core.highestAlertCycle = std::max(core.highestAlertCycle, 2);
+    }
+    if (Services(*this) != nullptr) {
+        const int subWeb = nextCycle >= 0 && nextCycle < 11
+            ? static_cast<int>(AlertCycleToSubWeb(
+                static_cast<alertCycle_t>(nextCycle))) : 0;
+        Services(*this)->SetSubWeb(*this, subWeb);
+    }
+}
+
+// Retail symbol: ??0idAIFSMCallback@@QAA@XZ
+// EA: 0x829F4BC8, RVA: 0x009F4BC8
+idAIFSMCallback::idAIFSMCallback() : log(64) {
+}
+
+// Retail symbol: ?OnTransition@idAIFSMCallback@@UAAXPBVidFiniteStateMachine@@PBVidTypeInfo@@11H@Z
+// EA: 0x829F4C48, RVA: 0x009F4C48
+void idAIFSMCallback::OnTransition(
+        const idFiniteStateMachine* const fsm,
+        const idTypeInfo* const fromStateType,
+        const idTypeInfo* const toStateType,
+        const idTypeInfo* const transitionType,
+        const int transitionCode) {
+    idFSMLogEntry* const entry = log.Alloc();
+    if (entry == nullptr) {
+        return;
+    }
+    entry->type = idFSMLogEntry::LOGENTRY_TRANSITION;
+    entry->time = 0;
+    entry->fsm = fsm;
+    entry->curStateType = fromStateType;
+    entry->nextStateType = toStateType;
+    entry->transitionType = transitionType;
+    entry->transCode = transitionCode;
+}
+
+// Retail symbol: ?OnRestart@idAIFSMCallback@@UAAXPBVidFiniteStateMachine@@PBVidTypeInfo@@@Z
+// EA: 0x829F4CB8, RVA: 0x009F4CB8
+void idAIFSMCallback::OnRestart(
+        const idFiniteStateMachine* const fsm,
+        const idTypeInfo* const currentStateType) {
+    (void)currentStateType;
+    idFSMLogEntry* const entry = log.Alloc();
+    if (entry == nullptr) {
+        return;
+    }
+    entry->type = idFSMLogEntry::LOGENTRY_RESTART;
+    entry->time = 0;
+    entry->fsm = fsm;
+    entry->curStateType = nullptr;
+    entry->nextStateType = nullptr;
+    entry->transitionType = nullptr;
+    entry->transCode = 0;
+}
+
+// Retail symbol: ?OnError@idAIFSMCallback@@UAAXPBVidFiniteStateMachine@@PBVidTypeInfo@@1H@Z
+// EA: 0x829F4D30, RVA: 0x009F4D30
+void idAIFSMCallback::OnError(
+        const idFiniteStateMachine* const fsm,
+        const idTypeInfo* const currentStateType,
+        const idTypeInfo* const transitionType,
+        const int transitionCode) {
+    (void)currentStateType;
+    idFSMLogEntry* const entry = log.Alloc();
+    if (entry == nullptr) {
+        return;
+    }
+    entry->type = idFSMLogEntry::LOGENTRY_ERROR;
+    entry->time = 0;
+    entry->fsm = fsm;
+    entry->curStateType = nullptr;
+    entry->nextStateType = nullptr;
+    entry->transitionType = transitionType;
+    entry->transCode = transitionCode;
+}
+
+// Retail symbol: ?SetIdealAimFocusPoint@idAI2@@QAAXABVidVec3@@HW4aiFocus_t@@@Z
+// EA: 0x829F4D98, RVA: 0x009F4D98
+void idAI2::SetIdealAimFocusPoint(const idVec3& point,
+        const int timeout, const aiFocus_t focusType) {
+    if (Services(*this) != nullptr) {
+        Services(*this)->SetFocusPoint(*this, 0, point,
+            timeout, static_cast<int>(focusType));
+    }
+}
+
+// Retail symbol: ?SetIdealLookFocusPoint@idAI2@@QAAXABVidVec3@@HW4aiFocus_t@@@Z
+// EA: 0x829F4DB8, RVA: 0x009F4DB8
+void idAI2::SetIdealLookFocusPoint(const idVec3& point,
+        const int timeout, const aiFocus_t focusType) {
+    if (Services(*this) != nullptr) {
+        Services(*this)->SetFocusPoint(*this, 1, point,
+            timeout, static_cast<int>(focusType));
+    }
+}
+
+// Retail symbol: ?ClearAimFocus@idAI2@@QAAXXZ
+// EA: 0x829F4DD8, RVA: 0x009F4DD8
+void idAI2::ClearAimFocus() {
+    if (Services(*this) != nullptr) {
+        Services(*this)->ClearFocus(*this, 0);
+    }
+}
+
+// Retail symbol: ?ClearLookFocus@idAI2@@QAAXXZ
+// EA: 0x829F4DE8, RVA: 0x009F4DE8
+void idAI2::ClearLookFocus() {
+    if (Services(*this) != nullptr) {
+        Services(*this)->ClearFocus(*this, 1);
+    }
+}
+
+// Retail symbol: ?SetEnableHeadTracking@idAI2@@QAAX_N@Z
+// EA: 0x829F4DF8, RVA: 0x009F4DF8
+void idAI2::SetEnableHeadTracking(const bool enable) {
+    core.enableHeadTracking = enable;
+    if (Services(*this) != nullptr) {
+        Services(*this)->SetFocusTrackingEnabled(*this, 0, enable);
+        Services(*this)->SetFocusTrackingEnabled(*this, 1, enable);
+    }
+}
+
+// Retail symbol: ?SetSuppressHeadTracking@idAI2@@QAAX_N@Z
+// EA: 0x829F4E40, RVA: 0x009F4E40
+void idAI2::SetSuppressHeadTracking(const bool suppress) {
+    core.suppressHeadTracking = suppress;
+    if (Services(*this) != nullptr) {
+        Services(*this)->SetFocusTrackingSuppressed(*this, 0, suppress);
+        Services(*this)->SetFocusTrackingSuppressed(*this, 1, suppress);
+    }
+}
+
+// Retail symbol: ?CoverApproachForDirection@@YA?AW4coverApproach_t@idAI2@@ABVidVec3@@_N1@Z
+// EA: 0x829F4E80, RVA: 0x009F4E80
+idAI2::coverApproach_t CoverApproachForDirection(
+        const idVec3& relativePosition,
+        const bool allowTurnAroundLeft,
+        const bool allowTurnAroundRight) {
+    if (relativePosition.y > 0.0f) {
+        if (relativePosition.x > 0.0f) {
+            if (relativePosition.x > relativePosition.y) {
+                return idAI2::COVER_APPROACH_RIGHT;
+            }
+            if (allowTurnAroundRight) {
+                return idAI2::COVER_APPROACH_TURN_AROUND_RIGHT;
+            }
+            if (allowTurnAroundLeft) {
+                return idAI2::COVER_APPROACH_WRAP_AROUND_LEFT;
+            }
+            return idAI2::COVER_APPROACH_MAX;
+        }
+        if (-relativePosition.x <= relativePosition.y) {
+            if (allowTurnAroundLeft) {
+                return idAI2::COVER_APPROACH_TURN_AROUND_LEFT;
+            }
+            if (allowTurnAroundRight) {
+                return idAI2::COVER_APPROACH_WRAP_AROUND_RIGHT;
+            }
+            return idAI2::COVER_APPROACH_MAX;
+        }
+        return idAI2::COVER_APPROACH_LEFT;
+    }
+    if (std::fabs(relativePosition.x) < -relativePosition.y) {
+        return idAI2::COVER_APPROACH_FORWARD;
+    }
+    return relativePosition.x > 0.0f
+        ? idAI2::COVER_APPROACH_RIGHT : idAI2::COVER_APPROACH_LEFT;
+}
+
+// Retail symbol: ?GetRunCycleIndexForType@idAI2@@QBAHW4runIndexType_t@@@Z
+// EA: 0x829F4F40, RVA: 0x009F4F40
+int idAI2::GetRunCycleIndexForType(
+        const runIndexType_t type) const {
+    const int index = static_cast<int>(type);
+    if (index < 0 || index >= ANIMWEBAI_RUNINDEXTYPE_MAX) {
+        return -1;
+    }
+    if (type == ANIMWEBAI_RUNINDEXTYPE_NORMAL) {
+        return 0;
+    }
+    if (type == ANIMWEBAI_RUNINDEXTYPE_INJURED) {
+        if (Services(*this) != nullptr) {
+            Services(*this)->Print(
+                "idAI2::GetRunCycleIndexForType cannot directly select the injured type.\n");
+        }
+        return -1;
+    }
+    return core.runCycleIndices[index];
+}
+
+// Retail symbol: ?GetIdleIndexForType@idAI2@@QBAHW4runIndexType_t@@@Z
+// EA: 0x829F5048, RVA: 0x009F5048
+int idAI2::GetIdleIndexForType(
+        const runIndexType_t type) const {
+    const int index = static_cast<int>(type);
+    if (index < 0 || index >= ANIMWEBAI_RUNINDEXTYPE_MAX
+            || type == ANIMWEBAI_RUNINDEXTYPE_NORMAL
+            || type == ANIMWEBAI_RUNINDEXTYPE_SCRAMBLE
+            || type == ANIMWEBAI_RUNINDEXTYPE_FAR
+            || type == ANIMWEBAI_RUNINDEXTYPE_UP_STAIRS
+            || type == ANIMWEBAI_RUNINDEXTYPE_DOWN_STAIRS) {
+        return 0;
+    }
+    if (type == ANIMWEBAI_RUNINDEXTYPE_INJURED) {
+        if (Services(*this) != nullptr) {
+            Services(*this)->Print(
+                "idAI2::GetIdleIndexForType cannot directly select the injured type.\n");
+        }
+        return -1;
+    }
+    return core.idleIndices[index];
 }

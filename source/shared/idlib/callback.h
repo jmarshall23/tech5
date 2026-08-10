@@ -168,13 +168,13 @@ public:
 
 class idAIFSMCallback : public idFSMCallback {
 public:
-    idAIFSMCallback() : log(64) {}
+    idAIFSMCallback();
     ~idAIFSMCallback() override = default;
     void OnTransition(const idFiniteStateMachine*, const idTypeInfo*,
-        const idTypeInfo*, const idTypeInfo*, int) override {}
-    void OnRestart(const idFiniteStateMachine*, const idTypeInfo*) override {}
+        const idTypeInfo*, const idTypeInfo*, int) override;
+    void OnRestart(const idFiniteStateMachine*, const idTypeInfo*) override;
     void OnError(const idFiniteStateMachine*, const idTypeInfo*,
-        const idTypeInfo*, int) override {}
+        const idTypeInfo*, int) override;
 
     idFSMLog log;
 };

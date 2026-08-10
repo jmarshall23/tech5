@@ -46,6 +46,8 @@ idRenderModelManyBoxes::idRenderModelManyBoxes()
     std::memset(vertexBuffers, 0, sizeof(vertexBuffers));
     std::memset(&triangles, 0, sizeof(triangles));
     std::memset(&indexBuffer, 0, sizeof(indexBuffer));
+    g.addAlways = 1;
+    g.noShadow = 1;
 }
 
 idRenderModelManyBoxes::~idRenderModelManyBoxes() {
@@ -72,7 +74,9 @@ bool idRenderModelManyBoxes::CommitSubclass() {
     delete[] triangles.indexes;
     triangles.verts = nullptr;
     triangles.indexes = nullptr;
-    const int boxCount = (std::min)(boxes.Num(), 256);
+    // The original double-buffered vertex allocation held 24,576 vertices,
+    // or 1,024 boxes at 24 vertices per box.
+    const int boxCount = (std::min)(boxes.Num(), 1024);
     triangles.numVerts = boxCount * 24;
     triangles.numIndexes = boxCount * 36;
     triangles.vertexMask = triangles.cpuVertexMask = 0x1Fu;

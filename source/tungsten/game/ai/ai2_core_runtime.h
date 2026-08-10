@@ -2,17 +2,21 @@
 
 #include "aievents/aievent.h"
 #include "cover/coveractions.h"
+#include "fsm/aifsm.h"
 #include "../gamesys/eventarg.h"
 #include "../gamesys/eventdef.h"
 #include "../../../engine/cm/jobs/collisionresults.h"
 #include "../../../shared/idlib/bv/bounds.h"
 #include "../../../shared/idlib/index.h"
+#include "../../../shared/idlib/containers/list.h"
+#include "../../../shared/idlib/callback.h"
 #include "idlib/math/vector.h"
 
 #include <array>
 #include <vector>
 
 class idAI2;
+class idAI2CoreServices;
 class idAtomicString;
 class idDeclDamage;
 class idDeclFacialAnimationSet;
@@ -29,6 +33,9 @@ class idAIEventSound;
 class idAIEventSphere;
 class idClipModel;
 class idEncounterGroup;
+class idAIActionFSM;
+class idAIAction;
+class idScriptAction;
 enum invalidJointIndex_t : int;
 using idJointIndex = idIndex<short, invalidJointIndex_t>;
 
@@ -39,11 +46,17 @@ enum walkState_t : int;
 enum aimPoint_t : int;
 enum aiFocus_t : int;
 
-class idAIStateTransition {
-public:
-    enum aiTransCode_t : int {
-        AITRANS_NONE = 0
-    };
+enum runIndexType_t : int {
+    ANIMWEBAI_RUNINDEXTYPE_NORMAL = 0,
+    ANIMWEBAI_RUNINDEXTYPE_INJURED = 1,
+    ANIMWEBAI_RUNINDEXTYPE_SCRAMBLE = 2,
+    ANIMWEBAI_RUNINDEXTYPE_FAR = 3,
+    ANIMWEBAI_RUNINDEXTYPE_GUNDOWN = 4,
+    ANIMWEBAI_RUNINDEXTYPE_NARROW = 5,
+    ANIMWEBAI_RUNINDEXTYPE_UP_STAIRS = 6,
+    ANIMWEBAI_RUNINDEXTYPE_DOWN_STAIRS = 7,
+    ANIMWEBAI_RUNINDEXTYPE_DUCK = 8,
+    ANIMWEBAI_RUNINDEXTYPE_MAX = 9
 };
 
 class idAIEditable {
@@ -93,6 +106,37 @@ struct idAI2DynamicMerchantGood {
           singular(false), requiredCompletedJob(nullptr),
           expiredJob(nullptr) {
     }
+};
+
+class idCheckSurroundingsState {
+public:
+    idCheckSurroundingsState();
+
+    float DistanceExponentToDistance(unsigned int distanceExponent) const;
+    float FindNetDirectionInterest(const idAI2* ai,
+        const idVec3& testDirection) const;
+    int GetLookedAtElapsedTime(const idEntity* entity) const;
+    void SetLastLookedAtTime(const idEntity* entity, int setTime);
+
+    idAI2CoreServices* services;
+    float unitsPerInch;
+    float velocityScale;
+    int currentTime;
+    std::array<idVec3, 8> directions;
+    std::array<float, 8> lookInterest;
+    std::array<int, 4> lookedAtEntitySpawnIds;
+    std::array<int, 4> lookedAtEntityTimes;
+};
+
+class idAI2LookDebug {
+public:
+    idAI2LookDebug(idAI2* owner, const char* text, int duration)
+        : owner(owner), text(text), duration(duration) {}
+    ~idAI2LookDebug();
+
+    idAI2* owner;
+    const char* text;
+    int duration;
 };
 
 struct idAI2WaterEffectRuntime {
@@ -254,6 +298,20 @@ public:
         int, int&, int&) const {}
     virtual bool GetBlendedEyeOffset(const idAI2&,
         idVec3&) const { return false; }
+    virtual int EntitySpawnId(const idEntity*) const { return 0x1FFF; }
+    virtual void SetActionScript(idAI2&,
+        const idList<idScriptAction, 5>&, idEntity*, idEntity*) {}
+    virtual void ClearActionScript(idAI2&) {}
+    virtual idAIActionFSM* GetActionFSM(idAI2&) const { return nullptr; }
+    virtual idAIAction* GetCurrentAction(const idAI2&) const {
+        return nullptr;
+    }
+    virtual void SetSubWeb(idAI2&, int) {}
+    virtual void SetFocusPoint(idAI2&, int, const idVec3&, int,
+        int) {}
+    virtual void ClearFocus(idAI2&, int) {}
+    virtual void SetFocusTrackingEnabled(idAI2&, int, bool) {}
+    virtual void SetFocusTrackingSuppressed(idAI2&, int, bool) {}
 };
 
 struct idAI2CoreRuntime {
@@ -381,6 +439,22 @@ struct idAI2CoreRuntime {
     int aimFocusAimPoint;
     std::array<int, AISKILL_MAX> minFireAtLastKnownDuration;
     std::array<int, AISKILL_MAX> maxFireAtLastKnownDuration;
+    idVec3 linearVelocity;
+    bool enableAutoFocus;
+    int lookFocusTimeout;
+    bool dead;
+    int actionScriptFlags;
+    bool defaultPainStimulusEnabled;
+    idFiniteStateMachine::fsmStatus_t actionStatus;
+    bool currentActionIsIdle;
+    bool alwaysInCombat;
+    int alertCycle;
+    int previousAlertCycle;
+    int highestAlertCycle;
+    int lastSurprisedTime;
+    bool suppressHeadTracking;
+    std::array<int, ANIMWEBAI_RUNINDEXTYPE_MAX> runCycleIndices;
+    std::array<int, ANIMWEBAI_RUNINDEXTYPE_MAX> idleIndices;
 
     idAI2CoreRuntime()
         : services(nullptr), entranceAnim(ANIMOVERRIDE_NONE),
@@ -445,7 +519,15 @@ struct idAI2CoreRuntime {
           forcedWalkModifierName(nullptr), forcedRunModifierName(nullptr),
           configuredContents(0), physicsContents{ 0, 0 }, solid(true),
           aimFocusAimPoint(0), minFireAtLastKnownDuration{},
-          maxFireAtLastKnownDuration{} {
+          maxFireAtLastKnownDuration{},
+          linearVelocity(0.0f, 0.0f, 0.0f), enableAutoFocus(false),
+          lookFocusTimeout(0), dead(false), actionScriptFlags(0),
+          defaultPainStimulusEnabled(false),
+          actionStatus(idFiniteStateMachine::FSMSTATUS_DONE),
+          currentActionIsIdle(false), alwaysInCombat(false),
+          alertCycle(1), previousAlertCycle(1), highestAlertCycle(1),
+          lastSurprisedTime(0), suppressHeadTracking(false),
+          runCycleIndices{}, idleIndices{} {
         skillAccuracy.fill(ACCURACY_DECENT);
         weaponHolsterSlots.fill(-1);
     }

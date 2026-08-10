@@ -238,53 +238,38 @@ void ParticleTexCoords(const particleInput_t& input, particleGen_t& particle,
     }
 }
 
-float ParticleLife(const idParticleStage& stage,
-    const idLookupTable* tables, idRandom2& random) {
-    return (std::max)(0.001f,
-        stage.systemProperties.particleLife.Compute(tables, 0.0f, random));
+unsigned int ParticleSeed(const int diversity, const int particleIndex,
+        const int cycle, const bool randomOnCycle) {
+    unsigned int seed = static_cast<unsigned int>(diversity) & 0x7FFFu;
+    seed ^= static_cast<unsigned int>(particleIndex + 1) * 0x9E3779B9u;
+    if (randomOnCycle)
+        seed ^= static_cast<unsigned int>(cycle + 1) * 0x85EBCA6Bu;
+    return seed;
 }
 
-bool PrepareParticle(particleGen_t& particle, const idParticleStage& stage,
-    const idLookupTable* tables, const int particleIndex,
-    const int diversity, const float stageAge, const int totalParticles) {
-    const int particleCount = (std::max)(1, totalParticles);
-    const float cycleSeconds = (std::max)(0.001f,
-        stage.cycleMsec * 0.001f);
-    const float spawnWindow = (std::max)(0.0f, stage.bunchTime)
-        * (std::max)(0.0f, stage.systemProperties.spawnBunching);
-    const float spawnStep = spawnWindow / static_cast<float>(particleCount);
-    const float particleAge = stageAge - spawnStep * particleIndex;
-    if (particleAge < 0.0f) {
-        return false;
-    }
-
-    const int cycle = static_cast<int>(std::floor(particleAge / cycleSeconds));
-    if (stage.systemProperties.cycles > 0
-        && cycle >= stage.systemProperties.cycles) {
-        return false;
-    }
-
-    const unsigned int seed = static_cast<unsigned int>(diversity)
-        ^ (static_cast<unsigned int>(particleIndex) * 0x9E3779B9u)
-        ^ (stage.systemProperties.randomOnCycle
-            ? static_cast<unsigned int>(cycle) * 0x85EBCA6Bu : 0u);
-    particle.index = particleIndex;
-    particle.random.SetSeed(seed);
-    particle.particleLife = ParticleLife(stage, tables, particle.random);
-    particle.originalRandom = particle.random;
-    particle.cycleAge = particleAge - cycle * cycleSeconds;
-    particle.totalAge = particleAge;
-    if (particle.cycleAge > particle.particleLife) return false;
-    particle.frac = particle.cycleAge / particle.particleLife;
-    particle.parmVal = Clamp01(particle.frac);
-    return particle.frac >= 0.0f && particle.frac <= 1.0f;
+void AverageStageDepths(const deferredParticleGenParms_t* parms,
+        const int firstVertex, const int endVertex) {
+    if (parms == nullptr || parms->quadDepth == nullptr ||
+            endVertex <= firstVertex) return;
+    const int firstQuad = firstVertex / 4;
+    const int numQuads = (endVertex - firstVertex) / 4;
+    if (numQuads <= 0) return;
+    float total = 0.0f;
+    for (int index = 0; index < numQuads; ++index)
+        total += parms->quadDepth[firstQuad + index];
+    const float average = total / static_cast<float>(numQuads);
+    for (int index = 0; index < numQuads; ++index)
+        parms->quadDepth[firstQuad + index] = average;
 }
 
-int GenerateStage(const deferredParticleGenParms_t* parms,
+int GenerateModelStage(const deferredParticleGenParms_t* parms,
     const idParticleStage& stage, const particleInput_t& baseInput,
-    const int diversity, const float stageAge, int vertOffset) {
+    const int diversity, const int stageTimeMilliseconds,
+    const int renderTimeMilliseconds, const int stopTime,
+    const int cycleMilliseconds, int vertOffset) {
     if (parms == nullptr || parms->verts == nullptr
-        || vertOffset >= parms->maxVertsToGen || stage.hidden) {
+        || vertOffset >= parms->maxVertsToGen || stage.hidden ||
+        stage.systemProperties.material == nullptr || cycleMilliseconds <= 0) {
         return 0;
     }
 
@@ -295,19 +280,47 @@ int GenerateStage(const deferredParticleGenParms_t* parms,
     input.staticVerts = stage.staticVerts != nullptr
         ? stage.staticVerts : parms->staticVerts;
     input.stageAxis = ParticleStageAxis(&stage, diversity);
-    input.totalParticles = baseInput.totalParticles > 0
-        ? baseInput.totalParticles
-        : (std::max)(1, static_cast<int>(
-            stage.systemProperties.totalParticles));
+    input.influenceSpheres = nullptr;
+    input.numInfluenceSpheres = 0;
+    input.totalParticles = (std::max)(1, baseInput.totalParticles);
 
     int generated = 0;
-    for (int index = 0; index < input.totalParticles; ++index) {
-        particleGen_t particle{};
-        if (!PrepareParticle(particle, stage, parms->tables, index,
-                diversity, stageAge - stage.systemProperties.timeOffset,
-                input.totalParticles)) {
+    const int spawnWindow = static_cast<int>((std::max)(0.0f,
+        stage.systemProperties.spawnBunching * stage.bunchTime) * 1000.0f);
+    for (int order = 0; order < input.totalParticles; ++order) {
+        const int index = stage.systemProperties.sortType ==
+                PSORT_TYPE_NEWEST_TO_OLDEST
+            ? input.totalParticles - 1 - order : order;
+        const int particleTime = stageTimeMilliseconds -
+            index * spawnWindow / input.totalParticles;
+        if (particleTime < 0) continue;
+        const int cycle = particleTime / cycleMilliseconds;
+        if (stage.systemProperties.cycles > 0 &&
+                cycle >= stage.systemProperties.cycles) continue;
+        const int cycleAgeMilliseconds = particleTime % cycleMilliseconds;
+        if (stopTime != 0 &&
+                renderTimeMilliseconds - cycleAgeMilliseconds >= stopTime)
             continue;
-        }
+
+        particleGen_t particle;
+        particle.index = index;
+        particle.random.SetSeed(ParticleSeed(diversity, index, cycle,
+            stage.systemProperties.randomOnCycle));
+        const float indexFraction = static_cast<float>(index) /
+            static_cast<float>(input.totalParticles);
+        particle.particleLife = (std::max)(0.001f,
+            stage.systemProperties.particleLife.Compute(parms->tables,
+                indexFraction, particle.random));
+        particle.originalRandom = particle.random;
+        particle.cycleAge = cycleAgeMilliseconds * 0.001f;
+        particle.totalAge = particleTime * 0.001f;
+        if (particle.cycleAge > particle.particleLife) continue;
+        particle.frac = particle.cycleAge / particle.particleLife;
+        particle.parmVal = stage.systemProperties.useSysTime != 0.0f
+            ? renderTimeMilliseconds * 0.001f *
+                stage.systemProperties.useSysTime
+            : Clamp01(particle.frac);
+
         const int vertsPerParticle = stage.NumVertsPerParticle();
         if (vertOffset + generated + vertsPerParticle
             > parms->maxVertsToGen) {
@@ -321,6 +334,9 @@ int GenerateStage(const deferredParticleGenParms_t* parms,
         };
         generated += CreateParticle(input, particle, output);
     }
+    if (stage.systemProperties.sortType == PSORT_TYPE_NEWEST_TO_OLDEST ||
+            stage.systemProperties.sortType == PSORT_TYPE_OLDEST_TO_NEWEST)
+        AverageStageDepths(parms, vertOffset, vertOffset + generated);
     return generated;
 }
 
@@ -852,42 +868,48 @@ int GenParticleStage(const deferredParticleGenParms_t* parms,
     const modelParticleParms_t& model = parms->modelParticleParms[index];
     const idParticleStage& stage = *parms->stage;
     particleInput_t input{};
+    input.modelAxis = model.axis;
     input.globalOrigin = model.origin;
-    input.globalAxis = model.axis;
+    input.globalAxis[0] = model.axis[0] * model.scale.x;
+    input.globalAxis[1] = model.axis[1] * model.scale.y;
+    input.globalAxis[2] = model.axis[2] * model.scale.z;
     input.localVelocity = model.velocity;
+    input.localVelocity.NormalizeFast();
     input.distribScale = model.distribScale;
-    input.wind.Set(model.wind.x, model.wind.y, model.wind.z);
+    input.wind = TransformVector(model.axis,
+        idAngles(model.wind.x, model.wind.y, model.wind.z).ToForward() *
+            model.wind.w);
     input.entityColor = model.color;
-    input.sizeScale = (std::max)({ std::fabs(model.scale.x),
-        std::fabs(model.scale.y), std::fabs(model.scale.z), 0.0001f });
-    const float lodFraction = Clamp01(static_cast<float>(model.lod)
-        * (1.0f / 3.0f));
-    const float lodBlend = Clamp01(lodFraction
-        + stage.lodParms.lerpAmount * (1.0f - lodFraction));
+    const float lodBlend = Clamp01(static_cast<float>(model.lod) *
+        stage.lodParms.lerpAmount);
     input.totalParticles = static_cast<int>(std::floor(
-        stage.lodParms.totalParticles
-        + (stage.systemProperties.totalParticles
-            - stage.lodParms.totalParticles) * lodBlend + 0.5f));
+        stage.systemProperties.totalParticles +
+        (stage.lodParms.totalParticles -
+            stage.systemProperties.totalParticles) * lodBlend + 0.5f));
     input.totalParticles = (std::max)(1, input.totalParticles);
-    input.sizeScale *= stage.lodParms.sizeScale
-        + (1.0f - stage.lodParms.sizeScale) * lodBlend;
+    input.sizeScale = 1.0f +
+        (stage.lodParms.sizeScale - 1.0f) * lodBlend;
     input.fade = model.coverage;
-    input.shadow = model.shadow;
+    input.shadow = stage.colorAttributes.useGlobalShadows
+        ? model.shadow : 1.0f;
     input.alphaScaleOverride = model.alphaScaleOverride;
     if (parms->renderView != nullptr) {
         input.localViewOrg = parms->renderView->viewOrg;
         input.localViewLeft = parms->renderView->viewLeft;
         input.localViewUp = parms->renderView->viewUp;
     }
-    const float age = parms->renderView != nullptr
-        ? parms->renderView->renderTime * 0.001f - model.timeOffset
-        : -model.timeOffset;
-    if (model.stopTime > 0 && parms->renderView != nullptr
-        && parms->renderView->renderTime > model.stopTime) {
-        return 0;
-    }
-    return GenerateStage(parms, *parms->stage, input, model.diversity,
-        age, vertOffset);
+    const int renderTime = parms->renderView != nullptr
+        ? parms->renderView->renderTime : 0;
+    const int stageTime = renderTime - static_cast<int>((
+        stage.systemProperties.timeOffset + model.timeOffset) * 1000.0f);
+    const float deadTime = parms->deadTime > 0.0f
+        ? parms->deadTime : stage.maxDeadTime;
+    const int cycleMilliseconds = static_cast<int>((
+        stage.maxParticleLife + deadTime) * 1000.0f);
+    const int diversity = (stage.systemProperties.diversity +
+        model.diversity) & 0x7FFF;
+    return GenerateModelStage(parms, stage, input, diversity, stageTime,
+        renderTime, model.stopTime, cycleMilliseconds, vertOffset);
 }
 
 int GenEffectStage(const deferredParticleGenParms_t* parms,
@@ -898,10 +920,14 @@ int GenEffectStage(const deferredParticleGenParms_t* parms,
     }
     const effectParticleParms_t& effect = parms->effectParticleParms[index];
     if (effect.stage == nullptr) return 0;
+    const idParticleStage& stage = *effect.stage;
+    if (stage.hidden || stage.systemProperties.material == nullptr)
+        return 0;
     particleInput_t input{};
-    input.globalOrigin = effect.origin;
+    input.modelAxis = effect.axis;
     input.globalAxis = effect.axis;
     input.localVelocity = effect.velocity;
+    input.localVelocity.NormalizeFast();
     input.distribScale.Set(1.0f, 1.0f, 1.0f);
     input.wind = effect.wind;
     const float red = static_cast<float>((effect.color >> 0) & 0xFFu)
@@ -910,29 +936,81 @@ int GenEffectStage(const deferredParticleGenParms_t* parms,
         * (1.0f / 255.0f);
     const float blue = static_cast<float>((effect.color >> 16) & 0xFFu)
         * (1.0f / 255.0f);
-    const float alpha = static_cast<float>((effect.color >> 24) & 0xFFu)
-        * (1.0f / 255.0f);
-    input.entityColor.Set(red, green, blue, alpha);
+    input.entityColor.Set(red, green, blue, 1.0f);
     input.sizeScale = 1.0f;
     input.fade = 1.0f;
     input.shadow = effect.shadow;
     input.alphaScaleOverride = 1.0f;
-    input.totalParticles = effect.numParticles > 0
+    const int particlesToGenerate = effect.numParticles > 0
         ? effect.numParticles
         : (std::max)(1, static_cast<int>(
-            effect.stage->systemProperties.totalParticles));
+            stage.systemProperties.totalParticles));
+    input.totalParticles = (std::max)(1, static_cast<int>(
+        stage.systemProperties.totalParticles));
     if (parms->renderView != nullptr) {
         input.localViewOrg = parms->renderView->viewOrg;
         input.localViewLeft = parms->renderView->viewLeft;
         input.localViewUp = parms->renderView->viewUp;
     }
-    const float age = (effect.currTime - effect.startTime) * 0.001f;
-    if (effect.duration > 0 && effect.currTime - effect.startTime
-        > effect.duration) {
-        return 0;
+    const int renderTime = parms->renderView != nullptr
+        ? parms->renderView->renderTime : effect.currTime;
+    const int previousRenderTime = parms->renderView != nullptr
+        ? renderTime - parms->renderView->deltaTime : renderTime;
+    input.globalOrigin = effect.origin + effect.velocity *
+        ((previousRenderTime - effect.currTime) * 0.001f);
+    input.stage = &stage;
+    input.tables = parms->tables;
+    input.view = parms->renderView;
+    input.staticVerts = stage.staticVerts != nullptr
+        ? stage.staticVerts : parms->staticVerts;
+    input.stageAxis = ParticleStageAxis(&stage,
+        (stage.systemProperties.diversity + effect.diversity) & 0x7FFF);
+    input.influenceSpheres = nullptr;
+    input.numInfluenceSpheres = 0;
+
+    const int spawnWindow = static_cast<int>((std::max)(0.0f,
+        stage.systemProperties.spawnBunching * stage.bunchTime) * 1000.0f);
+    int generated = 0;
+    for (int order = 0; order < particlesToGenerate; ++order) {
+        const int particleIndex = stage.systemProperties.sortType ==
+                PSORT_TYPE_NEWEST_TO_OLDEST
+            ? particlesToGenerate - 1 - order : order;
+        const int emissionTime = effect.startTime +
+            particleIndex * spawnWindow / input.totalParticles;
+        const int ageMilliseconds = renderTime - emissionTime;
+        if (ageMilliseconds < 0) continue;
+
+        particleGen_t particle;
+        particle.index = particleIndex;
+        particle.random.SetSeed(ParticleSeed(
+            stage.systemProperties.diversity + effect.diversity,
+            particleIndex, 0, false));
+        particle.particleLife = (std::max)(0.001f,
+            stage.systemProperties.particleLife.Compute(parms->tables,
+                static_cast<float>(particleIndex) /
+                    static_cast<float>(input.totalParticles),
+                particle.random));
+        particle.originalRandom = particle.random;
+        particle.cycleAge = ageMilliseconds * 0.001f;
+        particle.totalAge = particle.cycleAge;
+        if (particle.cycleAge >= particle.particleLife) continue;
+        particle.frac = particle.cycleAge / particle.particleLife;
+        particle.parmVal = Clamp01(particle.frac);
+
+        const int vertexCount = stage.NumVertsPerParticle();
+        if (vertOffset + generated + vertexCount > parms->maxVertsToGen)
+            break;
+        particleOutput_t output = {
+            parms->verts + vertOffset + generated,
+            parms->quadDepth != nullptr
+                ? parms->quadDepth + (vertOffset + generated) / 4
+                : nullptr
+        };
+        generated += CreateParticle(input, particle, output);
     }
-    return GenerateStage(parms, *effect.stage, input, effect.diversity,
-        age, vertOffset);
+    if (stage.systemProperties.sortType == PSORT_TYPE_NEWEST_TO_OLDEST)
+        AverageStageDepths(parms, vertOffset, vertOffset + generated);
+    return generated;
 }
 
 void ParticleGenJob(const deferredParticleGenParms_t* parms) {

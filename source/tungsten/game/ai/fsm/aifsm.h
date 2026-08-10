@@ -13,6 +13,12 @@ class idVehicleBaseFSM;
 // AI specialization without depending on the unsafe generated header.
 class idFiniteStateMachine {
 public:
+    enum fsmStatus_t : int {
+        FSMSTATUS_DONE = 0,
+        FSMSTATUS_WORKING = 1,
+        FSMSTATUS_ERROR = 2
+    };
+
     idFiniteStateMachine()
         : actionCallerState(nullptr)
         , lastWorkTransCode(0)
