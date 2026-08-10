@@ -6,11 +6,16 @@
 #include "declrenderprog.h"
 #include "imagemanager.h"
 #include "image.h"
+#include "ingamevideo.h"
 #include "render.h"
 #include "renderdestination.h"
+#include "renderlight.h"
+#include "renderlightcommitted.h"
+#include "renderlog.h"
 #include "renderview.h"
 #include "renderworld_local.h"
 #include "triangles.h"
+#include "virtualtexturesystem.h"
 #include "jobs/render/parmstate.h"
 
 #include <algorithm>
@@ -209,43 +214,6 @@ idRenderSystemLocal::idRenderSystemLocal() : insideEndFrame( false ),
 
 idRenderSystemLocal::~idRenderSystemLocal() { Shutdown(); }
 
-void idRenderSystemLocal::Init() {
-	InitContext();
-	if ( rendererD3D9.IsInitialized() ) {
-		wrapperContext_t context;
-		context.d3d = rendererD3D9.GetDevice();
-		GL_SetWrapperContext( context );
-		GL_SetDefaultState();
-		globalImages->Init();
-		idCodeRenderParm::ResolveIRenderParmResources();
-		renderThreadParmState->Init();
-		mtrDefault = static_cast< const idMaterial * >(
-			idMaterial::resourceList.Load( "_default", true ) );
-		progDepthOnly = static_cast< const idDeclRenderProg * >(
-			idDeclRenderProg::resourceList.Load( "depthOnly", true ) );
-		progColorOnly = static_cast< const idDeclRenderProg * >(
-			idDeclRenderProg::resourceList.Load( "colorOnly", true ) );
-		progTextureOnly = static_cast< const idDeclRenderProg * >(
-			idDeclRenderProg::resourceList.Load( "textureOnly", true ) );
-		progBasicBlend = LoadProgram( "basicBlend" );
-		progOccluderDepthOnly = LoadProgram( "occluderDepthOnly" );
-		progDeferredPointLight = LoadProgram( "deferredPointLight" );
-		progDeferredSpotLight = LoadProgram( "deferredSpotLight" );
-		progDeferredParallelLight = LoadProgram( "deferredParallelLight" );
-		progGlobalFog = LoadProgram( "globalFog" );
-		progPostProcess = LoadProgram( "postProcess" );
-		rpFrameNumber = idDeclRenderParm::FindByName( "frameNumber", true );
-		rpViewColor = idDeclRenderParm::FindByName( "viewColor", true );
-
-		unitSquareTris = CreateUnitSquare();
-		unitCubeTris = CreateCube( -1.0f, 1.0f );
-		zeroOneCubeTris = CreateCube( 0.0f, 1.0f );
-		extrudeBoxTris = CreateCube( -1.0f, 1.0f );
-
-		InitRenderTargets();
-	}
-}
-
 void idRenderSystemLocal::InitRenderTargets() {
 	if ( globalImages == nullptr || !rendererD3D9.IsInitialized() ) return;
 	if ( renderDestDefault == nullptr ) renderDestDefault = new idRenderDestination();
@@ -304,44 +272,6 @@ bool idRenderSystemLocal::ResetContext( const int width, const int height,
 	return true;
 }
 
-void idRenderSystemLocal::Init2() {
-	if ( !rendererD3D9.IsInitialized() ) Init();
-}
-void idRenderSystemLocal::Shutdown() {
-	while ( worlds != nullptr ) {
-		idRenderWorld * const world = reinterpret_cast< idRenderWorld * >( worlds );
-		worlds = reinterpret_cast< idRenderWorldLocal * >(
-			R_GetNextRenderWorld( world ) );
-		R_DestroyRenderWorld( world );
-	}
-	primaryWorld = nullptr;
-	delete renderDestDefault;
-	renderDestDefault = nullptr;
-	for ( int index = 0; index < 2; ++index ) {
-		delete renderDestViewColor[index];
-		renderDestViewColor[index] = nullptr;
-		delete renderDestDistortion[index];
-		renderDestDistortion[index] = nullptr;
-		if ( imgViewColor[index] != nullptr ) imgViewColor[index]->PurgeImage();
-		if ( imgDistortion[index] != nullptr ) imgDistortion[index]->PurgeImage();
-		imgViewColor[index] = nullptr;
-		imgDistortion[index] = nullptr;
-	}
-	delete renderDestViewDepth;
-	renderDestViewDepth = nullptr;
-	delete renderDestGui;
-	renderDestGui = nullptr;
-	if ( imgViewDepth != nullptr ) imgViewDepth->PurgeImage();
-	if ( imgGui != nullptr ) imgGui->PurgeImage();
-	imgViewDepth = imgGui = nullptr;
-	DestroyTriangles( unitSquareTris );
-	DestroyTriangles( unitCubeTris );
-	DestroyTriangles( zeroOneCubeTris );
-	DestroyTriangles( extrudeBoxTris );
-	if ( globalImages != nullptr ) globalImages->Shutdown();
-	rendererD3D9.Shutdown();
-	renderingIsReadyForSwapbuffers = false;
-}
 void idRenderSystemLocal::RenderFrame( void *, const idRenderFrameInfo * info,
 	bool, bool, bool ) {
 	if ( info != nullptr ) currentRenderFrameInfo = *info;
@@ -349,7 +279,9 @@ void idRenderSystemLocal::RenderFrame( void *, const idRenderFrameInfo * info,
 	if ( !rendererD3D9.EnsureReady() && rendererD3D9.IsDeviceLost() )
 		ResetContext( windowWidth, windowHeight, IsFullscreen(), multisamples );
 	if ( !rendererD3D9.EnsureReady() ) return;
+	videoManager->Update();
 	GL_StartFrame( frameCount );
+	renderLog.StartFrame();
 }
 void idRenderSystemLocal::EndFrame( void * window, int width, int height,
 	idRenderWorld * world, idRenderModel ** models, int numModels, bool,
@@ -380,11 +312,13 @@ void idRenderSystemLocal::EndFrame( void * window, int width, int height,
 				renderState.RenderSingleView( localWorld, currentRenderView );
 		}
 	}
+	renderLog.EndFrame();
 	GL_EndFrame();
 	const wrapperStats_t stats = GL_GetCurrentStats();
 	drawsMetric.Log( static_cast< float >( stats.c_drawElements ) );
 	trisMetric.Log( static_cast< float >( stats.c_drawIndices / 3 ) );
 	vertsMetric.Log( static_cast< float >( stats.c_drawVertices ) );
+	virtualTextureSystem.UpdateFilterParms( false );
 	if ( allowSwap && inhibitRendering == 0 ) SwapBuffers( window, true );
 	++frameCount;
 	insideEndFrame = false;
@@ -403,17 +337,29 @@ void idRenderSystemLocal::ToolEndFrame( void * window, int width, int height,
 		false, false, true, flags );
 }
 int idRenderSystemLocal::FrameNumber() { return frameCount; }
-bool idRenderSystemLocal::SyncRenderThread( bool ) { GL_Finish(); renderSynced = true; return true; }
-void idRenderSystemLocal::BeginBinkVideo( void *, const char *, videoFlags_t flags,
-	idRenderVideoOverlay * overlay ) { videoOverlay = overlay; binkLoaded = true; binkPlaying = flags != VIDEO_EXIT; }
-bool idRenderSystemLocal::BinkVideoIsLoaded() { return binkLoaded; }
-bool idRenderSystemLocal::BinkVideoIsPlaying() { return binkPlaying; }
-void idRenderSystemLocal::FreeBinkVideo() { binkLoaded = binkPlaying = false; videoOverlay = nullptr; }
-void idRenderSystemLocal::AllowBackgroundSwaps( bool allow ) { allowBackgroundSwaps = allow; }
-void idRenderSystemLocal::BeginAutomaticBackgroundSwaps( void *, bool loading ) { automaticBackgroundSwapsEnabled = true; renderLoadingIcon = loading; }
-void idRenderSystemLocal::EndAutomaticBackgroundSwaps() { automaticBackgroundSwapsEnabled = false; }
-void idRenderSystemLocal::SetLoadingIconInfo( float x, float y, float scale, float speed ) { loadingIconPosX=x; loadingIconPosY=y; loadingIconScale=scale; loadingIconSpeed=speed; }
-void idRenderSystemLocal::RegenerateReferences() {}
+void idRenderSystemLocal::RegenerateReferences() {
+	// Recovered tool/runtime hook used after area topology or world bounds have
+	// changed.  Rebuild both model and light area references synchronously so a
+	// following frame never observes the old BSP linkage.
+	for ( idRenderWorldLocal * world = worlds; world != nullptr;
+			world = world->nextOnWorldList ) {
+		for ( int index = 0; index < world->renderModels.Num(); ++index ) {
+			idRenderModel * const model = world->renderModels[index];
+			if ( model == nullptr || model->unlinked || model->committed == nullptr ) continue;
+			model->committed->FreeReferences();
+			model->committed->needsReferences = true;
+			model->CommitThisFrame();
+		}
+		for ( int index = 0; index < world->renderLights.Num(); ++index ) {
+			idRenderLight * const light = world->renderLights[index];
+			if ( light == nullptr || light->unlinked || light->committed == nullptr ) continue;
+			light->committed->FreeReferences();
+			light->committed->needsReferences = true;
+			light->CommitThisFrame();
+		}
+		world->CommitData();
+	}
+}
 void idRenderSystemLocal::InhibitEndFrameRendering( int change ) {
 	inhibitRendering = change <= -inhibitRendering ? 0 : inhibitRendering + change;
 }

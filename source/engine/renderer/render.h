@@ -21,6 +21,50 @@ public:
 	void CaptureToViewColor( int viewIndex );
 	void RenderSingleView( idRenderWorldLocal * world,
 		idRenderView * renderView );
+	void SimpleWorldSetup();
+	void PolygonClear( const idVec4 & color, unsigned long long state );
+	void ShowModelGroupMasters();
+	void ShowDestinationAlpha();
+	void ShowIntensity();
+	void ShowDepthBuffer();
+	void ShowCracks();
+	void ShowLights();
+	void ShowEnvironments();
+	void ColorByStencilBuffer();
+	void ShowLightCount();
+	void ShowTransparencySortOverdraw();
+	void ShowViewModels();
+	void ShowSurfaceBounds();
+	void ShowOcclusionBaseModel();
+	void ShowGamma();
+	void ShowGammaBias();
+	void ShowTextureReconstruct();
+	void ShowGammaCalibrationTest();
+	void ShowLoadedImages();
+	void ShowTestImage();
+	void ShowTestVMTR();
+	void ShowTris();
+	void ShowTwoSided();
+	void ShowBlendedSurfaces();
+	void ShowBlendedSurfaceOverdraw();
+	void ShowTrace();
+	void ShowTangentSpace();
+	void ShowTextureSpace();
+	void ShowTextureDistortion();
+	void ShowVertexColor();
+	void ShowGlobalShadows();
+	void ShowAutosprite();
+	void ShowSurfaceInfo();
+	void ShowModelLightingInfo();
+	void InternalDrawText( const char * text, const idVec3 & origin,
+		float scale, const idVec4 & color, const idMat3 & viewAxis,
+		int align );
+	void ShowDebugText();
+	void ShowDebugLines();
+	void ShowDebugPolygons();
+	void ShowTestCubeImage();
+	void RenderDebugTools_NonPortable();
+	void RenderDebugTools();
 
 	unsigned char temp[1024];
 	unsigned char areaNodeBoundsCulled[8192];

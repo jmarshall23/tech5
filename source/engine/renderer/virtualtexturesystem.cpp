@@ -1,15 +1,19 @@
 #include "virtualtexturesystem.h"
 
 #include "declmaterial.h"
+#include "declrenderparm.h"
 #include "image.h"
 #include "imagemanager.h"
 #include "virtualmaterialatlas.h"
+#include "jobs/render/parmstate.h"
 
 #include "../../shared/idlib/filesystem/filesystem.h"
 #include "../../shared/idlib/filesystem/file.h"
 #include "../../shared/idlib/packing/bitblockallocator.h"
 
 #include <algorithm>
+#include <atomic>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <limits>
@@ -20,6 +24,35 @@ idVirtualTextureSystem virtualTextureSystem;
 namespace {
 	static const int PAGE_DATA_MAGIC = -893391612;
 	static const std::uint16_t HASH_EMPTY = 0xFFFFu;
+	static const float VT_MAX_ANISOTROPY = 2.0f;
+	static const float VT_FEEDBACK_HIGH_WATER = 0.90f;
+	static const float VT_FEEDBACK_LOW_WATER = 0.80f;
+	static const float VT_FEEDBACK_LOD_INCREMENT = 0.125f;
+
+	// These four code resources are present in the recovered 360 binary.  They
+	// remain code resources here so the idPhysicalPages layout and call sites
+	// match the recovered renderer, while their values feed the PC parm state.
+	idCodeResource< idDeclRenderParm > rpPhysicalVmtrFilterParms(
+		"physicalVmtrFilterParms", &idDeclRenderParm::resourceList );
+	idCodeResource< idDeclRenderParm > rpPhysicalUniqueFilterParms(
+		"physicalUniqueFilterParms", &idDeclRenderParm::resourceList );
+	idCodeResource< idDeclRenderParm > rpPhysicalUniqueDiffuseOnlyFilterParms(
+		"physicalUniqueDiffuseOnlyFilterParms", &idDeclRenderParm::resourceList );
+	idCodeResource< idDeclRenderParm > rpPhysicalUniqueDiffuseOnly2FilterParms(
+		"physicalUniqueDiffuseOnly2FilterParms", &idDeclRenderParm::resourceList );
+
+	void ResolvePhysicalFilterParms() {
+		idCodeResource< idDeclRenderParm > * const resources[] = {
+			&rpPhysicalVmtrFilterParms,
+			&rpPhysicalUniqueFilterParms,
+			&rpPhysicalUniqueDiffuseOnlyFilterParms,
+			&rpPhysicalUniqueDiffuseOnly2FilterParms
+		};
+		for ( idCodeResource< idDeclRenderParm > * resource : resources ) {
+			resource->r = const_cast< idDeclRenderParm * >(
+				idDeclRenderParm::FindByName( resource->name, true ) );
+		}
+	}
 
 	unsigned int HashPageID( const unsigned int pageID ) {
 		unsigned int hash = 1664525u * pageID + 1013904223u;
@@ -418,7 +451,47 @@ void idPhysicalPages::GetDirectMappedPhysicalPagePointers( int,
 	for ( int i = 0; i < 3; ++i ) { targetImage[i] = nullptr; targetPitch[i] = 0; }
 }
 
-void idPhysicalPages::UpdateFilterParms( bool ) {}
+void idPhysicalPages::UpdateFilterParms( const bool force ) {
+	if ( NUM_PHYSICAL_PAGES <= 0 ) return;
+
+	const float highWater = NUM_PHYSICAL_PAGES * VT_FEEDBACK_HIGH_WATER;
+	const float lowWater = NUM_PHYSICAL_PAGES * VT_FEEDBACK_LOW_WATER;
+	if ( feedbackNumPages > highWater && highWater < NUM_PHYSICAL_PAGES ) {
+		const float fraction = ( feedbackNumPages - highWater ) /
+			( NUM_PHYSICAL_PAGES - highWater );
+		feedbackDynamicLodBias = (std::min)( 10.0f,
+			feedbackDynamicLodBias + fraction * VT_FEEDBACK_LOD_INCREMENT );
+	} else if ( feedbackNumPages < lowWater && lowWater > 0.0f ) {
+		const float fraction = ( lowWater - feedbackNumPages ) / lowWater;
+		feedbackDynamicLodBias = (std::max)( 0.0f,
+			feedbackDynamicLodBias - fraction * VT_FEEDBACK_LOD_INCREMENT );
+	}
+
+	const bool biasChanged = std::fabs( feedbackDynamicLodBias -
+		oldFeedbackDynamicLodBias ) > 0.01f;
+	if ( force ) {
+		idImage * const images[] = { physicalPagesImage0,
+			physicalPagesImage1, physicalPagesImage2 };
+		for ( idImage * image : images ) {
+			if ( image == nullptr ) continue;
+			image->opts.filter = TF_LINEAR;
+			image->opts.aniso = VT_MAX_ANISOTROPY;
+			image->DetermineSamplerStateFromOpts();
+		}
+	}
+
+	const idDeclRenderParm * const parm = rpPhysicalFilterParms != nullptr
+		? rpPhysicalFilterParms->Get() : nullptr;
+	if ( ( force || biasChanged ) && parm != nullptr &&
+			renderThreadParmState != nullptr ) {
+		parmValue_t value = {};
+		value.value[0] = 0.0f; // vt_lodBias
+		value.value[1] = feedbackDynamicLodBias; // vt_feedbackLodBias + dynamic bias
+		value.value[2] = std::log( VT_MAX_ANISOTROPY ) / std::log( 2.0f );
+		renderThreadParmState->SetParmValue( parm->parmIndex, value );
+		oldFeedbackDynamicLodBias = feedbackDynamicLodBias;
+	}
+}
 
 idVirtualTextureSystem::idVirtualTextureSystem() : vmtrMega( nullptr ),
 	numReferencedVirtualTextures( 0 ), mapHasSpecularPages( true ),
@@ -447,6 +520,7 @@ idVirtualTextureSystem::~idVirtualTextureSystem() { Shutdown(); }
 void idVirtualTextureSystem::Init() {
 	if ( vtInfo != nullptr ) return;
 	cancelToTerminate = false;
+	ResolvePhysicalFilterParms();
 	vtInfo = new virtualTextureInfo_t[16]();
 	for ( int i = 0; i < 2; ++i ) {
 		pageIndices[i] = reinterpret_cast< pageIndices_t * >( new unsigned char[PAGE_INDICES_ALLOCATION_BYTES] );
@@ -477,10 +551,17 @@ void idVirtualTextureSystem::Shutdown() {
 bool idVirtualTextureSystem::CreatePhysicalImages( const bool vmtr, const bool unique,
 		const bool diffuseOnly, const bool diffuseOnly2 ) {
 	bool success = true;
-	if ( vmtr ) success &= physicalPagesPool[0].CreatePhysicalImages( PHYSICAL_PAGES_POOL_VMTR, "Vmtr", 2048, 2048 );
-	if ( unique ) success &= physicalPagesPool[1].CreatePhysicalImages( PHYSICAL_PAGES_POOL_UNIQUE, "Unique", 2048, 2048 );
-	if ( diffuseOnly ) success &= physicalPagesPool[2].CreatePhysicalImages( PHYSICAL_PAGES_POOL_UNIQUE_DIFFUSE_ONLY, "Diffuse", 2048, 2048 );
-	if ( diffuseOnly2 ) success &= physicalPagesPool[3].CreatePhysicalImages( PHYSICAL_PAGES_POOL_UNIQUE_DIFFUSE_ONLY2, "Diffuse2", 2048, 2048 );
+	if ( vmtr ) success &= physicalPagesPool[0].CreatePhysicalImages( PHYSICAL_PAGES_POOL_VMTR,
+		"Vmtr", 2048, 2048, &rpPhysicalVmtrFilterParms );
+	if ( unique ) success &= physicalPagesPool[1].CreatePhysicalImages( PHYSICAL_PAGES_POOL_UNIQUE,
+		"Unique", 2048, 2048, &rpPhysicalUniqueFilterParms );
+	if ( diffuseOnly ) success &= physicalPagesPool[2].CreatePhysicalImages(
+		PHYSICAL_PAGES_POOL_UNIQUE_DIFFUSE_ONLY, "UniqueDiffuseOnly", 2048, 2048,
+		&rpPhysicalUniqueDiffuseOnlyFilterParms );
+	if ( diffuseOnly2 ) success &= physicalPagesPool[3].CreatePhysicalImages(
+		PHYSICAL_PAGES_POOL_UNIQUE_DIFFUSE_ONLY2, "UniqueDiffuseOnly2", 2048, 2048,
+		&rpPhysicalUniqueDiffuseOnly2FilterParms );
+	UpdateFilterParms( true );
 	return success;
 }
 
@@ -591,7 +672,12 @@ void idVirtualTextureSystem::FinishFeedback( const bool lockPages, const int max
 	pageUploadCount += uploaded; pageTranscodeCount += uploaded;
 }
 
-void idVirtualTextureSystem::SyncFeedback() {}
+void idVirtualTextureSystem::SyncFeedback() {
+	// Feedback analysis and D3D9 page uploads are deliberately synchronous on
+	// PC.  The retail 360 path waited on analyze/transcode job lists here; the
+	// full fence preserves that public completion guarantee for PC callers.
+	std::atomic_thread_fence( std::memory_order_seq_cst );
+}
 
 bool idVirtualTextureSystem::ReloadVirtualTextures() {
 	bool success = true;
@@ -605,6 +691,16 @@ bool idVirtualTextureSystem::ReloadVirtualTextures() {
 }
 
 void idVirtualTextureSystem::UpdateFilterParms( const bool force ) {
+	if ( force ) {
+		const float pageTableBias = std::log( 94.0f / VT_MAX_ANISOTROPY ) /
+			std::log( 2.0f );
+		for ( int index = 1; index < 16; ++index ) {
+			idImage * const pageTable = vts[index].pageTableImage;
+			if ( pageTable == nullptr ) continue;
+			pageTable->opts.lodBias = pageTableBias;
+			pageTable->DetermineSamplerStateFromOpts();
+		}
+	}
 	for ( idPhysicalPages & pool : physicalPagesPool ) pool.UpdateFilterParms( force );
 }
 
@@ -644,7 +740,13 @@ idPhysicalPages * idVirtualTextureSystem::GetPhysicalPagesPool( const physicalPa
 }
 
 void idVirtualTextureSystem::RegisterSource( const pageSource_t source, idVirtualTexture * texture ) {
-	if ( source > PAGESOURCE_INVALID && source < PAGESOURCE_TOTAL ) vtPtrs[source] = texture;
+	if ( source <= PAGESOURCE_INVALID || source >= PAGESOURCE_TOTAL ) return;
+	vtPtrs[source] = texture;
+	if ( texture != nullptr && texture->pageTableImage != nullptr ) {
+		texture->pageTableImage->opts.lodBias =
+			std::log( 94.0f / VT_MAX_ANISOTROPY ) / std::log( 2.0f );
+		texture->pageTableImage->DetermineSamplerStateFromOpts();
+	}
 }
 
 idPhysicalPages * VT_GetPhysicalPagesPool( const physicalPagesPool_t pool ) {

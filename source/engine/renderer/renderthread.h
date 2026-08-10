@@ -1,21 +1,18 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\engine\renderer\renderthread.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/sys/sys_threading.h"
+#include "models/rendermodel.h"
 
-
-// IDA Local Type ordinal 19100; PDB kind: class.
-class __declspec(align(4)) idRenderThread : public idSysThread
-{
+// D3D9 devices are created with multithread protection, but ownership is
+// still transferred explicitly around background present work.
+class alignas( 4 ) idRenderThread : public idSysThread {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 19101.
-  virtual ~idRenderThread();
-  virtual int Run();
+	idRenderThread();
+	~idRenderThread() override;
+	int Run() override;
 
-  void *hdc;
-  renderMode_t renderMode;
-  renderMode_t renderModeBeforeSync;
-  bool initialized;
+	void * hdc;
+	renderMode_t renderMode;
+	renderMode_t renderModeBeforeSync;
+	bool initialized;
 };

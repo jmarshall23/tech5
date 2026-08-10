@@ -2,6 +2,18 @@
 
 #include <cstring>
 
+int VertexSizeFromMask( const unsigned int vertexMask ) {
+	return ( ( vertexMask & 0x1000 ) != 0 ? 12 : 0 )
+		+ ( ( vertexMask & 0x40 ) != 0 ? -4 : 0 )
+		+ ( ( vertexMask & 0x20 ) != 0 ? -4 : 0 )
+		+ ( ( vertexMask & 1 ) != 0 ? 12 : 0 )
+		+ static_cast< int >( ( vertexMask >> 9 ) & 4 )
+		+ static_cast< int >( ( vertexMask >> 2 ) & 4 )
+		+ static_cast< int >( ( vertexMask >> 1 ) & 4 )
+		+ static_cast< int >( ( vertexMask * 4 ) & 8 )
+		+ static_cast< int >( vertexMask & 4 );
+}
+
 int SwapVertexBuffer( void *, const int numVerts, const int ) {
 	// Xbox swapped packed streams to big endian.  Native D3D9 consumes the
 	// little-endian PC stream directly.

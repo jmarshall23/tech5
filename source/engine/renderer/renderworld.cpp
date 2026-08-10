@@ -191,7 +191,9 @@ idRenderWorldLocal::~idRenderWorldLocal() {
 const char * idRenderWorldLocal::GetName() { return mapName.c_str(); }
 bool idRenderWorldLocal::IsComboMap() { return isComboMap; }
 bool idRenderWorldLocal::HasGlobalShadows() {
-	return globalShadows.shadowMap != nullptr;
+	return globalShadows.shadowMap != nullptr &&
+		globalShadows.shadowMap->map != nullptr &&
+		globalShadows.shadowMap->useShadowMap;
 }
 
 void idRenderWorldLocal::UpdateDeferredPositions() {
@@ -414,7 +416,9 @@ bool idRenderWorldLocal::Trace( modelTrace_t * result,
 	return result->tr.fraction < 1.0f;
 }
 
-float idRenderWorldLocal::ShadowSample( const idVec3 * ) { return 1.0f; }
+float idRenderWorldLocal::ShadowSample( const idVec3 * point ) {
+	return point != nullptr ? globalShadows.ShadowSample( *point ) : 1.0f;
+}
 
 void idRenderWorldLocal::CommitData() {
 	for ( int index = 0; index < renderModels.Num(); ++index ) {

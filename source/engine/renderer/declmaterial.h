@@ -93,6 +93,9 @@ public:
 
 	static bool IsValidMaterialName( const char * name,
 		bool allowUnderscore, bool allowAmpersand );
+	static const idMaterial * PackMaterials( const char * name,
+		const idList< const idMaterial *, 5 > & materials,
+		unsigned int flags );
 	void Clear();
 	void OptimizeRenderParmBlock();
 	bool MaterialIsMergableWith( const idMaterial * other ) const;

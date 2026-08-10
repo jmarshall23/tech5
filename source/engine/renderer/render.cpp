@@ -451,6 +451,7 @@ void idRender::RenderSingleView( idRenderWorldLocal * renderWorld,
 	post.imgDistortion = renderSystemLocal.imgDistortion[view->viewIndex];
 	post.unitSquareTris = renderSystemLocal.unitSquareTris;
 	RenderPostProcess( &post );
+	RenderDebugTools();
 
 	renderThreadParmState->VirtualRollbackParmBlock(
 		view->r.parmBlock, view->r.parmBlock );

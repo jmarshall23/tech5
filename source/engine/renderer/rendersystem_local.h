@@ -103,6 +103,16 @@ public:
 	void GoFullScreen() override;
 	void SetStudioMode( bool ) override;
 	void InitContext();
+	void InitCommands();
+	void InitUnitSquare();
+	void InitRenderTextures();
+	void StartRenderThread();
+	void RestartRenderThread( void * window );
+	bool WaitForNextVideoFrame();
+	unsigned int GetBinkWidth() const;
+	unsigned int GetBinkHeight() const;
+	float GetBinkTime() const;
+	void UpdateBinkTextures();
 	bool ResetContext( int width, int height, bool fullscreen, int samples );
 	void InitRenderTargets();
 	void PurgeRenderTargets();

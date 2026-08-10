@@ -1,5 +1,14 @@
 #pragma once
 
+#include "idlib/geometry/screenrect.h"
+#include "idlib/math/matrix.h"
+#include "idlib/math/vector.h"
+
+class idMaterial;
+class idRenderModel;
+enum dimShadow_t : int;
+enum highlightColor_t : int;
+
 // Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
 // Original PDB header: w:\tech5\engine\renderer\rendermodelparms.h
 // Recovered logical types: 1

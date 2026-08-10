@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstring>
 #include <fstream>
+#include <iomanip>
 #include <string>
 
 namespace {
@@ -89,4 +90,42 @@ void idGlobalShadows::LoadGlobalShadows( idRenderWorldLocal * world ) {
 		shadowMap->map[index] = Swap16( shadowMap->map[index] );
 }
 
-void idGlobalShadows::WriteShadowVisualizationModel( const char * ) {}
+void idGlobalShadows::WriteShadowVisualizationModel( const char * fileName ) {
+	if ( fileName == nullptr || fileName[0] == '\0' || shadowMap == nullptr ||
+			shadowMap->map == nullptr || shadowMap->width < 2 ) return;
+	idRenderMatrix inverse;
+	if ( !idRenderMatrix::Inverse( shadowMap->mvp, inverse ) ) return;
+	std::ofstream file( fileName, std::ios::out | std::ios::trunc );
+	if ( !file ) return;
+	file << "# idTech 5 global-shadow visualization\n";
+	file << "o globalShadows\n";
+	file << std::setprecision( 9 );
+	const int step = (std::max)( shadowMap->width / 128, 1 );
+	const int samplesWide = ( shadowMap->width - 1 ) / step + 1;
+	for ( int sampleY = 0; sampleY < samplesWide; ++sampleY ) {
+		const int y = (std::min)( sampleY * step, shadowMap->width - 1 );
+		for ( int sampleX = 0; sampleX < samplesWide; ++sampleX ) {
+			const int x = (std::min)( sampleX * step, shadowMap->width - 1 );
+			const float depth = shadowMap->map[y * shadowMap->width + x] /
+				65535.0f;
+			idVec4 world;
+			inverse.TransformPoint( idVec3(
+				( x + 0.5f ) / shadowMap->width,
+				( y + 0.5f ) / shadowMap->width, depth ), world );
+			const float inverseW = std::fabs( world.w ) > 1.0e-20f
+				? 1.0f / world.w : 1.0f;
+			file << "v " << world.x * inverseW << ' ' << world.y * inverseW
+				<< ' ' << world.z * inverseW << '\n';
+		}
+	}
+	for ( int y = 0; y + 1 < samplesWide; ++y ) {
+		for ( int x = 0; x + 1 < samplesWide; ++x ) {
+			const int a = y * samplesWide + x + 1;
+			const int b = a + 1;
+			const int c = a + samplesWide;
+			const int d = c + 1;
+			file << "f " << a << ' ' << c << ' ' << b << '\n';
+			file << "f " << b << ' ' << c << ' ' << d << '\n';
+		}
+	}
+}

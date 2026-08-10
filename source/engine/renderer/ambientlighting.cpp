@@ -2,8 +2,11 @@
 
 #include "renderworld_local.h"
 
+#include "idlib/geometry/winding.h"
+
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <limits>
@@ -126,11 +129,78 @@ void idAmbientLighting::FreeData() {
 }
 
 void idAmbientLighting::DebugDrawAmbientLightingSamples(
-		idRenderWorldLocal *, const idVec3 & ) const {}
-void idAmbientLighting::DebugDrawColoredCube( idRenderWorldLocal *,
-		const ambientSample_t *, float ) const {}
+		idRenderWorldLocal * world, const idVec3 & position ) const {
+	if ( world == nullptr || ambientMap == nullptr || ambientMap->data == nullptr ) return;
+	int cube[4];
+	ambientSample_t samples[8];
+	ambientMap->SamplesForPoint( position, cube, samples );
+	const idVec4 red( 1.0f, 0.0f, 0.0f, 1.0f );
+	for ( int corner = 0; corner < 8; ++corner ) {
+		DebugDrawColoredCube( world, &samples[corner], 4.0f );
+		const idVec3 cubeCorner(
+			static_cast< float >( cube[0] + ( ( corner & 1 ) != 0 ? cube[3] : 0 ) ),
+			static_cast< float >( cube[1] + ( ( corner & 2 ) != 0 ? cube[3] : 0 ) ),
+			static_cast< float >( cube[2] + ( ( corner & 4 ) != 0 ? cube[3] : 0 ) ) );
+		const idVec3 sampleOrigin( static_cast< float >( samples[corner].origin[0] ),
+			static_cast< float >( samples[corner].origin[1] ),
+			static_cast< float >( samples[corner].origin[2] ) );
+		world->DebugLine( &red, &cubeCorner, &sampleOrigin, 1, true );
+	}
+}
+void idAmbientLighting::DebugDrawColoredCube( idRenderWorldLocal * world,
+		const ambientSample_t * sample, const float size ) const {
+	if ( world == nullptr || sample == nullptr || size <= 0.0f ) return;
+	const idVec3 center( static_cast< float >( sample->origin[0] ),
+		static_cast< float >( sample->origin[1] ),
+		static_cast< float >( sample->origin[2] ) );
+	const float radius = size * 0.5f;
+	idVec3 corners[8];
+	for ( int corner = 0; corner < 8; ++corner ) {
+		corners[corner] = center + idVec3(
+			( corner & 1 ) != 0 ? radius : -radius,
+			( corner & 2 ) != 0 ? radius : -radius,
+			( corner & 4 ) != 0 ? radius : -radius );
+	}
+	static const int faces[6][4] = {
+		{ 0, 4, 6, 2 }, { 1, 3, 7, 5 }, { 0, 1, 5, 4 },
+		{ 2, 6, 7, 3 }, { 0, 2, 3, 1 }, { 4, 5, 7, 6 }
+	};
+	for ( int face = 0; face < 6; ++face ) {
+		idWinding winding;
+		for ( int vertex = 0; vertex < 4; ++vertex )
+			winding.AddPoint( corners[faces[face][vertex]] );
+		const idVec4 color(
+			sample->colors.channels[face][0] / 255.0f,
+			sample->colors.channels[face][1] / 255.0f,
+			sample->colors.channels[face][2] / 255.0f, 0.45f );
+		world->DebugFilledPolygon( &color, &winding, 1, true );
+	}
+}
 void idAmbientLighting::DebugDrawAmbientLightingBoxes(
-		idRenderWorldLocal *, bool ) const {}
+		idRenderWorldLocal * world, const bool showValues ) const {
+	if ( world == nullptr || ambientMap == nullptr || ambientMap->data == nullptr ||
+			ambientMap->samples == nullptr ) return;
+	idVec3 viewOrigin( 0.0f, 0.0f, 0.0f );
+	if ( world->renderViews.Num() > 0 && world->renderViews[0] != nullptr )
+		viewOrigin = world->renderViews[0]->g.vieworg;
+	const idVec4 textColor( 1.0f, 0.0f, 0.0f, 1.0f );
+	for ( int index = 0; index < ambientMap->data->numSamples; ++index ) {
+		const ambientSample_t & sample = ambientMap->samples[index];
+		const idVec3 origin( static_cast< float >( sample.origin[0] ),
+			static_cast< float >( sample.origin[1] ),
+			static_cast< float >( sample.origin[2] ) );
+		if ( ( origin - viewOrigin ).LengthSqr() > 2048.0f * 2048.0f ) continue;
+		DebugDrawColoredCube( world, &sample, 6.0f );
+		if ( showValues ) {
+			char text[32];
+			std::snprintf( text, sizeof( text ), "%d", index );
+			const idVec3 textOrigin = origin + idVec3( 0.0f, 0.0f, 32.0f );
+			world->DebugText( text, &textOrigin, 0.5f, &textColor,
+				1, 0, true, false );
+		}
+	}
+	if ( showValues ) DebugDrawAmbientLightingSamples( world, viewOrigin );
+}
 
 void idAmbientLighting::LoadAmbientLighting( idRenderWorldLocal * world ) {
 	if ( ambientMap == nullptr ) ambientMap = new ambientMap_t();
