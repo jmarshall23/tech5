@@ -1,4 +1,5 @@
 # idTech 5 reconstruction effort
+The entire idTech 5 engine compiles and links. The game code is being worked on. 
 
 https://github.com/jmarshall23/tech5/tree/main/bin <-- This is were you put the data from the Wolfenstein prototype. 
 
