@@ -27,6 +27,12 @@
 
 class idAI2;
 class idAI2CoreServices;
+struct idAI2ActionCall;
+struct idAI2AnimEventCall;
+struct idAI2AnimWebCall;
+struct idAI2EventCall;
+class idAIFireControl;
+struct idAIFireControlCall;
 class idAtomicString;
 class idDeclDamage;
 class idDamageGroup;
@@ -792,6 +798,18 @@ public:
     virtual void FirstAIThink(idAI2&) {}
     virtual void ShutdownAI(idAI2&) {}
     virtual void ThinkAI(idAI2&) {}
+    virtual void DispatchAIAction(idAI2&,
+        const idAI2ActionCall&) {}
+    virtual idPlayer* SelectAIPlayerTarget(
+        const idAI2&, int) const { return nullptr; }
+    virtual void DispatchAIAnimEvent(idAI2&,
+        const idAI2AnimEventCall&) {}
+    virtual void DispatchAIAnimWeb(idAI2&,
+        idAI2AnimWebCall&) const {}
+    virtual void DispatchAIEvent(idAI2&,
+        idAI2EventCall&) {}
+    virtual void DispatchAIFireControl(idAIFireControl&,
+        idAIFireControlCall&) {}
 };
 
 struct idAI2CoreRuntime {
@@ -1101,6 +1119,13 @@ struct idAI2CoreRuntime {
     bool spawnSettingsApplied;
     int lastFSMUpdateTime;
     int lastDormantDuration;
+    bool removeHealthWhenDamaged;
+    int currentPlayerInteractionIndex;
+    bool waitForPlayerInteraction;
+    const idEntity* playerTriggeredInteraction;
+    const idEntity* aggressionEntity;
+    float aggressionAmount;
+    int aggressionEndTime;
 
     idAI2CoreRuntime()
         : services(nullptr), entranceAnim(ANIMOVERRIDE_NONE),
@@ -1259,7 +1284,12 @@ struct idAI2CoreRuntime {
           travelFlags(0), influenceTrailEnabled(false), spawned(false),
           firstThinkComplete(false), deathSystemStarted(false),
           dropComplete(false), spawnSettingsApplied(false),
-          lastFSMUpdateTime(0), lastDormantDuration(0) {
+          lastFSMUpdateTime(0), lastDormantDuration(0),
+          removeHealthWhenDamaged(false),
+          currentPlayerInteractionIndex(-1),
+          waitForPlayerInteraction(false),
+          playerTriggeredInteraction(nullptr), aggressionEntity(nullptr),
+          aggressionAmount(0.0f), aggressionEndTime(-1) {
         skillAccuracy.fill(ACCURACY_DECENT);
         weaponHolsterSlots.fill(-1);
     }

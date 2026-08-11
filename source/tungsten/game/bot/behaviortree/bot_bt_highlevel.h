@@ -1,40 +1,42 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\bot\behaviortree\bot_bt_highlevel.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "behaviortree.h"
 
-
-// IDA Local Type ordinal 20368; PDB kind: class.
-class idBotBehaviorHighLevel : public idBehaviorSelectorLooping
-{
+class idBotHighLevelServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20369.
-  virtual idTypeInfo *GetType();
-  virtual ~idBotBehaviorHighLevel();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void Init(idBot *, const int);
-  virtual behaviorPriority_t GetPriority(idBot *, const int);
-  virtual void Enter(idBot *, const int);
-  virtual void Exit(idBot *, const int);
-  virtual behaviorStatus_t Think(idBot *, const int);
-  virtual void ProcessEvent(idBot *, const int, const idBehaviorStateEvent *);
-  virtual void DebugRenderGui(const idBot *, idGuiListBox *, int);
-  virtual void GetDebugString(idStr *);
-  virtual idBehaviorState *CheckForDuplicateState(const idBehaviorState **);
-  virtual idBehaviorState *FindState(const idTypeInfo *);
-  virtual int GetStateIndex(const idBehaviorState *);
-  virtual bool IsInterruptable();
-  virtual void InternalInit(idBot *, const int);
-  virtual void InternalEnter(idBot *, const int);
-  virtual void InternalExit(idBot *, const int);
-  virtual behaviorStatus_t InternalThink(idBot *, const int);
-  virtual void InternalProcessEvent(idBot *, const int, const idBehaviorStateEvent *);
-  virtual behaviorPriority_t InternalGetPriority(idBot *, const int);
-  virtual int GetStateIndex_2(const idBehaviorState *);
+    virtual ~idBotHighLevelServices() = default;
+    virtual bool HasValidEnemyTarget(const idBot&) const = 0;
+    virtual float GetEnemyDistance(const idBot&) const = 0;
+    virtual float GetCombatMaximumRange(const idBot&) const = 0;
+};
 
+void Tungsten_SetBotHighLevelServices(idBotHighLevelServices* services);
+
+class idBotBehaviorCombat : public idBehaviorSelectorLooping {
+public:
+    idBotBehaviorCombat();
+    void Init(idBot*, int currentTime) override;
+    behaviorPriority_t GetPriority(idBot*, int currentTime) override;
+    const char* GetClassName() const override { return "idBotBehaviorCombat"; }
+};
+
+class idBotBehaviorAlert : public idBehaviorSelectorLooping {
+public:
+    idBotBehaviorAlert();
+    void Init(idBot*, int currentTime) override;
+    const char* GetClassName() const override { return "idBotBehaviorAlert"; }
+};
+
+class idBotBehaviorBehave : public idBehaviorSelectorLooping {
+public:
+    idBotBehaviorBehave();
+    void Init(idBot*, int currentTime) override;
+    const char* GetClassName() const override { return "idBotBehaviorBehave"; }
+};
+
+class idBotBehaviorReact : public idBehaviorSelectorLooping {
+public:
+    idBotBehaviorReact();
+    void Init(idBot*, int currentTime) override;
+    const char* GetClassName() const override { return "idBotBehaviorReact"; }
 };

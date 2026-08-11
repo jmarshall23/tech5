@@ -1,14 +1,5 @@
 #include "targetfilter.h"
 
-const char* idBotTargetFilter::GetDebugName() { return "idBotTargetFilter"; }
-void idBotTargetFilter::PreCheckTargets(int) {}
-void idBotTargetFilter::CheckTarget(int, idBotTargetRecord*) {}
-void idBotTargetFilter::SortTargets() {}
-void idBotTargetFilter::Reset() {
-    bestTargetIndex = -1;
-    bestTarget.Invalidate();
-}
-
 // Retail symbol: ?Filter@idTargetFilter@@QBA_NPBVidEntity@@ABVidTargetInfo@@@Z
 // EA: 0x82B03F58, RVA: 0x00B03F58
 bool idTargetFilter::Filter(

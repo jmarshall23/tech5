@@ -1,10 +1,24 @@
 #pragma once
 
 #include "../../../shared/idlib/containers/list.h"
+#include "../../../shared/idlib/math/vector.h"
 #include "../../../shared/idlib/text/str.h"
 
 class idBot;
 struct idBotWeapon;
+
+class idBotWeaponStateServices {
+public:
+    virtual ~idBotWeaponStateServices() = default;
+    virtual idBotWeapon* FindWeapon(const idBot& bot,
+        const char* internalName) const = 0;
+    virtual bool HasLoadedAmmo(const idBot& bot,
+        const idBotWeapon& weapon) const = 0;
+    virtual void SelectWeapon(idBot& bot, idBotWeapon& weapon) = 0;
+};
+
+void Tungsten_SetBotWeaponStateServices(
+    idBotWeaponStateServices* services);
 
 enum botWeaponPriority_t : int {
     WEAPON_PRIORITY_NULL = 0,
@@ -53,6 +67,10 @@ public:
     ~idBotWeaponState();
 
     int FindIndexOfWeaponRequestUser(const char* userName) const;
+    void Update(const idVec3& currentAimPoint);
+    void AddWeaponRequest(botWeaponPriority_t priority,
+        botWeaponSlots_t weaponSlot, const char* userName,
+        botWeaponFireMode_t fireMode);
 
     idBot* owner;
     BotWeaponRequest_t weaponRequests[4];
@@ -66,4 +84,3 @@ static_assert(sizeof(idBotWeaponState::BotWeaponRequest_t) == 48,
 static_assert(sizeof(idBotWeaponState) == 216,
     "Recovered bot weapon state ABI changed");
 #endif
-

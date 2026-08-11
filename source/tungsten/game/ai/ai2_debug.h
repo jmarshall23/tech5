@@ -9,6 +9,10 @@
 #include "idlib/index.h"
 #include "idlib/typesafenumber.h"
 #include "ai2_core_runtime.h"
+#include "ai2_actions.h"
+#include "ai2_animevents.h"
+#include "ai2_animweb.h"
+#include "ai2_events.h"
 
 class idDamageGroup;
 class idEntity;
@@ -41,6 +45,12 @@ class idSoundShader;
 class idFireParms;
 class idTestFireResults;
 class idFinishFireResults;
+class idDeclParticle;
+class idJointName;
+class idDeclAITurnParms;
+class idScenePoint;
+class idDeclAIBehavior;
+enum turnDirection_t : int;
 struct testFireWeaponParms_t;
 struct testForBlockedTraceParms_t;
 class idEntityInfluenceTrail;
@@ -714,6 +724,464 @@ public:
     idAICover PrepTakeCoverFromEntity(const idEntity* enemy,
         const idEntity* coverReference, const idEntity* coverTarget);
     void EnableInfluenceTrail(idEntityInfluenceTrail influenceTrail);
+
+    eventVoid Event_MoveToScenepoint(idScenePoint* scenePoint,
+        moveToScenePointFlags_t flags);
+    eventVoid Event_MoveToPathPoint(const idEntity* pathPoint);
+    eventVoid Event_SetAlertCycle(alertCycle_t alertCycle);
+    eventInt Event_SetCallback();
+    eventInt Event_GetCurrentAIEventClass();
+    eventInt Event_GetLastAIEventClass();
+    eventVector Event_GetLastAIEventOrigin();
+    eventInt Event_GetCurrentPlayerInteractionState(
+        const idEntity* entity);
+    eventDecl Event_JobApproach(idEntity* player, bool playVoiceOver);
+    eventDecl Event_NonJobVO(idEntity* player, bool playVoiceOver);
+    eventDecl Event_JobOffer(idEntity* player, bool playVoiceOver);
+    eventDecl Event_JobMessageVO(idEntity* player, bool playVoiceOver);
+    eventDecl Event_JobEnd(idEntity* player, bool playVoiceOver);
+    eventDecl Event_JobComplete(idEntity* player, bool playVoiceOver);
+    eventDecl Event_JobFailed(idEntity* player, bool playVoiceOver);
+    eventDecl Event_JobInProgress(idEntity* player, bool playVoiceOver);
+    eventDecl Event_AcceptedJob(idEntity* player, bool playVoiceOver);
+    eventDecl Event_DeclinedJob(idEntity* player, bool playVoiceOver);
+    eventDecl Event_PlayerLeft(idEntity* player, bool playVoiceOver);
+    eventBool Event_CompleteSavedJob(idEntity* player);
+    eventBool Event_AcceptSavedJob(idEntity* player);
+    eventDecl Event_GetDeclAIPlayerInteraction();
+    eventFloat Event_GetPlayerInteractionApproachRadius();
+    eventFloat Event_GetPlayerInteractionDepartureRadius();
+    eventVoid Event_UpdateGroupAmbush(const idVec3& position);
+    eventVoid Event_KillAI();
+    eventVoid Event_AnimWeb_Wait(int webHandle, int subWebIndex,
+        int stateIndex, int eventParameter);
+    eventVoid Event_AnimWeb_StartDeltaCorrection(int webHandle,
+        int subWebIndex, int stateIndex, int eventParameter);
+    eventVoid Event_AnimWeb_BeginAnim(int webHandle, int subWebIndex,
+        int stateIndex, int eventParameter);
+    eventVoid Event_AnimWeb_ReloadRightFinished(int webHandle,
+        int subWebIndex, int stateIndex, int eventParameter);
+    eventVoid Event_AnimWeb_EnableFireFromCover(int webHandle,
+        int subWebIndex, int stateIndex, int eventParameter);
+    eventVoid Event_RelinquishControl();
+    eventVoid Event_DropWeapons();
+    eventVoid Event_TurnOffLaserSight();
+    eventVoid Event_TurnOnLaserSight();
+    eventVoid Event_Path(idEntity* path);
+    eventBool Event_StartVoiceOver(idEntity* talkingTo,
+        const idDeclVoiceOver* voiceOver, bool playInCombat);
+    eventBool Event_StartInteractionVoiceOver(idEntity* talkingTo,
+        const idDeclVoiceOver* voiceOver, bool playInCombat);
+    eventBool Event_IsVoiceOverPlaying(
+        const idDeclVoiceOver* voiceOver);
+    eventDecl Event_GetPlayingVoiceOver();
+    eventVoid Event_SetInteracting(bool interacting);
+    eventBool Event_SetJobOfferPlayed(
+        const idDeclAIPlayerInteraction* declaration,
+        idEntity* player, int interactionIndex);
+    eventVoid Event_SetFocus(const idEntity* entity, bool aiming,
+        bool keepFocusInView, aimPoint_t aimPoint);
+    eventVoid Event_ClearLookFocus();
+    eventVoid Event_ClearAimFocus();
+    eventVoid Event_EnableAutoFocus();
+    eventString Event_GetPlayerInteractionName(
+        const idDeclAIPlayerInteraction* declaration, int index);
+    eventDecl Event_GetPlayerInteractionJobDecl(
+        const idDeclAIPlayerInteraction* declaration,
+        int interactionIndex);
+    eventVoid Event_BeginPlayerInteractionIndex(int index);
+    eventVoid Event_SetRemoveHealthWhenDamaged(bool removeHealth);
+    eventVoid Event_SetEventOverloadEnableFlag(int flags);
+    eventVoid Event_ClearEventOverloadEnableFlag(int flags);
+    eventVoid Event_SetEventOverloadDisableFlag(int flags);
+    eventVoid Event_ClearEventOverloadDisableFlag(int flags);
+    eventVoid Event_SetBehaviorDecl(
+        const idDeclAIBehavior* declaration);
+    eventInt Event_ShouldTurnTo(const idEntity* entity,
+        float leftDotThreshold, float rightDotThreshold,
+        float offsetDegrees);
+    eventBool Event_IsEntityVisible(const idEntity* entity);
+    void LocationCallingHelper(const idEntity* entity);
+    eventVoid Event_SpawnLootBox();
+    eventVoid Event_RemoveBody();
+    eventVoid Event_AwarenessLost(idEntity* entity,
+        int oldAwareness, int newAwareness);
+    eventVoid Event_ResetSearchPoints();
+    void EnemySightedHelper(const idEntity* entity, bool firstSight);
+    eventVoid Event_AwarenessRegained(idEntity* entity,
+        int oldAwareness, int newAwareness);
+    eventVoid Event_FlyBack();
+    eventEntity Event_GetLastAIEventOriginator();
+    eventEntity Event_GetLastAIEventInstigator();
+    eventEntity Event_GetInteractionEntity();
+    eventBool Event_PlayerTriggeredInteraction(idEntity* player);
+    eventVoid Event_AwarenessGained(idEntity* entity,
+        int oldAwareness, int newAwareness);
+    eventVoid Event_Surprised(int surprisedBySpawnId);
+    eventVoid Event_AddAggression(const idEntity* entity,
+        float aggression, float duration);
+    eventVoid Event_AnimWeb_StartUseTurret(int webHandle,
+        int subWebIndex, int stateIndex, int eventParameter);
+    eventVoid Event_ActionNode(idEntity* actionNode);
+    eventVoid Event_Touch(const idEntity* other, int clipModelId);
+    eventVoid Event_SetInteractionEntity(const idEntity* entity);
+    eventVoid Event_BeginWaitForPlayerInteraction();
+    eventInt Event_GetCurrentPlayerInteractionIndex(idPlayer* player);
+
+    eventVoid Action_LeapAttack(const idVec3& leapTarget);
+    eventVoid Action_MoveToPoint(const idVec3& destination,
+        aiArrivalAction_t arrivalAction, float tolerance,
+        aiActionBool_t align, const idVec3& alignDirection);
+    eventVoid Action_MoveToPointNoFail(const idVec3& destination,
+        aiArrivalAction_t arrivalAction, float tolerance,
+        aiActionBool_t align, const idVec3& alignDirection,
+        const idDeclVoiceOver* failureVoiceOver);
+    eventVoid Action_MoveToEntity(const idEntity* entity,
+        aiArrivalAction_t arrivalAction, float tolerance,
+        aiActionBool_t align, const idVec3& alignDirection);
+    eventVoid Action_MoveToEntityNoFail(const idEntity* entity,
+        aiArrivalAction_t arrivalAction, float tolerance,
+        aiActionBool_t align, const idVec3& alignDirection,
+        const idDeclVoiceOver* failureVoiceOver);
+    eventVoid Action_MoveToPathPoint(const idEntity* pathPoint);
+    eventVoid Action_MoveToPathPointNoFail(const idEntity* pathPoint,
+        const idDeclVoiceOver* failureVoiceOver);
+    eventVoid Action_MoveToCover(const idVec3& position,
+        coverAction_t coverAction, posture_t posture,
+        const idVec3& direction);
+    eventVoid Action_UseZipline(const idEntity* zipline);
+    eventVoid Action_SetMovePushStatus(aiMovePushStatus_t status);
+    eventVoid Action_Idle(int duration, aiIdleTurn_t turnType);
+    eventVoid Action_Pain(painType_t painType,
+        aiDirection_t direction, float strength, const char* damageGroup);
+    eventVoid Action_StandToCrouch();
+    eventVoid Action_CrouchToStand();
+    eventVoid Action_PullTriggerRight();
+    eventVoid Action_ReleaseTriggerRight();
+    eventVoid Action_PullTriggerLeft();
+    eventVoid Action_ReleaseTriggerLeft();
+    eventVoid Action_WaitForAnim(const idAnimWebPath& animation);
+    eventVoid Action_WaitForAnimVia(const idAnimWebPath& animation,
+        const idAnimWebPath& viaAnimation);
+    eventVoid Action_LoopAnim(const idAnimWebPath& animation, int count);
+    eventVoid Action_LoopAnimExitAtEnd(const idAnimWebPath& animation,
+        int count, int exitAtEnd);
+    eventVoid Action_StartAnim(const idAnimWebPath& animation,
+        aiActionBool_t interrupt, aiActionBool_t wait);
+    eventVoid Action_WaitForTraversalAnim(
+        const idAnimWebPath& animation, aiActionBool_t wait);
+    eventVoid Action_ChangeAnimState(aiAnimWeb_t web,
+        const idAnimWebPath& animation, aiAnimWait_t wait);
+    eventVoid Action_ChangeAnimStateVia(aiAnimWeb_t web,
+        const idAnimWebPath& animation, const idAnimWebPath& viaAnimation,
+        aiAnimWait_t wait);
+    eventVoid Action_ForceAnimState(aiAnimWeb_t web,
+        const idAnimWebPath& animation, int force, aiAnimWait_t wait);
+    eventVoid Action_Dodge(const idVec3& direction);
+    eventVoid Action_Wait(int duration);
+    eventVoid Action_Melee(overrideAnim_t animation);
+    eventVoid Action_TurnToPoint(const idVec3& point);
+    eventVoid Action_TurnToEntity(const idEntity* entity);
+    eventVoid Action_TurnToEntityWithOffset(
+        const idEntity* entity, float offset);
+    eventVoid Action_Dive(float distance, float duration);
+    eventVoid Action_WaitForEntity(const idEntity* entity, float distance);
+    eventVoid Action_EnterVehicle(const idEntity* vehicle,
+        const idEntity* seat);
+    eventVoid Action_PlayVoiceOver(const idDeclVoiceOver* voiceOver,
+        aiActionBool_t wait);
+    eventVoid Action_PlayInteractionVoiceOver(
+        const idDeclVoiceOver* voiceOver, const idEntity* player,
+        float distance, bool wait);
+    eventVoid Action_StopVoiceOver();
+    eventVoid Action_PlayOverrideAnim(overrideAnim_t animation,
+        aiActionBool_t wait);
+    eventVoid Action_PlayOverrideAnimInterrupt(overrideAnim_t animation,
+        aiActionBool_t wait);
+    eventVoid Action_HolsterWeapon();
+    eventVoid Action_DrawWeapon();
+    eventVoid Action_PerformCoverAction(
+        coverAction_t action, int duration);
+    eventVoid Action_WaitForPlayerInteraction();
+    eventVoid Action_WaitForPlayerInteractionDist(float distance);
+    eventVoid Action_WaitForAIVar(
+        const char* variable, aiVarOp_t operation, const char* value);
+    eventVoid Action_SetAlertCycle(alertCycle_t alertCycle);
+    eventVoid Action_SetSubWeb(aiSubWeb_t subWeb);
+    eventVoid Action_SetFocus(const idEntity* entity,
+        aiActionBool_t look, aiActionBool_t aim,
+        aiActionBool_t keepInView, aimPoint_t aimPoint);
+    eventVoid Action_ClearLookFocus();
+    eventVoid Action_ClearAimFocus();
+    eventVoid Action_SetAimPoint(aimPoint_t aimPoint);
+    eventVoid Action_SetFireMode(aiFireMode_t fireMode);
+    eventVoid Action_SetScriptAbort(aiActionBool_t abort,
+        aiActionBool_t finishCurrentAction);
+    eventVoid Action_SetPosture(posture_t posture);
+    eventVoid Action_SetWalkState(walkState_t walkState);
+    eventVoid Action_SetSitState(sitState_t sitState);
+    eventVoid Action_SetStandState(standState_t standState);
+    eventVoid Action_SetIdleState(runIndexType_t idleState);
+    eventVoid Action_IgnorePlayerApproach(aiActionBool_t ignore);
+    eventVoid Action_NoticePlayerApproach(aiActionBool_t notice);
+    eventVoid Action_GiveItem(const idEntity* player,
+        const idDeclInventory* inventory);
+    eventVoid Action_TakeItem(const idEntity* player,
+        const idDeclInventory* inventory);
+    idPlayer* GetPlayerTarget(aiPlayer_t player) const;
+    eventVoid Action_SetPlayerEnemy(aiPlayer_t player);
+    eventVoid Action_SetEnemy(const idEntity* enemy);
+    eventVoid Action_SearchToTarget(const idEntity* target);
+    eventVoid Action_SetPlayerFocus(aiPlayer_t player,
+        aiActionBool_t look, aiActionBool_t aim);
+    eventVoid Action_SetActionNodeGroup(const char* groupName);
+    eventVoid Action_Trigger(idEntity* entity);
+    eventVoid Action_EnableDamage(aiActionBool_t enable,
+        aiActionBool_t enableWhenDead);
+    eventVoid Action_EnablePain(aiActionBool_t enable);
+    eventVoid Action_EnableAutoFocus(aiActionBool_t enable,
+        aiActionBool_t clearFocus);
+    eventVoid Action_EnableBodyRotation(aiActionBool_t enable);
+    eventVoid Action_EnableWalkIK(aiActionBool_t enable);
+    eventVoid Action_EnableHeadTracking(aiActionBool_t enable);
+    eventVoid Action_ForceOpenCombat(aiPlayer_t player);
+    eventVoid Action_ForceAwarenessByDistance(float distance,
+        bool includePlayers, bool includeAI);
+    eventVoid Action_ForcePlayerInteraction(aiPlayer_t player);
+    eventVoid Action_SetAIVar(
+        const char* variable, aiVarType_t type, const char* value);
+    eventVoid Action_SetScriptFlag(aiActionScriptFlags_t flag);
+    eventVoid Action_ClearScriptFlag(aiActionScriptFlags_t flag);
+    eventVoid Action_SetPerceptionFlag(aiPerceptionFlags_t flag);
+    eventVoid Action_ClearPerceptionFlag(aiPerceptionFlags_t flag);
+    eventVoid Action_ClearWorldState();
+    eventVoid Action_ShowAttachment(const char* attachment);
+    eventVoid Action_HideAttachment(const char* attachment);
+    eventVoid Action_DropAttachment(const char* attachment);
+    eventVoid Action_SetMoveMode(aiMovementMode_t movementMode);
+    eventVoid Action_SetAccuracy(aiAccuracy_t accuracy);
+    eventVoid Action_ScriptedAnimWeb(const idEntity* entity, int flags);
+    eventVoid Action_MoveToScenePoint(const idEntity* scenePoint,
+        moveToScenePointFlags_t flags);
+    eventVoid Action_ReloadWeapon(
+        equipSlot_t slot, const char* ammoType);
+    eventVoid Action_ReloadWeaponTorso(
+        equipSlot_t slot, const char* ammoType);
+
+    eventVoid AnimEvent_DeathAnimImpulse(
+        const idMD6Anim* animation, deathImpulse_t impulse);
+    eventVoid AnimEvent_Kill(const idMD6Anim* animation,
+        const idDeclDamage* damageType);
+    eventVoid Event_DisableAutoFocus();
+    eventVoid AnimEvent_EnableHeadTracking(const idMD6Anim* animation);
+    eventVoid AnimEvent_DisableHeadTracking(const idMD6Anim* animation);
+    eventVoid AnimEvent_SetLookFocusHeadTrackingGroup(
+        const idMD6Anim* animation, const char* groupName);
+    eventVoid AnimEvent_EnableEyeTracking(const idMD6Anim* animation);
+    eventVoid AnimEvent_DisableEyeTracking(const idMD6Anim* animation);
+    eventVoid AnimEvent_SetMovePushStatus(const idMD6Anim* animation,
+        aiMovePushStatus_t status, int frameCount);
+    eventVoid AnimEvent_EnableWorldCollision(const idMD6Anim* animation);
+    eventVoid AnimEvent_DisableWorldCollision(const idMD6Anim* animation);
+    eventVoid AnimEvent_EnableSolidCollision(const idMD6Anim* animation);
+    eventVoid AnimEvent_DisableSolidCollision(
+        const idMD6Anim* animation, int frameCount);
+    eventVoid AnimEvent_EnableDamage(const idMD6Anim* animation);
+    eventVoid AnimEvent_DisableDamage(const idMD6Anim* animation);
+    eventVoid AnimEvent_ClearReferenceJointOverride(
+        const idMD6Anim* animation, aiFoci_t focus);
+    eventVoid AnimEvent_DisableExtendedClipModel(
+        const idMD6Anim* animation);
+    eventVoid AnimEvent_EnableExtendedClipModel(
+        const idMD6Anim* animation, aiExtendedClipModelStatus_t status,
+        int frameCount);
+    eventVoid AnimEvent_EnableIK(const idMD6Anim* animation);
+    eventVoid AnimEvent_DisableIK(const idMD6Anim* animation);
+    eventVoid AnimEvent_EnableLegIK(
+        const idMD6Anim* animation, int legIndex);
+    eventVoid AnimEvent_DisableLegIK(
+        const idMD6Anim* animation, int legIndex);
+    eventVoid AnimEvent_DisableTwoLegIK(const idMD6Anim* animation);
+    eventVoid AnimEvent_EnableTwoLegIK(const idMD6Anim* animation);
+    eventVoid AnimEvent_DisableFourLegIK(const idMD6Anim* animation);
+    eventVoid AnimEvent_EnableFourLegIK(const idMD6Anim* animation);
+    eventVoid AnimEvent_StartJetPackFX(const idMD6Anim* animation);
+    eventVoid AnimEvent_StopJetPackFX(const idMD6Anim* animation);
+    eventVoid AnimEvent_DropJetPack(const idMD6Anim* animation);
+    eventVoid AnimEvent_EnableBlinking(const idMD6Anim* animation);
+    eventVoid AnimEvent_DisableBlinking(const idMD6Anim* animation);
+    eventVoid AnimEvent_EnableLidDeformation(const idMD6Anim* animation);
+    eventVoid AnimEvent_DisableLidDeformation(const idMD6Anim* animation);
+    eventVoid AnimEvent_SetLookFocusOffset(
+        const idMD6Anim* animation, const idVec3& offset);
+    eventVoid AnimEvent_SetAimFocusOffset(
+        const idMD6Anim* animation, const idVec3& offset);
+    eventVoid AnimEvent_SetLookFocusRotationOffset(
+        const idMD6Anim* animation, float pitch, float yaw, float roll);
+    eventVoid AnimEvent_SetAimFocusRotationOffset(
+        const idMD6Anim* animation, float pitch, float yaw, float roll);
+    eventVoid AnimEvent_LockTracking(
+        const idMD6Anim* animation, int lock);
+    eventVoid AnimEvent_DisableStaggeringPain(
+        const idMD6Anim* animation);
+    eventVoid AnimEvent_DisableDeathAnimations(
+        const idMD6Anim* animation);
+    eventVoid AnimEvent_EnableDeathAnimations(
+        const idMD6Anim* animation);
+    eventVoid AnimEvent_EnableCanRagdoll(const idMD6Anim* animation);
+    eventVoid AnimEvent_DisableCanRagdoll(const idMD6Anim* animation);
+    eventVoid AnimEvent_StartWeaponFX(
+        const idMD6Anim* animation, fxCondition_t condition);
+    eventVoid AnimEvent_StopWeaponFX(
+        const idMD6Anim* animation, fxCondition_t condition);
+    eventVoid AnimEvent_DeltaScaleToTarget(const idMD6Anim* animation,
+        float minimumScale, float maximumScale,
+        const idJointName& joint, float distance);
+    eventVoid AnimEvent_SetDeltaScale(
+        const idMD6Anim* animation, const idVec3& scale);
+    eventVoid AnimEvent_PopOffArmor(
+        const idMD6Anim* animation, const char* armorName, int force);
+    eventVoid AnimEvent_SetDefaultMoveMode(const idMD6Anim* animation);
+    eventVoid AnimEvent_SetFullDeltaGravityMovementMode(
+        const idMD6Anim* animation);
+    eventVoid AnimEvent_Death(const idMD6Anim* animation);
+    eventVoid AnimEvent_ForceAllowLooting(const idMD6Anim* animation);
+    eventVoid AnimEvent_BeginDrop(const idMD6Anim* animation);
+    eventVoid AnimEvent_ParticleAtRottrack(const idMD6Anim* animation,
+        const idDeclParticle* particle, const idJointName& joint,
+        const idVec3& offset);
+    eventVoid AnimEvent_PlayVoice(
+        const idMD6Anim* animation, voiceMsg_t voiceMessage);
+    eventVoid AnimEvent_SetHealth(
+        const idMD6Anim* animation, float health);
+    eventVoid AnimEvent_AnimEndEnterAnimation(const idMD6Anim* animation);
+    eventVoid AnimEvent_AnimReleaseWaitHandle(const idMD6Anim* animation);
+    eventVoid AnimEvent_SetTakedownWindowState(
+        const idMD6Anim* animation, bool open);
+    eventVoid AnimEvent_TriggerGore(
+        const idMD6Anim* animation, const char* goreName);
+    eventVoid AnimEvent_SetReferenceJointOverride(
+        const idMD6Anim* animation, aiFoci_t focus,
+        const idJointName& joint);
+    eventVoid AnimEvent_RandomRunCycleIndex(
+        const idMD6Anim* animation, int minimum, int maximum, int seed);
+    eventVoid AnimEvent_RandomRunCycleNormal(
+        const idMD6Anim* animation, int minimum, int maximum, int seed);
+    eventVoid AnimEvent_StartDropToGround(
+        const idMD6Anim* animation, const idJointName& joint);
+    eventVoid AnimEvent_HideMesh(
+        const idMD6Anim* animation, const char* meshName);
+    eventVoid AnimEvent_Explode(const idMD6Anim* animation);
+    eventVoid AnimEvent_SetAimFocusToEnemy(const idMD6Anim* animation);
+    eventVoid AnimEvent_AIReloadWeapon(
+        const idMD6Anim* animation, const char* slotName);
+    eventVoid AnimEvent_AIFireWeapon(
+        const idMD6Anim* animation, const char* slotName);
+    eventVoid AnimEvent_MeleeKick(
+        const idMD6Anim* animation, const idJointName& joint);
+    eventVoid AnimEvent_EquipItem(
+        const idMD6Anim* animation, const char* itemName);
+    eventVoid AnimEvent_HolsterItem(
+        const idMD6Anim* animation, const char* itemName);
+    eventVoid AnimEvent_DropAttachment(
+        const idMD6Anim* animation, const char* attachmentName);
+    eventVoid AnimEvent_MeleePunch(
+        const idMD6Anim* animation, const idJointName& joint);
+    eventVoid AnimEvent_PushEntity(const idMD6Anim* animation);
+    eventVoid AnimEvent_LaunchItem(
+        const idMD6Anim* animation, const idJointName& joint);
+    eventVoid AnimEvent_LaunchItemFromWeapon(const idMD6Anim* animation,
+        const idJointName& joint, const char* weaponName);
+    eventVoid AnimEvent_ThrowGrenade(
+        const idMD6Anim* animation, const idJointName& joint);
+    eventVoid AnimEvent_VoiceOver(const idMD6Anim* animation,
+        const idDeclVoiceOver* voiceOver);
+    eventVoid AnimEvent_StopVoiceOver(const idMD6Anim* animation);
+    eventVoid AnimEvent_StartMeleeTrace(
+        const idMD6Anim* animation, const idJointName& joint);
+    eventVoid AnimEvent_StartMeleeTrace2(const idMD6Anim* animation,
+        const idJointName& startJoint, const idJointName& endJoint,
+        const idDeclDamage* damage);
+    eventVoid AnimEvent_StartMeleeTraceTag(
+        const idMD6Anim* animation, const char* tagName);
+    eventVoid AnimEvent_StartMeleeTraceTag2(const idMD6Anim* animation,
+        const char* tagName, const idJointName& endJoint,
+        const idDeclDamage* damage);
+    eventVoid AnimEvent_EndMeleeTrace(const idMD6Anim* animation);
+    eventVoid AnimEvent_TraversalAttackChoice(
+        const idMD6Anim* animation, int choice, float minimum,
+        float maximum);
+
+    awPathResult_t ChangeAnimState(aiAnimWeb_t web,
+        idAnimWebSubWebIndex subWeb, idAnimWebStateIndex state,
+        interruptPath_t interruptPath, interruptBlend_t interruptBlend);
+    awPathResult_t ChangeAnimStateVia(aiAnimWeb_t web,
+        idAnimWebSubWebIndex destinationSubWeb,
+        idAnimWebStateIndex destinationState,
+        idAnimWebSubWebIndex viaSubWeb, idAnimWebStateIndex viaState,
+        interruptPath_t interruptPath, interruptBlend_t interruptBlend);
+    void GetWeaponPrefix(const idWeapon* weapon, idStr& prefix) const;
+    void GetWeaponPrefix(idStr& prefix) const;
+    void GetSubWebName(const idStr& prefix, idStr& subWebName) const;
+    bool GetSubWebAndStateFromAnimWebPath(const char* path,
+        idStr& subWebName, idStr& stateName) const;
+    const idMD6Anim* GetAnimForAnimWebNode(
+        const idAnimWebSubWebIndex& subWeb,
+        const idAnimWebStateIndex& state) const;
+    const idMD6Anim* GetAnimForAnimWebNodeIndex(
+        const idAnimWebSubWebIndex& subWeb,
+        const idAnimWebStateIndex& state, int nodeIndex) const;
+    void GetCurrentSubWebAndStateIndices(
+        idAnimWebSubWebIndex& subWeb, idAnimWebStateIndex& state) const;
+    void GetSubWebPrefix(const idWeapon* weapon, aiSubWeb_t subWeb,
+        idStr& prefix) const;
+    void GetSubWebPrefix(aiSubWeb_t subWeb, idStr& prefix) const;
+    void GetSubWebPrefix(idStr& prefix) const;
+    void GetMovementStateName(idStr& stateName) const;
+    void GetIdleStateName(idStr& stateName) const;
+    void GetIdleTurnStateName(turnDirection_t direction,
+        float angle, const idDeclAITurnParms* turnParms,
+        idStr& stateName) const;
+    awPathResult_t ChangeAnimState(aiAnimWeb_t web, aiSubWeb_t subWeb,
+        idAnimWebStateIndex state, interruptPath_t interruptPath,
+        interruptBlend_t interruptBlend,
+        idAnimWebSubWebIndex* resolvedSubWeb);
+    awPathResult_t ChangeAnimState(aiAnimWeb_t web, aiSubWeb_t subWeb,
+        const char* stateName, interruptPath_t interruptPath,
+        interruptBlend_t interruptBlend,
+        idAnimWebSubWebIndex* resolvedSubWeb,
+        idAnimWebStateIndex* resolvedState);
+    void FindAnimWebAndStateIndices(aiAnimWeb_t web, aiSubWeb_t subWeb,
+        const char* stateName, bool useWeapon, const idWeapon* weapon,
+        idAnimWebSubWebIndex* resolvedSubWeb,
+        idAnimWebStateIndex* resolvedState) const;
+    awPathResult_t ChangeAnimStateVia(aiAnimWeb_t web,
+        aiSubWeb_t destinationSubWeb, idAnimWebStateIndex destinationState,
+        aiSubWeb_t viaSubWeb, idAnimWebStateIndex viaState,
+        interruptPath_t interruptPath, interruptBlend_t interruptBlend,
+        idAnimWebSubWebIndex* resolvedDestinationSubWeb,
+        idAnimWebSubWebIndex* resolvedViaSubWeb);
+    awPathResult_t ChangeAnimStateVia(aiAnimWeb_t web,
+        aiSubWeb_t destinationSubWeb, const char* destinationStateName,
+        aiSubWeb_t viaSubWeb, const char* viaStateName,
+        interruptPath_t interruptPath, interruptBlend_t interruptBlend,
+        idAnimWebSubWebIndex* resolvedDestinationSubWeb,
+        idAnimWebStateIndex* resolvedDestinationState,
+        idAnimWebSubWebIndex* resolvedViaSubWeb,
+        idAnimWebStateIndex* resolvedViaState);
+    void ResetAnimState(
+        aiAnimWeb_t web, aiSubWeb_t subWeb, const char* stateName);
+    bool GetAnimWebGrenadeThrowNode(aiAnimWeb_t web,
+        aiSubWeb_t subWeb, coverAction_t coverAction,
+        idAnimWebSubWebIndex& resolvedSubWeb,
+        idAnimWebStateIndex& resolvedState,
+        idAnimWebNodeIndex& resolvedNode) const;
+    bool GetAnimWebNodeForOverride(overrideAnim_t animation,
+        idAnimWebSubWebIndex& resolvedSubWeb,
+        idAnimWebStateIndex& resolvedState) const;
+    void GetMovementSubWebAndStateIndices(
+        idAnimWebSubWebIndex& resolvedSubWeb,
+        idAnimWebStateIndex& resolvedState) const;
 
     void Spawn();
     virtual void Show();

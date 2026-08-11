@@ -7,7 +7,10 @@ class idCachedJoint;
 class idDeclAnimWebNode;
 class idMD6Anim;
 
+#ifndef TUNGSTEN_EVENT_VOID_DEFINED
+#define TUNGSTEN_EVENT_VOID_DEFINED
 struct eventVoid {};
+#endif
 
 enum aiAnimDCIdealDir_t : int {
     IDEALDIR_NONE = 0,

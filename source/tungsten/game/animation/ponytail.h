@@ -1,20 +1,49 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\animation\ponytail.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+class idDeclPonytail;
+class idEntity;
+class idPonytail;
 
+struct idPonytailInitResult {
+    bool usingParentAnimStack = false;
+    int attachmentHandle = -1;
+};
 
-// IDA Local Type ordinal 16489; PDB kind: class.
-class __declspec(align(4)) idPonytail
-{
+class idPonytailServices {
 public:
-  const idDeclPonytail *declPonytail;
-  idEntityPtr<idEntity> parent;
-  idAnimStack animStack;
-  idHandle<int,enum invalidAttachment_t,-1> attachmentHandle;
-  idAnimator_Ponytail ponytailAnimator;
-  bool usingParentAnimStack;
-  bool initialized;
+    virtual ~idPonytailServices() = default;
+    virtual bool InitializePonytail(idPonytail&, idEntity*,
+        const idDeclPonytail*, idPonytailInitResult&) = 0;
+    virtual void UpdatePonytail(idPonytail&) = 0;
+    virtual void RemoveAttachment(idEntity*, int) = 0;
+};
+
+class idPonytail {
+public:
+    idPonytail();
+    ~idPonytail();
+
+    void SetDeclaration(const idDeclPonytail* declaration) {
+        declPonytail = declaration;
+    }
+    void SetServices(idPonytailServices* newServices) {
+        services = newServices;
+    }
+    bool Init(idEntity* parentEntity);
+    void Update();
+    void Shutdown();
+
+    const idDeclPonytail* GetDeclaration() const { return declPonytail; }
+    idEntity* GetParent() const { return parent; }
+    int GetAttachmentHandle() const { return attachmentHandle; }
+    bool IsUsingParentAnimStack() const { return usingParentAnimStack; }
+    bool IsInitialized() const { return initialized; }
+
+private:
+    const idDeclPonytail* declPonytail;
+    idEntity* parent;
+    int attachmentHandle;
+    bool usingParentAnimStack;
+    bool initialized;
+    idPonytailServices* services;
 };

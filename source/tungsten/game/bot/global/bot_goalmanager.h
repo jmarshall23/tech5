@@ -1,97 +1,65 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\bot\global\bot_goalmanager.h
-// Recovered logical types: 6
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../bot_goals.h"
 
+#include <vector>
 
-// IDA Local Type ordinal 16523; PDB kind: class.
-class idBotGoalManager : public idEventReceiver
-{
+class idEntity;
+
+class idBotGoalManagerServices : public idBotGoalServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 16524.
-  virtual idTypeInfo *GetType();
-  virtual ~idBotGoalManager();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void Think(const int);
-
+    virtual bool GetFollowPlayerSetting() const = 0;
+    virtual idEntity* GetDebugPlayer() const = 0;
+    virtual void GetBotEntities(std::vector<idEntity*>& entities) const = 0;
+    virtual void GetPlayerEntities(std::vector<idEntity*>& entities) const = 0;
+    virtual void GetActiveAI(std::vector<idEntity*>& entities) const = 0;
+    virtual idBotGoal* GetBotGoal(idEntity& entity) const = 0;
+    virtual const idEntity* ResolveEntitySpawnId(int spawnId) const = 0;
+    virtual bool IsDead(const idEntity& entity) const = 0;
+    virtual bool IsNoclip(const idEntity& entity) const = 0;
+    virtual bool IsNoTarget(const idEntity& entity) const = 0;
+    virtual bool IsExcludedTarget(const idEntity& entity) const = 0;
+    virtual bool IsHostile(const idEntity& first,
+        const idEntity& second) const = 0;
+    virtual bool CanFollowDebugPlayer(const idEntity& bot,
+        int currentTime) const = 0;
+    virtual idVec3 GetEntityOrigin(const idEntity& entity) const = 0;
+    virtual int RandomInt(int maximum) = 0;
 };
 
-// IDA Local Type ordinal 20347; PDB kind: class.
-class idBotGoalManager_DM : public idBotGoalManager
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 20348.
-  virtual idTypeInfo *GetType();
-  virtual ~idBotGoalManager_DM();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void Think(const int);
+void Tungsten_SetBotGoalManagerServices(
+    idBotGoalManagerServices* services);
 
+class idBotGoalManager {
+public:
+    idBotGoalManager() = default;
+    virtual ~idBotGoalManager() = default;
+    virtual void Think(int) {}
 };
 
-// IDA Local Type ordinal 20349; PDB kind: class.
-class idBotGoalManager_TDM : public idBotGoalManager
-{
+class idBotGoalManager_DM final : public idBotGoalManager {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20350.
-  virtual idTypeInfo *GetType();
-  virtual ~idBotGoalManager_TDM();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void Think(const int);
-
+    idBotGoalManager_DM();
+    void Think(int currentTime) override;
 };
 
-// IDA Local Type ordinal 20351; PDB kind: class.
-class idBotGoalManager_CTF : public idBotGoalManager
-{
+class idBotGoalManager_TDM final : public idBotGoalManager {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20352.
-  virtual idTypeInfo *GetType();
-  virtual ~idBotGoalManager_CTF();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void Think(const int);
-
+    idBotGoalManager_TDM();
+    void Think(int currentTime) override;
 };
 
-// IDA Local Type ordinal 20353; PDB kind: class.
-class idBotGoalManager_HORDE : public idBotGoalManager
-{
+class idBotGoalManager_CTF final : public idBotGoalManager {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20354.
-  virtual idTypeInfo *GetType();
-  virtual ~idBotGoalManager_HORDE();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void Think(const int);
-
+    idBotGoalManager_CTF();
 };
 
-// IDA Local Type ordinal 20355; PDB kind: class.
-class idBotGoalManager_DOM : public idBotGoalManager
-{
+class idBotGoalManager_HORDE final : public idBotGoalManager {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20356.
-  virtual idTypeInfo *GetType();
-  virtual ~idBotGoalManager_DOM();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void Think(const int);
+    idBotGoalManager_HORDE();
+};
 
+class idBotGoalManager_DOM final : public idBotGoalManager {
+public:
+    idBotGoalManager_DOM();
 };

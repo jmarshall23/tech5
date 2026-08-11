@@ -37,6 +37,30 @@ enum aimPoint_t : int {
     AIMPOINT_MAX = 9
 };
 
+// Runtime-owned player, entity-table, cvar, and debug-render operations used
+// by the recovered aim state.  Keeping these behind a service preserves the
+// retail 300-byte idBotAimState layout while the surrounding game runtime is
+// recovered translation unit by translation unit.
+class idBotAimStateServices {
+public:
+    virtual ~idBotAimStateServices() = default;
+
+    virtual int GetScaledGameTime() const = 0;
+    virtual int GetAimSkill() const = 0;
+    virtual idAngles GetOwnerViewAngles(const idBot& bot) const = 0;
+    virtual idVec3 GetOwnerEyePosition(const idBot& bot) const = 0;
+    virtual int GetEntitySpawnId(const idEntity* entity) const = 0;
+    virtual const idEntity* ResolveEntitySpawnId(int spawnId) const = 0;
+    virtual idVec3 GetEntityOrigin(const idEntity& entity) const = 0;
+    virtual bool GetEntityAimPoint(const idEntity& entity,
+        aimPoint_t aimPoint, idVec3& result) const = 0;
+    virtual idVec3 GetEntityLinearVelocity(const idEntity& entity) const = 0;
+    virtual bool ShouldShowAimPoint(const idBot& bot) const = 0;
+    virtual void DebugAimPoint(const idVec3& point) const = 0;
+};
+
+void Tungsten_SetBotAimStateServices(idBotAimStateServices* services);
+
 class idBotAimState {
 public:
     struct BotAimRequest_t {
@@ -56,7 +80,18 @@ public:
     idBotAimState();
     ~idBotAimState();
 
+    float GetAimOffset(float distToAimPointSqr) const;
+    void CalcDesiredViewAngles(const idVec3& desiredAimVector);
     int FindIndexOfAimRequestUser(const char* userName) const;
+    void Update();
+    void AddAimRequestPosition(const idVec3& pos,
+        botAimPriority_t priority, const char* userName,
+        float aimTimeInSeconds);
+    void AddAimRequestEntity(const idEntity* entity,
+        botAimPriority_t priority, const char* userName,
+        aimPoint_t aimPoint, float aimTimeInSeconds);
+    void ClearOldAimRequests();
+    void PostUpdate();
 
     idVec3 currentAimPoint;
     idBot* owner;
@@ -70,4 +105,3 @@ static_assert(sizeof(idBotAimState::BotAimRequest_t) == 68,
 static_assert(sizeof(idBotAimState) == 300,
     "Recovered bot aim state ABI changed");
 #endif
-

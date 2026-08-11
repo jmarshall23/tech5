@@ -1,51 +1,67 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\bot\behaviortree\behaviors\bot_bt_escort.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "bot_bt_combat.h"
+#include "../../bot_movecmd.h"
 
+enum idBotEscortStance : int {
+    BOT_ESCORT_STANCE_CROUCH = 1,
+    BOT_ESCORT_STANCE_RUN = 3,
+    BOT_ESCORT_STANCE_SPRINT = 4
+};
 
-// IDA Local Type ordinal 20421; PDB kind: class.
-class idBotBehaviorEscort : public idBehaviorAction
-{
+class idBotEscortServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20422.
-  virtual idTypeInfo *GetType();
-  virtual ~idBotBehaviorEscort();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void Init(idBot *, const int);
-  virtual behaviorPriority_t GetPriority(idBot *, const int);
-  virtual void Enter(idBot *, const int);
-  virtual void Exit(idBot *, const int);
-  virtual behaviorStatus_t Think(idBot *, const int);
-  virtual void ProcessEvent(idBot *, const int, const idBehaviorStateEvent *);
-  virtual void DebugRenderGui(const idBot *, idGuiListBox *, int);
-  virtual void GetDebugString(idStr *);
-  virtual idBehaviorState *CheckForDuplicateState(const idBehaviorState **);
-  virtual idBehaviorState *FindState(const idTypeInfo *);
-  virtual int GetStateIndex(const idBehaviorState *);
-  virtual bool IsInterruptable();
-  virtual void InternalInit(idBot *, const int);
-  virtual void InternalEnter(idBot *, const int);
-  virtual void InternalExit(idBot *, const int);
-  virtual behaviorStatus_t InternalThink(idBot *, const int);
-  virtual void InternalProcessEvent(idBot *, const int, const idBehaviorStateEvent *);
-  virtual behaviorPriority_t InternalGetPriority(idBot *, const int);
-  virtual void MoveGoal_Started_CallBack(idBot *, const int);
-  virtual void MoveGoal_Reached_CallBack(idBot *, const int);
-  virtual void MoveGoal_Errored_CallBack(idBot *, const int, const botMoveStatus_t);
-  virtual void MoveSubGoal_Started_CallBack(idBot *, const int);
-  virtual void MoveSubGoal_Reached_CallBack(idBot *, const int);
-  virtual void MoveSubGoal_Errored_CallBack(idBot *, const int, const botMoveStatus_t);
+    virtual ~idBotEscortServices() = default;
+    virtual bool HasEscortGoal(const idBot&) const = 0;
+    virtual bool IsTeammateValid(const idBot&) const = 0;
+    virtual bool IsTeammateDead(const idBot&) const = 0;
+    virtual float GetTeammateDistance(const idBot&) const = 0;
+    virtual bool IsTeammateCrouched(const idBot&) const = 0;
+    virtual bool HasEnemy(const idBot&) const = 0;
+    virtual bool IsInTeammateCrosshair(const idBot&) const = 0;
+    virtual bool TeammateRequestsSpace(const idBot&) const = 0;
+    virtual void StartEscortMove(idBot&, float tolerance) = 0;
+    virtual void SetMoveTolerance(idBot&, float tolerance) = 0;
+    virtual void SetMoveStance(idBot&, idBotEscortStance) = 0;
+    virtual void RequestAvoidance(idBot&, float distance,
+        float anchorRadius) = 0;
+    virtual void AimAtEnemy(idBot&) = 0;
+    virtual void AimAtTeammate(idBot&) = 0;
+    virtual void RequestPrimaryWeapon(idBot&) = 0;
+    virtual void ResetGoal(idBot&) = 0;
+};
 
-  bool reachedMate;
-  bool avoidingMate;
-  int timeReachedMate;
-  int timeInMatesCrossHair;
-  int timeMateHasBeenCrouched;
-  float currentMoveTolerance;
+void Tungsten_SetBotEscortServices(idBotEscortServices* services);
+
+class idBotBehaviorEscort : public idBehaviorAction {
+public:
+    idBotBehaviorEscort();
+
+    void MoveGoal_Reached_CallBack(idBot* bot, int currentTime) override;
+    void MoveSubGoal_Reached_CallBack(idBot* bot, int currentTime) override;
+    void MoveSubGoal_Errored_CallBack(idBot* bot, int currentTime,
+        botMoveStatus_t moveStatus) override;
+    void MoveGoal_Started_CallBack(idBot* bot, int currentTime) override;
+    void MoveSubGoal_Started_CallBack(idBot* bot, int currentTime) override;
+    behaviorPriority_t GetPriority(idBot* bot, int currentTime) override;
+    void Enter(idBot* bot, int currentTime) override;
+    behaviorStatus_t Update_ReachedTeammateBehavior(idBot* bot,
+        int currentTime);
+    behaviorStatus_t Update_MovingToTeammateBehavior(idBot* bot,
+        int currentTime);
+    behaviorStatus_t Think(idBot* bot, int currentTime) override;
+    const char* GetClassName() const override { return "idBotBehaviorEscort"; }
+
+    bool HasReachedMate() const { return reachedMate; }
+    bool IsAvoidingMate() const { return avoidingMate; }
+    int GetTimeReachedMate() const { return timeReachedMate; }
+    float GetMoveTolerance() const { return currentMoveTolerance; }
+
+private:
+    bool reachedMate;
+    bool avoidingMate;
+    int timeReachedMate;
+    int timeInMatesCrossHair;
+    int timeMateHasBeenCrouched;
+    float currentMoveTolerance;
 };

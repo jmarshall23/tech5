@@ -11,6 +11,42 @@ class idEventReceiver;
 class idMD6Anim;
 class idScriptList;
 
+#ifndef TUNGSTEN_EVENT_VOID_DEFINED
+#define TUNGSTEN_EVENT_VOID_DEFINED
+struct eventVoid {};
+#endif
+
+struct eventInt {
+    int value;
+    explicit eventInt(int value_ = 0) : value(value_) {}
+};
+
+struct eventBool {
+    bool value;
+    explicit eventBool(bool value_ = false) : value(value_) {}
+};
+
+struct eventFloat {
+    float value;
+    explicit eventFloat(float value_ = 0.0f) : value(value_) {}
+};
+
+struct eventVector {
+    idVec3 value;
+    eventVector() : value(0.0f, 0.0f, 0.0f) {}
+    explicit eventVector(const idVec3& value_) : value(value_) {}
+};
+
+struct eventString {
+    idStr value;
+    explicit eventString(const char* value_ = "") : value(value_) {}
+};
+
+struct eventEntity {
+    idEntity* value;
+    explicit eventEntity(idEntity* value_ = nullptr) : value(value_) {}
+};
+
 enum eventArgType_t : int {
     D_EVENT_VOID = 0,
     D_EVENT_INTEGER = 'i',
