@@ -3,9 +3,14 @@
 #include "../../../engine/decls/decltypeinfo.h"
 #include "../../../engine/decls/declfxtypes.h"
 #include "../../../shared/idlib/langdict.h"
+#include "../sound/soundshaderparms_recovery.h"
 
 class idDeclVoiceOver;
 class idPresentable;
+
+int Tungsten_PlayVoiceOverSound(const idDeclVoiceOver* voiceOver,
+    const TungstenSoundShaderParms& parms, idPresentable* target,
+    idStrId talkerName, unsigned char peerMask);
 
 class alignas(4) idDeclOnlineFiction : public idDeclTypeInfo {
 public:

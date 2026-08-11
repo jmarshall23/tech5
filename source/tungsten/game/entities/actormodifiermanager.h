@@ -1,39 +1,63 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\actormodifiermanager.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "game/entities/actormodifier.h"
+#include "idlib/containers/array.h"
+#include "idlib/containers/list.h"
 
-
-// IDA Local Type ordinal 15281; PDB kind: class.
-class idActorModifierManager : public idEventReceiver
-{
+class idActorModifierManager {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15304.
-  virtual idTypeInfo *GetType();
-  virtual ~idActorModifierManager();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void HandleActorModifierMessage(unsigned int, unsigned __int8);
+    struct ActorModifierVar_s {
+        netBoolEvent_t event;
+        float netValue = 0.0f;
+        float value = 1.0f;
+        int integer = 1;
 
-  idPresentableActor *parentPtr;
-  idPresentablePtr<idPresentableActor> parent;
-  idInventoryCollection *inventory;
-  idList<idActorModifierItem *,5> items;
-  idArray<idActorModifier,16> modifiers;
-  unsigned int modifierUIDCounter;
-  idArray<idActorModifierManager::ActorModifierVar_s,4> modValues;
-};
+        void Set(float newValue) {
+            value = newValue;
+            integer = static_cast<int>(newValue);
+            netValue = newValue;
+            event.Signal();
+        }
+    };
 
-// IDA Local Type ordinal 15302; PDB kind: struct.
-struct idActorModifierManager::ActorModifierVar_s
-{
-  idNetFloat netFloat;
-  float value;
-  int integer;
+    idActorModifierManager();
+    virtual ~idActorModifierManager();
+
+    void PostSerializeRead(bool firstClientFrame);
+    void InventoryItemRemoved(idActorModifierItem* item, idEntity* owner);
+    idActorModifier* AssignAvailableModifier();
+    float GetSpeedModifier() const;
+    float GetDamageModifier() const;
+    bool IsOverdriveDisabled() const;
+    void HandleButtonPress(idUCmdTracker* tracker);
+    virtual void HandleActorModifierMessage(
+        unsigned int uid, unsigned char index);
+    void RecalculateModValue(
+        idDeclActorModifier::ActorModifierAttribute_t attrib);
+    void OnDamageDealt(idActor* attacker, idActor* victim,
+        idEntity* inflictor, const idDeclDamage* damageDecl,
+        float damage, bool isDead);
+    void OnDamageTaken(idEntity* attacker, idActor* victim,
+        idEntity* inflictor, const idDeclDamage* damageDecl,
+        float damage, bool isDead);
+    void Serialize(idSerializer& serializer);
+    void Update();
+    void ServerThink();
+    idActorModifier* AddModifier(const idDeclActorModifier* decl,
+        const idActorModifierItem* item);
+    idActorModifier* FindModifierByInstigator(
+        const idDeclActorModifier* decl, idPresentableActor* instigator);
+    eventVoid Notice_ModifierEvent(idActorModifier* modifier,
+        bool activating, bool predicted);
+    void InventoryItemAdded(idActorModifierItem* item, idEntity* owner);
+    idActorModifier* AddModifierUnique(const idDeclActorModifier* decl,
+        const idActorModifierItem* item, idPresentableActor* instigator);
+
+    idPresentableActor* parentPtr;
+    std::uint32_t parentSpawnId;
+    idInventoryCollection* inventory;
+    idList<idActorModifierItem*, 5> items;
+    idArray<idActorModifier, 16> modifiers;
+    unsigned int modifierUIDCounter;
+    idArray<ActorModifierVar_s, 4> modValues;
 };

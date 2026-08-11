@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../online_types.h"
 #include "../../../shared/idlib/containers/array.h"
 #include "../../../shared/idlib/containers/list.h"
 #include "../../../shared/idlib/math/vector.h"
@@ -76,10 +77,6 @@ enum presentableType_t : int {
     PRESENTABLE_WEAPON,
     PRESENTABLE_PARTICLE_EMITTER,
     PRESENTABLE_COLLISION_TRIGGER
-};
-
-enum challengeGameMode_t : int {
-    CHALLENGE_MODE_NORMAL = 0
 };
 
 enum messageMode_t : int {

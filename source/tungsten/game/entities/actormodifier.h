@@ -1,242 +1,132 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\actormodifier.h
-// Recovered logical types: 3
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "game/decls/declactormodifier.h"
+#include "game/gamesys/eventarg.h"
+#include "idlib/containers/staticlist.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 15283; PDB kind: class.
-class idActorModifierItem : public idInventoryItem
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 15284.
-  virtual idTypeInfo *GetType();
-  virtual ~idActorModifierItem();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void Init(const idDeclInventory *);
-  virtual void Merge(idPresentable *, idInventoryCollection *, const idDeclInventory *);
-  virtual void Hide();
-  virtual void Show();
-  virtual void OnEquip(const idPresentable *, idFXManager *);
-  virtual void OnUnequip(const idPresentable *, idFXManager *);
-  virtual void OnClone(const idInventoryItem *);
-  virtual int GetCount();
-  virtual bool CanUse(idActor *);
-  virtual bool Use(idActor *);
-  virtual bool CanUseInVehicle(idActor *);
-  virtual bool ClientUse(idPresentablePlayer *);
-  virtual void Serialize(idSerializer *, idInventoryCollection *);
-  virtual void SerializeNonPrediction(idSerializer *, idInventoryCollection *);
-  virtual void ClientUpdate();
-  virtual void GetPickupHudInfo(const idEntity *, idPickupHudInfo *);
+class idActor;
+class idActorModifier;
+class idActorModifierManager;
+class idDeclDamage;
+class idEntity;
+class idInventoryCollection;
+class idPresentableActor;
+class idSerializer;
+class idUCmdTracker;
 
+struct netBoolEvent_t {
+    int count = 0;
+    int lastCount = 0;
+
+    bool Consume() {
+        if (count == lastCount) return false;
+        lastCount = count;
+        return true;
+    }
+    void Signal() { count = (count + 1) % 7; }
 };
 
-// IDA Local Type ordinal 15298; PDB kind: class.
-class idActorModifier : public idEventReceiver
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 15299.
-  virtual idTypeInfo *GetType();
-  virtual ~idActorModifier();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-
-  idFXManager fxManager;
-  idStaticList<idActorModifierTimer,4> timers;
-  idPresentablePtr<idPresentableActor> parent;
-  idPresentablePtr<idPresentableActor> instigator;
-  const idDeclActorModifier *decl;
-  const idInventoryItem *item;
-  netBoolEvent_t added;
-  netBoolEvent_t activated;
-  netBoolEvent_t deactivated;
-  unsigned int uid;
-  int creationTime;
-  int activationTime;
-  unsigned __int8 index;
-  bool valid;
-  bool active;
-  int nextTimerTick;
+struct idActorModifierTimer {
+    int expire_time = 0;
+    int index = 0;
 };
 
-// IDA Local Type ordinal 19682; PDB kind: class.
-class __declspec(align(8)) idMoverModifier : public idEntity
-{
+class idActorModifierItem {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 19683.
-  virtual idTypeInfo *GetType();
-  virtual ~idMoverModifier();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
+    const idDeclActorModifier* decl = nullptr;
+};
 
-  idVec3 splineForwardDir;
-  idEntityPtr<idSplinePath> splinePath;
-  bool initialized;
-  bool dirty;
-  float controlPointLength;
-  float controlPointPCT;
-  int controlPointIndex;
-  idVec3 controlPointOrigin;
-  idVec3 controlPointOriginNext;
-  splineMoverModifier_t modifier;
+class idActorModifierServices {
+public:
+    virtual ~idActorModifierServices() = default;
+    virtual std::uint32_t GetPresentableSpawnId(
+        const idPresentableActor*) const { return 0; }
+    virtual idPresentableActor* ResolvePresentable(std::uint32_t) const {
+        return nullptr;
+    }
+    virtual bool IsLocallyControlled(const idPresentableActor*) const {
+        return false;
+    }
+    virtual bool IsPresentableDead(const idPresentableActor*) const {
+        return false;
+    }
+    virtual int GetGameMilliseconds() const { return 0; }
+    virtual int GetGameFrame() const { return 0; }
+    virtual int GetGameMillisecondsPerFrame() const { return 16; }
+    virtual bool IsServer() const { return true; }
+    virtual bool IsClient() const { return false; }
+    virtual bool WasButtonPressed(const idUCmdTracker*, int) const {
+        return false;
+    }
+    virtual float GetOverdrivePoints(const idPresentableActor*) const {
+        return 0.0f;
+    }
+    virtual float GetOverdrivePointsRequired() const { return 200.0f; }
+    virtual void SetOverdrivePoints(idPresentableActor*, float) {}
+    virtual idPresentableActor* ActorPresentable(idActor*) const {
+        return nullptr;
+    }
+    virtual idActorModifierManager* ModifierManager(
+        idPresentableActor*) const { return nullptr; }
+    virtual void StartFX(idActorModifier&, int, bool) {}
+    virtual void StopFX(idActorModifier&, int, bool) {}
+    virtual void UpdateFX(idActorModifier&, int, int, int) {}
+    virtual void InitFX(idActorModifier&, const idDeclFX*) {}
+    virtual void ShutdownFX(idActorModifier&) {}
+    virtual void SerializeModifier(idSerializer&, idActorModifier&) {}
+    virtual void SerializeModifierValue(
+        idSerializer&, int, float&, int&) {}
+    virtual void BroadcastModifierEvent(
+        idActorModifier&, bool, bool) {}
+    virtual void SendActivationMessage(
+        const idActorModifier&) {}
+    virtual void DropPointOfInterest(
+        idPresentableActor*, const idDeclActorModifier::ActorModifierOutput_t&) {}
+};
+
+class idActorModifier {
+public:
+    idActorModifier();
+    virtual ~idActorModifier();
+
+    static void SetServices(idActorModifierServices* services);
+    static idActorModifierServices& Services();
+
+    void SetValid(bool valid);
+    void OnDamageTaken(idEntity* attacker, idActor* victim,
+        idEntity* inflictor, const idDeclDamage* damageDecl,
+        float damage, bool isDead);
+    void SetParent(idPresentableActor* parent);
+    void OnDamageDealt(idActor* attacker, idActor* victim,
+        idEntity* inflictor, const idDeclDamage* damageDecl,
+        float damage, bool isDead);
+    void Serialize(idSerializer& serializer);
+    void Deactivate(bool activatedByServer);
+    void TriggerFX(int condition);
+    void TriggerLocalFX(int condition);
+    bool CheckDeps();
+    void Activate(bool activatedByServer);
+    void PostSerializeRead(bool firstClientFrame);
+    void Update(int gameTime);
+    bool HandleButtonPress(idUCmdTracker* tracker);
+    void SetDefaults();
+
+    idStaticList<idActorModifierTimer, 4> timers;
+    std::uint32_t parentSpawnId;
+    std::uint32_t instigatorSpawnId;
+    const idDeclActorModifier* decl;
+    const idActorModifierItem* item;
+    netBoolEvent_t added;
+    netBoolEvent_t activated;
+    netBoolEvent_t deactivated;
+    unsigned int uid;
+    int creationTime;
+    int activationTime;
+    unsigned char index;
+    bool valid;
+    bool active;
+    int nextTimerTick;
+    idActorModifierManager* manager;
 };

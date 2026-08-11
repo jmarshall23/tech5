@@ -1,213 +1,193 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\attachments.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "game/decls/declinventory.h"
+#include "gamelib/animstack/animstacktypes.h"
+#include "gamelib/effects/fxmanager.h"
+#include "idlib/containers/list.h"
+#include "idlib/handle.h"
+#include "idlib/index.h"
+#include "idlib/math/vector.h"
 
+class idAnimatedEntity;
+class idDeclEntityDef;
+class idEntity;
+class idInventoryItem;
+class idPresentable;
 
-// IDA Local Type ordinal 14307; PDB kind: class.
-class __declspec(align(4)) idAttachment
-{
+#ifndef TUNGSTEN_ATTACHMENT_HANDLE_DEFINED
+#define TUNGSTEN_ATTACHMENT_HANDLE_DEFINED
+enum invalidAttachment_t : int { INVALID_ATTACHMENT = -1 };
+using idAttachmentHandle =
+    idHandle<int, invalidAttachment_t, INVALID_ATTACHMENT>;
+#endif
+
+class idAttachment {
 public:
-  idPresentable *presentable;
-  idInventoryItem *item;
-  const idDeclParticle *particleFx;
-  tagData_t particleFxTagData;
-  idVec3 originOffset;
-  idQuat savedRotOffset;
-  idQuat rotOffset;
-  idEntityPtr<idEntity> entity;
-  idIndex<short,enum invalidJointIndex_t> jointIndex;
-  int rotationAxis;
-  idHandle<int,enum invalidAttachment_t,-1> handle;
-  unsigned __int8 : 2;
-  __int8 isDetached : 1;
-  __int8 ignoreShowAll : 1;
-  __int8 isParticleFX : 1;
-  __int8 wasLinked : 1;
-  __int8 isHidden : 1;
-  __int8 isAnimated : 1;
+    idAttachment();
+
+    idPresentable* presentable;
+    idInventoryItem* item;
+    const idDeclParticle* particleFx;
+    tagData_t particleFxTagData;
+    idVec3 originOffset;
+    idQuat savedRotOffset;
+    idQuat rotOffset;
+    idEntity* entity;
+    idJointIndex jointIndex;
+    int rotationAxis;
+    idAttachmentHandle handle;
+    bool isDetached;
+    bool ignoreShowAll;
+    bool isParticleFX;
+    bool wasLinked;
+    bool isHidden;
+    bool isAnimated;
 };
 
-// IDA Local Type ordinal 19706; PDB kind: class.
-class idMoverAttachment : public idAnimatedEntity
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 19707.
-  virtual idTypeInfo *GetType();
-  virtual ~idMoverAttachment();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-  virtual void Reset();
-  virtual int GetDefaultSurfaceType();
-  virtual idList<idIndex<short,enum invalidJointIndex_t>,5> *GetRadiusDamageJointIndices();
-  virtual const idList<idIndex<short,enum invalidJointIndex_t>,5> *GetRadiusDamageJointIndices_2();
-  virtual idMD6Node *GetMD6Tree();
-  virtual const idMD6Node *GetMD6Tree_2();
-  virtual idAnimator_AnimWeb *GetAnimatorAnimWeb();
-  virtual bool IsAnimating();
-  virtual const idDeclFX *GetFXDecl();
-  virtual const idDeclFacialAnimationSet *GetFacialAnimationSet();
+class idAttachmentCollection;
 
-  idAnimator_Channel channelAnimator;
-  idHandle<unsigned short,enum invalidAliasHandle_t,65535> currentAnimationHandle;
-  idAtomicString endOfAnimationScriptFunction;
-  int bindParentThinkFlags;
-  bool useAsVehicle;
-  const idDeclVehicleProps *vehicleProps;
-  idAnimator_VehicleCar vehicleAnimator;
+// Runtime ownership boundary for entity tables, presentables, render models,
+// animation tags, inventory declarations, particles, and physics.  The
+// recovered collection owns selection and lifecycle policy; engine objects
+// remain on their original runtime side of this seam.
+class idAttachmentServices {
+public:
+    virtual ~idAttachmentServices() = default;
+
+    virtual int GetGameMilliseconds() const { return 0; }
+    virtual bool HasParentAnimator(const idAnimatedEntity*) const {
+        return false;
+    }
+    virtual void UpdateParent(idAnimatedEntity*) {}
+    virtual void SyncAnimatedPresentable(idPresentable*, int) {}
+    virtual idEntity* ResolveEntity(idEntity* entity) const { return entity; }
+    virtual void DeletePresentable(idPresentable*) {}
+    virtual bool CapturePresentableWorldTransform(idPresentable*,
+        idVec3&, idMat3&) const { return false; }
+    virtual void DetachPresentable(idPresentable*,
+        const idVec3&, const idMat3&) {}
+    virtual void AttachPresentable(idPresentable*, idAnimatedEntity*,
+        idJointIndex) {}
+    virtual void Present(idPresentable*) {}
+    virtual bool UpdatePresentable(idAttachment&, int) { return true; }
+    virtual void EmitAttachmentParticles(idAttachment&, int) {}
+    virtual bool GetWorldSpaceAttachmentTransform(const idAnimatedEntity*,
+        idJointIndex, const idVec3&, const idQuat&,
+        idVec3&, idMat3&) const { return false; }
+    virtual bool GetAttachmentWorldFrameDelta(const idAnimatedEntity*,
+        idJointIndex, const idVec3&, const idQuat&,
+        idVec3&, idMat3&) const { return false; }
+    virtual void ShowPresentable(idPresentable*) {}
+    virtual void HidePresentable(idPresentable*) {}
+    virtual void ShowEntity(idEntity*) {}
+    virtual void HideEntity(idEntity*) {}
+    virtual bool IsVehicleAttachment(const idInventoryItem*) const {
+        return false;
+    }
+    virtual bool IsInitiallyHidden(const idInventoryItem*) const {
+        return false;
+    }
+    virtual idJointIndex ResolveJoint(
+        const idAnimatedEntity*, std::uint16_t) const { return {}; }
+    virtual bool RebindEntity(idEntity*, idAnimatedEntity*, idJointIndex,
+        const tagData_t&) { return false; }
+    virtual bool WasEntityLinked(idEntity*) const { return false; }
+    virtual void UnbindEntity(idEntity*) {}
+    virtual void RestoreEntityClip(idEntity*) {}
+    virtual void RemoveEntity(idEntity*) {}
+    virtual const char* GetModelName(
+        const idAttachment&) const { return ""; }
+    virtual const char* GetEntityModelName(
+        const idEntity*) const { return ""; }
+    virtual bool GetEntityAttachmentOffsets(idAnimatedEntity*, idEntity*,
+        idJointIndex, idVec3&, idQuat&, bool&) { return false; }
+    virtual bool BindEntity(idEntity*, idAnimatedEntity*, idJointIndex,
+        const idVec3&, const idQuat&) { return false; }
+    virtual bool ResolveTag(idAnimatedEntity*, const char*, const char*,
+        tagData_t&) const { return false; }
+    virtual idEntity* SpawnEntity(
+        const idDeclEntityDef*, int) { return nullptr; }
+    virtual const idDeclInventory* GetInventoryDecl(
+        const idInventoryItem*) const { return nullptr; }
+    virtual bool CreateInventoryAttachment(idAnimatedEntity*,
+        const idDeclInventory*, const char*,
+        const idDeclInventory::idAttachmentInfo*, idAttachment&) {
+        return false;
+    }
+    virtual bool CreateModelAttachment(idAnimatedEntity*, const char*,
+        const tagData_t&, idAttachment&) { return false; }
+    virtual void CoupleInventoryItem(
+        idInventoryItem*, idPresentable*) {}
+    virtual void Warn(const char*) {}
+};
+
+class idAttachmentCollection {
+public:
+    explicit idAttachmentCollection(idAnimatedEntity* parent = nullptr);
+    ~idAttachmentCollection();
+
+    static void SetServices(idAttachmentServices* services);
+    static idAttachmentServices& Services();
+
+    idAttachment* ForIndex(int index);
+    const idAttachment* ForIndex(int index) const;
+    int Num() const { return attachments.Num(); }
+    void JobSync();
+    int FindAttachmentIndex(const idAttachmentHandle& handle) const;
+    int FindAttachmentIndex(const idEntity* entity) const;
+    int FindAttachmentIndex(const char* modelName) const;
+    const idAttachment* Get(const idAttachmentHandle& handle) const;
+    idEntity* GetEntity(const idAttachmentHandle& handle);
+    void DetachAttachment(const idAttachmentHandle& handle);
+    void ReattachAttachment(const idAttachmentHandle& handle);
+    void RemoveAttachment(const idInventoryItem* item);
+    void RemoveAttachment(const idAttachmentHandle& handle);
+    void RemoveAttachment(const idEntity* entity);
+    void RemoveAttachment(const char* modelName);
+    idAttachmentHandle FindAttachment(idInventoryItem* item) const;
+    idAttachmentHandle FindAttachment(const char* modelName,
+        idJointIndex jointIndex) const;
+    idAttachmentHandle FindAttachment(const char* modelName) const;
+    void UpdateRenderModelAttachments();
+    void GetWorldSpaceAttachmentTransform(const idAttachmentHandle& handle,
+        idVec3& origin, idMat3& axis) const;
+    void GetAttachmentWorldFrameDelta(const idAttachmentHandle& handle,
+        idVec3& translation, idMat3& rotation) const;
+    void ShowAttachments(bool hideVehicleAttachments);
+    void HideAttachments();
+    void ShowAttachment(const idAttachmentHandle& handle);
+    void HideAttachment(const idAttachmentHandle& handle,
+        bool ignoreShowAll);
+    bool RebindAttachment(const idAttachmentHandle& handle,
+        const tagData_t& tagData);
+    void FreeAttachments();
+
+    idAttachmentHandle AddAttachment(idEntity* entity,
+        idJointIndex jointIndex);
+    idAttachmentHandle AddAttachment(idEntity* entity,
+        const tagData_t& tagData);
+    idAttachmentHandle AddAttachment(idEntity* entity, const char* tag);
+    idAttachmentHandle AddAttachment(const idDeclEntityDef* entityDef,
+        const char* tag, int forceReplicationFlags);
+    idAttachmentHandle AddAttachment(const idDeclInventory* declaration,
+        const char* tagName,
+        const idDeclInventory::idAttachmentInfo* fxAttachInfo);
+    idAttachmentHandle AddAttachment(idInventoryItem* item,
+        const char* tagName,
+        const idDeclInventory::idAttachmentInfo* fxAttachInfo);
+    idAttachmentHandle AddAttachment(const char* modelName,
+        const char* propName, const char* tag,
+        const tagData_t* tagInfo, bool allowDuplicate);
+    idAttachmentHandle AddAttachment(
+        const char* modelName, const char* tag);
+
+    idAnimatedEntity* parent;
+    idList<idAttachment, 5> attachments;
+
+private:
+    idAttachmentHandle CommitAttachment(idAttachment& attachment,
+        int replaceIndex = -1);
+    void RemoveIndex(int index, bool deletePresentable);
+
+    static int handleCounter;
 };

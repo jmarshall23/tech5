@@ -1,46 +1,100 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\decls\declchapter.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decltypeinfo.h"
+#include "idlib/langdict.h"
+#include "idlib/math/vector.h"
 
+#include <string>
 
-// IDA Local Type ordinal 1783; PDB kind: enum.
-enum idDeclChapter::chapterType_t : __int32
-{
-  CHAPTERTYPE_CAMPAIGN = 0x0,
-  CHAPTERTYPE_SIDEMISSION = 0x1,
-  MAX_TYPES = 0x2,
+struct idChapterPart {
+    void GetLayersParsed(idStr& result) const;
+
+    idList<idAtomicString, 5> layers;
+    idAtomicString mapName;
 };
 
-// IDA Local Type ordinal 16086; PDB kind: class.
-class idDeclChapter : public idDeclTypeInfo
-{
+struct idChapterVariation {
+    int id{0};
+    int reserved{0};
+    idList<idChapterPart, 5> parts;
+};
+
+class idDeclChapterServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 16087.
-  virtual ~idDeclChapter();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
-
-  int sortId;
-  idStrId displayName;
-  idStrId lockedName;
-  idDeclChapter::chapterType_t type;
-  idVec2 offset;
-  idStr sideMap;
-  idList<idChapterVariation,5> variations;
+    virtual ~idDeclChapterServices() = default;
+    virtual const char* GetCurrentMapName() const = 0;
+    virtual bool IsLayerActive(const char* layerName) const = 0;
+    virtual void Warning(const std::string& message) = 0;
 };
+
+void Tungsten_SetDeclChapterServices(idDeclChapterServices* services);
+idDeclChapterServices& Tungsten_DeclChapterServices();
+
+class idDeclChapter : public idDeclTypeInfo {
+public:
+    enum chapterType_t : int {
+        CHAPTERTYPE_CAMPAIGN = 0,
+        CHAPTERTYPE_SIDEMISSION = 1,
+        MAX_TYPES = 2
+    };
+
+    idDeclChapter();
+    ~idDeclChapter() override;
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    static const idChapterVariation* FindVariationById(int id);
+    static bool FindCurrentEntry(int* chapterIndex, int* variationIndex,
+        int* partIndex);
+    static const idChapterVariation* FindCurrentVariation();
+    static void LoadAllDecls();
+
+    int sortId;
+    idStrId displayName;
+    idStrId lockedName;
+    chapterType_t type;
+    idVec2 offset;
+    idStr sideMap;
+    idList<idChapterVariation, 5> variations;
+
+    static idDeclInfoTemplate<idDeclChapter> resourceList;
+};
+
+class idDeclSecretType : public idDeclTypeInfo {
+public:
+    enum bonus_t : int {
+        BONUS_NONE = 0,
+        BONUS_MAX
+    };
+
+    idDeclSecretType() : sortId(0), bonus(BONUS_NONE) {}
+    ~idDeclSecretType() override = default;
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+    static void LoadAllDecls();
+
+    int sortId;
+    bonus_t bonus;
+    static idDeclInfoTemplate<idDeclSecretType> resourceList;
+};
+
+struct idSecretEntry {
+    int id{0};
+    const idDeclSecretType* type{nullptr};
+    idAtomicString entityName;
+};
+
+class idDeclSecrets : public idDeclTypeInfo {
+public:
+    idDeclSecrets();
+    ~idDeclSecrets() override;
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    static int FindSecretForEntity(const char* name);
+    static void LoadAllDecls();
+
+    int id;
+    idAtomicString map;
+    idList<idAtomicString, 5> layers;
+    idList<idSecretEntry, 5> secrets;
+    static idDeclInfoTemplate<idDeclSecrets> resourceList;
+};
+

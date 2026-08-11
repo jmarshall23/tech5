@@ -28,7 +28,7 @@ public:
     idStr title;
     idStr help;
     vehicleLoadoutSlot_t loadoutSlot;
-    int index;
+    mutable int index;
 
     static idDeclInfoTemplate<idDeclMenuItem> resourceList;
     static idList<const idDeclMenuItem*, 5> orderedList;

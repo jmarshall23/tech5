@@ -1,241 +1,196 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\animcamera.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "game/gamesys/eventarg.h"
+#include "gamelib/animstack/animstacktypes.h"
+#include "idlib/math/vector.h"
+#include "idlib/text/str.h"
 
+class idAnimCamera;
+class idEntity;
+class idMD6Anim;
+class idPlayer;
+class idSoundShader;
 
-// IDA Local Type ordinal 20059; PDB kind: struct.
-struct idAnimCamera::idScreenFade
-{
-  int fadeTime;
-  idVec4 fadeColor;
+class idRenderParmLerp {
+public:
+    idRenderParmLerp(const char* name = nullptr, int valueCount = 4);
+
+    void CalcValue(idVec4& destination) const;
+    void Update(int currentTime);
+    void Begin(const idVec4& destination, int currentTime, int milliseconds);
+
+    idStr name;
+    int numValues;
+    int startTime;
+    int duration;
+    idVec4 startValue;
+    idVec4 endValue;
+    idVec4 curValue;
+    idVec4 overrideValue;
+    int overrideMask;
+    bool isDepthOfField;
 };
 
-// IDA Local Type ordinal 20061; PDB kind: class.
-class __declspec(align(8)) idAnimCamera : public idCameraView
-{
+class idAnimCameraServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 34163.
-  virtual idTypeInfo *GetType();
-  virtual ~idAnimCamera();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-  virtual void HandleUserCmds(const usercmd_t *, const usercmd_t *);
-  virtual int InhibitFlags();
-  virtual int InhibitButtons();
-  virtual bool CanShowCrosshair();
-  virtual bool InternalActivate(idEntity *);
-  virtual bool InternalDeactivate();
+    virtual ~idAnimCameraServices() = default;
+    virtual int GetGameMilliseconds() const { return 0; }
+    virtual void JobSync(idAnimCamera&) {}
+    virtual void ApplyRenderParm(const char*, const idVec4&) {}
+    virtual void Shutdown(idAnimCamera&) {}
+    virtual bool Draw(idAnimCamera&, idPlayer*) { return false; }
+    virtual void PauseAnimation(idAnimCamera&, int) {}
+    virtual void UnpauseAnimation(idAnimCamera&, int, int) {}
+    virtual void SetCVarFloat(const char*, float) {}
+    virtual void SetCVarString(const char*, const char*) {}
+    virtual void PlaySound(idAnimCamera&, const idSoundShader*) {}
+    virtual void TeleportPlayerToView(idAnimCamera&) {}
+    virtual void KillVehicleAI(const char*) {}
+    virtual void TeleportPlayer(
+        idAnimCamera&, const idVec3&, const idAngles&) {}
+    virtual void TriggerEntity(idAnimCamera&, const char*) {}
+    virtual void Spawn(idAnimCamera&) {}
+    virtual const idMD6Anim* ResolveCameraAnimation(
+        idAnimCamera&, const char*) { return nullptr; }
+    virtual const idMD6Anim* ResolveCameraAlias(
+        idAnimCamera&, idAnimAliasHandle) { return nullptr; }
+    virtual idJointIndex ResolveCameraJoint(
+        const idAnimCamera&, const char*) const { return {}; }
+    virtual bool ActivateCamera(idAnimCamera&, idEntity*) { return false; }
+    virtual bool DeactivateCamera(idAnimCamera&) { return true; }
+    virtual void BeginCameraAnimation(
+        idAnimCamera&, const idMD6Anim*, bool) {}
+    virtual void CapturePlayerView(idAnimCamera&,
+        idVec3& position, idQuat& rotation) const {
+        position.Zero(); rotation = idQuat(0.0f, 0.0f, 0.0f, 1.0f);
+    }
+    virtual void ScheduleDeactivate(idAnimCamera&, int) {}
+    virtual void ActivateDoneTarget(idAnimCamera&) {}
+    virtual bool GetCameraTransform(idAnimCamera&,
+        idJointIndex, idVec3&, idMat3&) { return false; }
+    virtual bool GetCameraUserChannels(
+        idAnimCamera&, float&, float&) { return false; }
+    virtual void BlendCameraTransform(idAnimCamera&, int, int) {}
+    virtual void RunPhysics(idAnimCamera&) {}
+    virtual void BlendAnimation(idAnimCamera&) {}
+    virtual bool IsAnimationPaused(const idAnimCamera&) const {
+        return false;
+    }
+    virtual bool IsAnimationDone(const idAnimCamera&) const { return true; }
+    virtual int GetAnimationLoopCount(const idAnimCamera&) const { return 0; }
+    virtual bool WasCameraInputPressed(const idAnimCamera&) const {
+        return false;
+    }
+    virtual void ApplyScreenFade(
+        idAnimCamera&, const idVec4&, int) {}
+    virtual void ProcessFrameCommands(idAnimCamera&) {}
+    virtual void UpdateVisuals(idAnimCamera&) {}
+};
 
-  idJointName cameraJointName;
-  idStr cameraFovChannel;
-  idStr cameraDofChannel;
-  idHandle<unsigned short,enum invalidAliasHandle_t,65535> animationName;
-  idStr guiName;
-  int numLoops;
-  float initialFov;
-  bool hidePlayer;
-  bool abortable;
-  bool useDebugPlayerIfNeeded;
-  bool forceVirtualMaterialLoad;
-  int initialBlendTime;
-  bool startCamAnimImmediately;
-  int exitBlendTime;
-  idEntityPtr<idEntity> triggerWhenDone;
-  bool shouldPauseOnStart;
-  bool fadeInOnStart;
-  bool drawPlayerGUIS;
-  bool showLetterboxView;
-  float targetAspect;
-  bool useHighQualityMipGeneration;
-  bool adaptiveGlare;
-  bool hasActivated;
-  bool shouldPause;
-  bool waitingForKey;
-  idEntityPtr<idAnimated_AnimWeb> cinematicHands;
-  idAngles blendAngleOffset;
-  idAnimStack animStack;
-  idAnimator_Channel channelAnimator;
-  idVec3 camPos;
-  idMat3 camAxis;
-  idIndex<short,enum invalidJointIndex_t> camJointIdx;
-  const idMD6Anim *camAnim;
-  idInterpolate<float> camFov;
-  idIndex<short,enum invalidUserChannelIndex_t> camFovChannel;
-  idIndex<short,enum invalidUserChannelIndex_t> camDofChannel;
-  idPlayerHud::hudState_t prevHudState;
-  idVec3 offset;
-  idAnimEventHandler animEventHandler;
-  idAnimCamera::idScreenFade screenFade;
-  int remainingFrames;
-  idRenderParmLerp depthOfField;
-  idRenderParmLerp fogColor;
-  idRenderParmLerp fogScale;
-  int overrideDOFMask;
-  int blendStartTime;
-  int startTime;
-  int endTime;
-  idVec3 startPos;
-  idQuat startQuat;
-  idQuat destQuat;
-  bool isBlendingIn;
-  idRenderParmLerp *renderParms[3];
-  float cameraFOV;
-  float cameraDOF;
-  int oldSkipAdaptiveGlare;
+class idAnimCamera {
+public:
+    struct idScreenFade {
+        int fadeTime = -1;
+        idVec4 fadeColor{0.0f, 0.0f, 0.0f, 1.0f};
+    };
+
+    idAnimCamera();
+    virtual ~idAnimCamera();
+
+    static void SetServices(idAnimCameraServices* services);
+    static idAnimCameraServices& Services();
+
+    virtual void JobSync();
+    virtual bool Draw(idPlayer* player);
+    virtual void Think();
+    void Pause();
+    void Unpause();
+    void Spawn();
+    void SetCameraAnim(const char* name);
+    virtual bool InternalActivate(idEntity* activator);
+    virtual bool InternalDeactivate();
+
+    eventVoid AnimEvent_CameraFade(const idMD6Anim*,
+        const idVec3& color, float alpha, float seconds);
+    eventVoid AnimEvent_CameraTimeScale(const idMD6Anim*, float scale);
+    eventVoid AnimEvent_CameraSound(
+        const idMD6Anim*, const idSoundShader* sound);
+    eventVoid AnimEvent_CameraWaitForKeypress(const idMD6Anim*);
+    void SetDOFOverride(const idVec4& value);
+    void SetDOFOverride(float value, int index);
+    eventVoid AnimEvent_CameraRenderParm(const idMD6Anim*,
+        const char* name, float x, float y, float z, float w,
+        float durationSeconds);
+    eventVoid AnimEvent_CameraTeleportClientToViewPos(const idMD6Anim*);
+    eventVoid AnimEvent_CameraKillVehicleAI(
+        const idMD6Anim*, const char* name);
+    eventVoid AnimEvent_CameraCVarFloat(
+        const idMD6Anim*, const char* name, float value);
+    eventVoid AnimEvent_CameraCVarString(
+        const idMD6Anim*, const char* name, const char* value);
+    eventVoid AnimEvent_CameraSetFieldOfView(
+        const idMD6Anim*, float degrees);
+    eventVoid AnimEvent_CameraLerpToFOV(
+        const idMD6Anim*, float degrees, int milliseconds);
+    eventVoid AnimEvent_CameraPause(const idMD6Anim*);
+    eventVoid AnimEvent_CameraDepthOfField(const idMD6Anim*,
+        float blurStart, float blurScale, float durationSeconds);
+    eventVoid AnimEvent_Trigger(const idMD6Anim*, const char* entityName);
+    eventVoid AnimEvent_CameraTeleportClient(const idMD6Anim*,
+        const idVec3& position, const idAngles& angles);
+    eventVoid AnimEvent_CameraSetJoint(
+        const idMD6Anim*, const char* jointName);
+
+    idStr cameraJointName;
+    idStr cameraFovChannel;
+    idStr cameraDofChannel;
+    idAnimAliasHandle animationName;
+    idStr guiName;
+    int numLoops;
+    float initialFov;
+    bool hidePlayer;
+    bool abortable;
+    bool useDebugPlayerIfNeeded;
+    bool forceVirtualMaterialLoad;
+    int initialBlendTime;
+    bool startCamAnimImmediately;
+    int exitBlendTime;
+    idEntity* triggerWhenDone;
+    bool shouldPauseOnStart;
+    bool fadeInOnStart;
+    bool drawPlayerGUIS;
+    bool showLetterboxView;
+    float targetAspect;
+    bool useHighQualityMipGeneration;
+    bool adaptiveGlare;
+    bool hasActivated;
+    bool shouldPause;
+    bool waitingForKey;
+    idAngles blendAngleOffset;
+    idVec3 camPos;
+    idMat3 camAxis;
+    idJointIndex camJointIdx;
+    const idMD6Anim* camAnim;
+    float fovStartValue;
+    float fovEndValue;
+    int fovStartTime;
+    int fovDuration;
+    int pauseTime;
+    idVec3 offset;
+    idScreenFade screenFade;
+    int remainingFrames;
+    idRenderParmLerp depthOfField;
+    idRenderParmLerp fogColor;
+    idRenderParmLerp fogScale;
+    int overrideDOFMask;
+    int blendStartTime;
+    int startTime;
+    int endTime;
+    idVec3 startPos;
+    idQuat startQuat;
+    bool isBlendingIn;
+    idRenderParmLerp* renderParms[3];
+    float cameraFOV;
+    float cameraDOF;
+    bool active;
 };

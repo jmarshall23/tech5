@@ -1,6 +1,7 @@
 #pragma once
 
 #include "presentable.h"
+#include "game/effects/influencetrail_types.h"
 
 #include <cstdint>
 
@@ -10,23 +11,6 @@ class idDeclGore;
 class idDeclProjectile;
 class idDeclTwitchPain;
 struct trace_t;
-
-struct idEntityInfluenceTrail {
-    float innerRadius;
-    float outerRadius;
-    float angle;
-    float trailDist;
-    float trailFadeInTime;
-    float trailFadeOutTime;
-
-    idEntityInfluenceTrail()
-        : innerRadius(32.0f)
-        , outerRadius(64.0f)
-        , angle(0.0f)
-        , trailDist(32.0f)
-        , trailFadeInTime(0.25f)
-        , trailFadeOutTime(2.0f) {}
-};
 
 class idPresentableAI;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "navpowerdata.h"
+#include "navtypes.h"
 
 class idDeclNavigation;
 
@@ -42,14 +43,6 @@ enum navObstacleFlags_t : int {
     Obstacle_Special_3 = 512,
     Obstacle_Special_4 = 1024,
     Obstacle_All = 0xFFFF
-};
-
-enum navCustomFlags_t : int {
-    NavCustomNone = 0,
-    NavCustomClimbTick = 1,
-    NavCustomClimbImp = 2,
-    NavFlightLanding = 64,
-    NavCustomAll = -1
 };
 
 enum navLinkFlags_t : int {

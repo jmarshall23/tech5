@@ -1,270 +1,357 @@
 #pragma once
 
 #include "decljobref.h"
+#include "decls/decltypeinfo.h"
+#include "idlib/langdict.h"
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\decls\decljob.h
-// Recovered logical types: 18
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+class idAI2;
+class idDeclCameraTrigger;
+class idDeclFaction;
+class idDeclInventory;
+class idDeclJobNote;
+class idDeclJobTimerEvent;
+class idDeclLayer;
+class idMaterial;
+enum rageStat_t : int;
 
-
-// IDA Local Type ordinal 1193; PDB kind: enum.
-enum idDeclJob::jobPreConditionType_t : __int32
-{
-  JOBPRECONDITION_NONE = 0x0,
-  JOBPRECONDITION_JOB = 0x1,
-  JOBPRECONDITION_ITEM = 0x2,
-  JOBPRECONDITION_GAMESTATEINT = 0x3,
+enum garageList_t : int {
+    GARAGE_NONE = 0,
+    GARAGE_HAGER = 1,
+    GARAGE_WELLSPRING = 2,
+    GARAGE_SUBWAYTOWN = 3,
+    GARAGE_MAX = 4
 };
 
-// IDA Local Type ordinal 1194; PDB kind: enum.
-enum idDeclJob::jobCompleteType_t : __int32
-{
-  JOBCOMPLETE_NONE = 0x0,
-  JOBCOMPLETE_ITEM = 0x1,
-  JOBCOMPLETE_TRIGGER = 0x2,
-  JOBCOMPLETE_JOB = 0x3,
-  JOBCOMPLETE_JOB_ACCEPTED = 0x4,
-  JOBCOMPLETE_GAMESTATEINT = 0x5,
-  JOBCOMPLETE_JUSTDISPLAY = 0x6,
+enum gameDLCState_t : int {
+    GAME_DLC_STATE_DEFAULT = 0,
+    GAME_DLC_STATE_AUTHORITY = 1,
+    GAME_DLC_STATE_SEWERS = 2
 };
 
-// IDA Local Type ordinal 1195; PDB kind: enum.
-enum idDeclJob::jobType_t : __int32
-{
-  JOBTYPE_NONE = 0x0,
-  JOBTYPE_REQUIRED = 0x1,
-  JOBTYPE_SIMPLE = 0x2,
-  JOBTYPE_OPTIONAL = 0x3,
-  JOBTYPE_OPTIONAL_POSTED = 0x4,
-  JOBTYPE_REPEATING = 0x5,
-  JOBTYPE_APPROACHVO = 0x6,
-  JOBTYPE_RADIOVO = 0x7,
-  JOBTYPE_DATAMANAGEMENT = 0x8,
-  JOBTYPE_DYNAMIC_COMBAT = 0x9,
-  JOBTYPE_DYNAMIC_OTHER = 0xA,
-  JOBTYPE_JUSTGUI = 0xB,
-  JOBTYPE_INFO = 0xC,
+enum gameDemoType_t : int {
+    GAME_DEMO_TYPE_NONE = 0,
+    GAME_DEMO_TYPE_FIRSTLOOK = 1,
+    GAME_DEMO_TYPE_PLAYTEST = 2,
+    GAME_DEMO_TYPE_NEXTDEMO = 3,
+    GAME_DEMO_TYPE_FUTURE = 4
 };
 
-// IDA Local Type ordinal 1325; PDB kind: enum.
-enum idDeclJob::jobPreConditionStatus_t : __int32
-{
-  JOBPRECONDITIONSTATUS_ACCEPTED = 0x0,
-  JOBPRECONDITIONSTATUS_READYTOTURNIN = 0x1,
-  JOBPRECONDITIONSTATUS_COMPLETED = 0x2,
-};
-
-// IDA Local Type ordinal 1326; PDB kind: enum.
-enum idDeclJob::jobRewardType_t : __int32
-{
-  JOBREWARD_NONE = 0x0,
-  JOBREWARD_ITEM = 0x1,
-  JOBREWARD_ITEM_REMOVE = 0x2,
-  JOBREWARD_FACTION = 0x3,
-  JOBREWARD_JOBCOMPLETION = 0x4,
-  JOBREWARD_JOBACCEPT = 0x5,
-  JOBREWARD_JOBREMOVE = 0x6,
-  JOBREWARD_JOBREMOVE_INPROGRESS = 0x7,
-  JOBREWARD_USEALTERNATEHANDS = 0x8,
-  JOBREWARD_GAMESTATEINT = 0x9,
-  JOBREWARD_GARAGE = 0xA,
-  JOBREWARD_ACTIVATE_JOB = 0xB,
-};
-
-// IDA Local Type ordinal 2076; PDB kind: enum.
-enum idDeclJob::jobGiverFaction_t : __int32
-{
-  JOBFACTION_NONE = 0x0,
-  JOBFACTION_BOUNTY = 0x1,
-  JOBFACTION_WASTELANDER = 0x2,
-  JOBFACTION_WELLSPRING = 0x3,
-  JOBFACTION_SUBWAYTOWN = 0x4,
-  JOBFACTION_REGIME = 0x5,
-  JOBFACTION_MUTANTBASH = 0x6,
-};
-
-// IDA Local Type ordinal 14370; PDB kind: struct.
-struct idDeclJob::jobNormalFlowVars_t
-{
-  bool showsGUI;
-};
-
-// IDA Local Type ordinal 14373; PDB kind: class.
-class idDeclJob::jobPreCondition_t
-{
+class idStrMapName : public idStr {
 public:
-  idDeclJob::jobPreConditionType_t precondition;
-  idDeclJobRef jobDecl;
-  idDeclJob::jobPreConditionStatus_t jobStatus;
-  const idDeclInventory *inventoryDecl;
-  int count;
-  bool removeInventory;
-  const idDeclGameStateInt *gameStateIntDecl;
+    using idStr::idStr;
 };
 
-// IDA Local Type ordinal 14381; PDB kind: class.
-class idDeclJob : public idDeclTypeInfo
-{
+class idDeclGameStateInt : public idDeclTypeInfo {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 14420.
-  virtual ~idDeclJob();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
-
-  idStrId jobNameId;
-  idStrId jobSummaryId;
-  idStrId jobRequirementsId;
-  idStrId jobRewardId;
-  idStrId jobStanleyObjId;
-  idList<idStrMapName,5> relevantMaps;
-  idDeclJob::jobType_t jobType;
-  bool treatAsImportantIfNotRequired;
-  bool acceptNeedsVerification;
-  bool aiAcceptImmediatly;
-  bool sniperMission;
-  int challengeLevel;
-  idDeclJob::jobNormalFlowVars_t normalFlowVars;
-  bool giveAndCompleteOnApproach;
-  const idDeclJobTimerEvent *jobTimerEvent;
-  idList<idDeclJob::jobPreCondition_t,5> preconditions;
-  idList<idDeclJob::jobReward_t,5> acceptRewards;
-  idList<idDeclJob::jobReward_t,5> readyRewards;
-  idList<idDeclJob::jobComplete_t,5> completion;
-  idList<idDeclJob::jobReward_t,5> rewards;
-  idList<idStr,5> acceptedMiniMapTravelEnt;
-  idList<idStr,5> readyToTurnInMiniMapCompletionEnt;
-  idStrId completeNPCName;
-  idDeclJob::jobLayerInfo_t jobLayerInfo;
-  idDeclJob::jobNoteInfo_t jobNoteInfo;
-  idDeclJob::jobAutoTransitionInfo_t jobAutoTransitionInfo;
-  bool discSwappingJob;
-  idDeclJob::jobGiverFaction_t jobGiverFaction;
-  idDeclJob::jobDebugMasterInfo_t debugInfo;
-  idDeclJobRef parentWithoutPrecondition;
-  idList<idDeclCameraTrigger const *,5> cameras;
-  int cameraIndex;
-  bool showOnDebugJobGUI;
-  const idMaterial *jobImage;
-  bool doesFakeJob;
-  idStrId fakeJobName;
-  idStrId fakeJobObj;
-  idStrId fakeJobCompleteNPC;
-  idStr fakeJobMiniMapEnt;
-  bool ignoreFakeJob;
-  bool breakFakeJobCheck;
-  gameDLCState_t requiredDLC;
-  bool autoCompletes;
-  int autoCompleteDistance;
-  idList<enum gameDemoType_t,5> demoStates;
+    idDeclGameStateInt() = default;
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+    static idDeclInfoTemplate<idDeclGameStateInt> resourceList;
 };
 
-// IDA Local Type ordinal 14382; PDB kind: class.
-class idDeclJob::jobReward_t
-{
+#ifndef TUNGSTEN_GAME_STATE_INT_DEFINED
+#define TUNGSTEN_GAME_STATE_INT_DEFINED
+class idGameStateInt {
 public:
-  idDeclJob::jobRewardType_t reward;
-  const idDeclInventory *inventoryDecl;
-  int count;
-  const idDeclFaction *factionDecl;
-  const idDeclJob *jobDecl;
-  const idDeclGameStateInt *gameStateIntDecl;
-  garageList_t garage;
-  rageStat_t stat;
-  int statAmount;
+    idGameStateInt();
+    explicit idGameStateInt(const idDeclGameStateInt* gameStateDecl);
+    virtual ~idGameStateInt() = default;
+
+    const idDeclGameStateInt* decl;
+    int gameStateValue;
+};
+#endif
+
+class idDeclJobServices {
+public:
+    virtual ~idDeclJobServices() = default;
+    virtual int GetAINpcNameIndex(const idAI2*) const { return -1; }
 };
 
-// IDA Local Type ordinal 14384; PDB kind: class.
-class idDeclJob::jobComplete_t
-{
+void Tungsten_SetDeclJobServices(idDeclJobServices* services);
+idDeclJobServices& Tungsten_DeclJobServices();
+
+class idDeclJob : public idDeclTypeInfo {
 public:
-  idDeclJob::jobCompleteType_t completion;
-  const idDeclInventory *inventoryDecl;
-  int count;
-  bool removeInventory;
-  bool showTrackerMessage;
-  bool justDisplayCountsReadyAsComplete;
-  idStrId triggerMessage;
-  idDeclJobRef jobDecl;
-  const idDeclGameStateInt *gameStateIntDecl;
+    enum jobPreConditionType_t : int {
+        JOBPRECONDITION_NONE = 0,
+        JOBPRECONDITION_JOB = 1,
+        JOBPRECONDITION_ITEM = 2,
+        JOBPRECONDITION_GAMESTATEINT = 3
+    };
+
+    enum jobCompleteType_t : int {
+        JOBCOMPLETE_NONE = 0,
+        JOBCOMPLETE_ITEM = 1,
+        JOBCOMPLETE_TRIGGER = 2,
+        JOBCOMPLETE_JOB = 3,
+        JOBCOMPLETE_JOB_ACCEPTED = 4,
+        JOBCOMPLETE_GAMESTATEINT = 5,
+        JOBCOMPLETE_JUSTDISPLAY = 6
+    };
+
+    enum jobType_t : int {
+        JOBTYPE_NONE = 0,
+        JOBTYPE_REQUIRED = 1,
+        JOBTYPE_SIMPLE = 2,
+        JOBTYPE_OPTIONAL = 3,
+        JOBTYPE_OPTIONAL_POSTED = 4,
+        JOBTYPE_REPEATING = 5,
+        JOBTYPE_APPROACHVO = 6,
+        JOBTYPE_RADIOVO = 7,
+        JOBTYPE_DATAMANAGEMENT = 8,
+        JOBTYPE_DYNAMIC_COMBAT = 9,
+        JOBTYPE_DYNAMIC_OTHER = 10,
+        JOBTYPE_JUSTGUI = 11,
+        JOBTYPE_INFO = 12
+    };
+
+    enum jobPreConditionStatus_t : int {
+        JOBPRECONDITIONSTATUS_ACCEPTED = 0,
+        JOBPRECONDITIONSTATUS_READYTOTURNIN = 1,
+        JOBPRECONDITIONSTATUS_COMPLETED = 2
+    };
+
+    enum jobRewardType_t : int {
+        JOBREWARD_NONE = 0,
+        JOBREWARD_ITEM = 1,
+        JOBREWARD_ITEM_REMOVE = 2,
+        JOBREWARD_FACTION = 3,
+        JOBREWARD_JOBCOMPLETION = 4,
+        JOBREWARD_JOBACCEPT = 5,
+        JOBREWARD_JOBREMOVE = 6,
+        JOBREWARD_JOBREMOVE_INPROGRESS = 7,
+        JOBREWARD_USEALTERNATEHANDS = 8,
+        JOBREWARD_GAMESTATEINT = 9,
+        JOBREWARD_GARAGE = 10,
+        JOBREWARD_ACTIVATE_JOB = 11
+    };
+
+    enum jobGiverFaction_t : int {
+        JOBFACTION_NONE = 0,
+        JOBFACTION_BOUNTY = 1,
+        JOBFACTION_WASTELANDER = 2,
+        JOBFACTION_WELLSPRING = 3,
+        JOBFACTION_SUBWAYTOWN = 4,
+        JOBFACTION_REGIME = 5,
+        JOBFACTION_MUTANTBASH = 6
+    };
+
+    struct jobNormalFlowVars_t {
+        bool showsGUI;
+    };
+
+    struct jobPreCondition_t {
+        jobPreCondition_t()
+            : precondition(JOBPRECONDITION_NONE)
+            , jobDecl()
+            , jobStatus(JOBPRECONDITIONSTATUS_ACCEPTED)
+            , inventoryDecl(nullptr)
+            , count(0)
+            , removeInventory(false)
+            , gameStateIntDecl(nullptr) {
+        }
+
+        jobPreConditionType_t precondition;
+        idDeclJobRef jobDecl;
+        jobPreConditionStatus_t jobStatus;
+        const idDeclInventory* inventoryDecl;
+        int count;
+        bool removeInventory;
+        const idDeclGameStateInt* gameStateIntDecl;
+    };
+
+    struct jobReward_t {
+        jobReward_t()
+            : reward(JOBREWARD_NONE)
+            , inventoryDecl(nullptr)
+            , count(0)
+            , factionDecl(nullptr)
+            , jobDecl(nullptr)
+            , gameStateIntDecl(nullptr)
+            , garage(GARAGE_NONE)
+            , stat(static_cast<rageStat_t>(-1))
+            , statAmount(0) {
+        }
+
+        jobRewardType_t reward;
+        const idDeclInventory* inventoryDecl;
+        int count;
+        const idDeclFaction* factionDecl;
+        const idDeclJob* jobDecl;
+        const idDeclGameStateInt* gameStateIntDecl;
+        garageList_t garage;
+        rageStat_t stat;
+        int statAmount;
+    };
+
+    struct jobComplete_t {
+        jobComplete_t()
+            : completion(JOBCOMPLETE_NONE)
+            , inventoryDecl(nullptr)
+            , count(0)
+            , removeInventory(false)
+            , showTrackerMessage(false)
+            , justDisplayCountsReadyAsComplete(false)
+            , triggerMessage()
+            , jobDecl()
+            , gameStateIntDecl(nullptr) {
+        }
+
+        jobCompleteType_t completion;
+        const idDeclInventory* inventoryDecl;
+        int count;
+        bool removeInventory;
+        bool showTrackerMessage;
+        bool justDisplayCountsReadyAsComplete;
+        idStrId triggerMessage;
+        idDeclJobRef jobDecl;
+        const idDeclGameStateInt* gameStateIntDecl;
+    };
+
+    struct jobLayerInfo_t {
+        idList<const idDeclLayer*, 5> acceptLayers;
+        idList<const idDeclLayer*, 5> acceptLayersDeactive;
+        idList<const idDeclLayer*, 5> acceptLayersRemove;
+        idList<const idDeclLayer*, 5> readyLayers;
+        idList<const idDeclLayer*, 5> readyLayersDeactive;
+        idList<const idDeclLayer*, 5> readyLayersRemove;
+        idList<const idDeclLayer*, 5> completeLayers;
+        idList<const idDeclLayer*, 5> completeLayersDeactive;
+        idList<const idDeclLayer*, 5> completeLayersRemove;
+    };
+
+    struct jobNoteInfo_t {
+        idList<const idDeclJobNote*, 5> acceptJobNotes;
+        idList<const idDeclJobNote*, 5> acceptJobNotesRemove;
+        idList<const idDeclJobNote*, 5> readyJobNotes;
+        idList<const idDeclJobNote*, 5> readyJobNotesRemove;
+        idList<const idDeclJobNote*, 5> completeJobNotes;
+        idList<const idDeclJobNote*, 5> completeJobNotesRemove;
+        idList<const idDeclJobNote*, 5> relevantMapNotesRemove;
+        idList<const idDeclJobNote*, 5> relevantMapNotes;
+    };
+
+    struct jobSpawnInfo_t {
+        jobSpawnInfo_t();
+        idStr spawnSpot;
+        idStr mapName;
+        idList<const idDeclLayer*, 5> layerList;
+        idList<const idDeclLayer*, 5> layerListDeactive;
+        int delayTime;
+        bool hideVehicles;
+    };
+
+    struct jobAutoTransitionInfo_t {
+        jobSpawnInfo_t acceptSpawnInfo;
+        jobSpawnInfo_t readySpawnInfo;
+        jobSpawnInfo_t completeSpawnInfo;
+        jobSpawnInfo_t failSpawnInfo;
+    };
+
+    struct jobDebugInfo_t {
+        idList<jobReward_t, 5> debugRewards;
+    };
+
+    struct jobDebugMasterInfo_t {
+        jobDebugInfo_t debug_accepted;
+        jobDebugInfo_t debug_readyToTurnIn;
+        jobDebugInfo_t debug_completed;
+    };
+
+    idDeclJob();
+    ~idDeclJob() override = default;
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    bool IsJobHidden() const;
+    bool IsJobImportant() const;
+    bool IsJobImportantForActiveJob() const;
+    bool UseDynamicJobHud() const;
+    bool DontSaveProgressToFile() const;
+    bool ShowsGUI() const;
+    bool IsQuestJob() const;
+    bool IsSimple() const;
+    bool IsOptionalQuestJob() const;
+
+    idStrId GetJobName() const;
+    idStrId GetJobSummary() const;
+    idStrId GetJobRequirements() const;
+    idStrId GetJobReward() const;
+
+    const jobPreCondition_t* GetJobPrecondition(int index) const;
+    int GetNumJobRewards() const;
+    const jobReward_t* GetJobReward(int index) const;
+    int GetNumDebugRewards() const;
+    int GetNumCompletionRequirements() const;
+    const jobComplete_t* GetCompletionRequirement(int index) const;
+    bool AIMatchesJobCompleteNPC(const idAI2* ai) const;
+
+    idStr BuildRewardDebugString(jobReward_t reward,
+        idStr& debugString) const;
+    idStr GetJobRewardDebugString(int index) const;
+    idStr GetJobDebugRewardDebugString(int index) const;
+    idStr GetJobAcceptRewardDebugString(int index) const;
+    idStr GetJobReadyRewardDebugString(int index) const;
+    idStr GetJobPreconditionDebugString(int index) const;
+    idStr GetCompletionRequirementDebugString(int index) const;
+
+    idStrId jobNameId;
+    idStrId jobSummaryId;
+    idStrId jobRequirementsId;
+    idStrId jobRewardId;
+    idStrId jobStanleyObjId;
+    idList<idStrMapName, 5> relevantMaps;
+    jobType_t jobType;
+    bool treatAsImportantIfNotRequired;
+    bool acceptNeedsVerification;
+    bool aiAcceptImmediatly;
+    bool sniperMission;
+    int challengeLevel;
+    jobNormalFlowVars_t normalFlowVars;
+    bool giveAndCompleteOnApproach;
+    const idDeclJobTimerEvent* jobTimerEvent;
+    idList<jobPreCondition_t, 5> preconditions;
+    idList<jobReward_t, 5> acceptRewards;
+    idList<jobReward_t, 5> readyRewards;
+    idList<jobComplete_t, 5> completion;
+    idList<jobReward_t, 5> rewards;
+    idList<idStr, 5> acceptedMiniMapTravelEnt;
+    idList<idStr, 5> readyToTurnInMiniMapCompletionEnt;
+    idStrId completeNPCName;
+    jobLayerInfo_t jobLayerInfo;
+    jobNoteInfo_t jobNoteInfo;
+    jobAutoTransitionInfo_t jobAutoTransitionInfo;
+    bool discSwappingJob;
+    jobGiverFaction_t jobGiverFaction;
+    jobDebugMasterInfo_t debugInfo;
+    idDeclJobRef parentWithoutPrecondition;
+    idList<const idDeclCameraTrigger*, 5> cameras;
+    int cameraIndex;
+    bool showOnDebugJobGUI;
+    const idMaterial* jobImage;
+    bool doesFakeJob;
+    idStrId fakeJobName;
+    idStrId fakeJobObj;
+    idStrId fakeJobCompleteNPC;
+    idStr fakeJobMiniMapEnt;
+    bool ignoreFakeJob;
+    bool breakFakeJobCheck;
+    gameDLCState_t requiredDLC;
+    bool autoCompletes;
+    int autoCompleteDistance;
+    idList<gameDemoType_t, 5> demoStates;
+
+    static idDeclInfoTemplate<idDeclJob> resourceList;
 };
 
-// IDA Local Type ordinal 14389; PDB kind: class.
-class idDeclJob::jobLayerInfo_t
-{
-public:
-  idList<idDeclLayer const *,5> acceptLayers;
-  idList<idDeclLayer const *,5> acceptLayersDeactive;
-  idList<idDeclLayer const *,5> acceptLayersRemove;
-  idList<idDeclLayer const *,5> readyLayers;
-  idList<idDeclLayer const *,5> readyLayersDeactive;
-  idList<idDeclLayer const *,5> readyLayersRemove;
-  idList<idDeclLayer const *,5> completeLayers;
-  idList<idDeclLayer const *,5> completeLayersDeactive;
-  idList<idDeclLayer const *,5> completeLayersRemove;
-};
-
-// IDA Local Type ordinal 14393; PDB kind: class.
-class idDeclJob::jobNoteInfo_t
-{
-public:
-  idList<idDeclJobNote const *,5> acceptJobNotes;
-  idList<idDeclJobNote const *,5> acceptJobNotesRemove;
-  idList<idDeclJobNote const *,5> readyJobNotes;
-  idList<idDeclJobNote const *,5> readyJobNotesRemove;
-  idList<idDeclJobNote const *,5> completeJobNotes;
-  idList<idDeclJobNote const *,5> completeJobNotesRemove;
-  idList<idDeclJobNote const *,5> relevantMapNotesRemove;
-  idList<idDeclJobNote const *,5> relevantMapNotes;
-};
-
-// IDA Local Type ordinal 14394; PDB kind: class.
-class __declspec(align(4)) idDeclJob::jobSpawnInfo_t
-{
-public:
-  idStr spawnSpot;
-  idStr mapName;
-  idList<idDeclLayer const *,5> layerList;
-  idList<idDeclLayer const *,5> layerListDeactive;
-  int delayTime;
-  bool hideVehicles;
-};
-
-// IDA Local Type ordinal 14395; PDB kind: class.
-class idDeclJob::jobAutoTransitionInfo_t
-{
-public:
-  idDeclJob::jobSpawnInfo_t acceptSpawnInfo;
-  idDeclJob::jobSpawnInfo_t readySpawnInfo;
-  idDeclJob::jobSpawnInfo_t completeSpawnInfo;
-  idDeclJob::jobSpawnInfo_t failSpawnInfo;
-};
-
-// IDA Local Type ordinal 14396; PDB kind: class.
-class idDeclJob::jobDebugInfo_t
-{
-public:
-  idList<idDeclJob::jobReward_t,5> debugRewards;
-};
-
-// IDA Local Type ordinal 14397; PDB kind: class.
-class idDeclJob::jobDebugMasterInfo_t
-{
-public:
-  idDeclJob::jobDebugInfo_t debug_accepted;
-  idDeclJob::jobDebugInfo_t debug_readyToTurnIn;
-  idDeclJob::jobDebugInfo_t debug_completed;
-};
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idGameStateInt) == 12,
+    "Recovered game-state integer ABI changed");
+static_assert(sizeof(idDeclJob::jobReward_t) == 36,
+    "Recovered job reward ABI changed");
+static_assert(sizeof(idDeclJob::jobPreCondition_t) == 56,
+    "Recovered job precondition ABI changed");
+static_assert(sizeof(idDeclJob::jobComplete_t) == 56,
+    "Recovered job completion ABI changed");
+static_assert(sizeof(idDeclJob) == 1120,
+    "Recovered job declaration ABI changed");
+#endif

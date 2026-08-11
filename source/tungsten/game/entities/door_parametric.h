@@ -1,250 +1,202 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\door_parametric.h
-// Recovered logical types: 3
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "game/entities/door_base.h"
+#include "idlib/math/vector.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 1960; PDB kind: enum.
-enum idDoor_Parametric::slideDir_t : __int32
-{
-  SLIDE_UP = 0x0,
-  SLIDE_DOWN = 0x1,
-  SLIDE_LEFT = 0x2,
-  SLIDE_RIGHT = 0x3,
-  SLIDE_FORWARD = 0x4,
-  SLIDE_BACKWARD = 0x5,
+class idClipModel;
+class idPresentable;
+class idRenderModel;
+class idDoor_Parametric;
+
+struct idDoorParametricAngleCommand {
+    idEntity* activator = nullptr;
+    idVec3 direction{0.0f, 0.0f, 0.0f};
+    float duration = 0.0f;
+    float yaw = 0.0f;
 };
 
-// IDA Local Type ordinal 1961; PDB kind: enum.
-enum idDoor_Parametric::axis_t : __int32
-{
-  AXIS_X = 0x0,
-  AXIS_Y = 0x1,
-  AXIS_Z = 0x2,
-};
-
-// IDA Local Type ordinal 19952; PDB kind: class.
-class idDoor_Parametric : public idDoor_Base
-{
+class idDoorParametricServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 19953.
-  virtual idTypeInfo *GetType();
-  virtual ~idDoor_Parametric();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-  virtual void Reset();
-  virtual int GetDefaultSurfaceType();
-  virtual idList<idIndex<short,enum invalidJointIndex_t>,5> *GetRadiusDamageJointIndices();
-  virtual const idList<idIndex<short,enum invalidJointIndex_t>,5> *GetRadiusDamageJointIndices_2();
-  virtual idMD6Node *GetMD6Tree();
-  virtual const idMD6Node *GetMD6Tree_2();
-  virtual idAnimator_AnimWeb *GetAnimatorAnimWeb();
-  virtual bool IsAnimating();
-  virtual const idDeclFX *GetFXDecl();
-  virtual const idDeclFacialAnimationSet *GetFacialAnimationSet();
-  virtual usableState_t GetOnlineUsableState();
-  virtual bool IsOpen();
-  virtual bool IsClosed();
-  virtual bool IsLocked();
-  virtual bool IsLockedForEntity(const idEntity *, const float);
-  virtual bool CanKickOpen();
-  virtual bool KickUnlocks();
-  virtual bool HasKey(const idEntity *);
-  virtual void SetLocked(bool, idEntity *);
-  virtual void LockGrind(idEntity *, idEntity *);
-  virtual void UpdateAASAreas();
-  virtual void InternalSetDoorState(idEntity *, const idDoor_Base::doorState_t);
-  virtual bool CanClose(bool);
-  virtual void GetUseLocation(const idActor *, idVec3 *);
+    virtual ~idDoorParametricServices() = default;
 
-  idClipModel *frameClip;
-  idPhysics_Parametric physicsObj;
-  idPhysics_RigidBody rigidBodyPhysicsObj;
-  idDoor_Parametric::axis_t heading_axis;
-  idPresentable *framePresentable;
-  idPresentable *doorAttachment;
-  idRenderModel *frame;
-  idRenderModel *door;
-  idDoor_Parametric::axis_t rotation_axis;
-  float min_angle;
-  float max_angle;
-  float min_kick_angle;
-  float max_kick_angle;
-  float start_angle;
-  float angularspeed;
-  bool invertRotationDir;
-  bool slidingDoor;
-  idDoor_Parametric::slideDir_t slideDir;
-  float slideDist;
-  float slideSpeed;
-  float lockGrindRestAngle;
-  idVec3 rotate_axis;
-  idVec3 default_axis;
-  const idSoundShader *start_sound;
-  const idSoundShader *close_sound;
-  const idSoundShader *kick_open_sound;
-  idVec3 door_center;
-  idVec3 door_ai_offset;
-  int close_time;
-  int close_range;
-  int autoCloseTime;
-  int forceUnopenedTime;
-  idVec3 slideVec;
-  idVec3 closedPos;
-  idGatherQuery canCloseQuery;
+    virtual int GetGameMilliseconds() const;
+    virtual void HideEntity(idDoor_Parametric& door);
+    virtual void ShowEntity(idDoor_Parametric& door);
+    virtual void BecomeInactive(idDoor_Parametric& door, int flags);
+    virtual void BecomeActive(idDoor_Parametric& door, int flags);
+    virtual void UnlinkClip(idDoor_Parametric& door);
+    virtual void LinkClip(idDoor_Parametric& door);
+    virtual void RunPhysics(idDoor_Parametric& door);
+    virtual bool IsActor(const idEntity* entity) const;
+    virtual bool IsAI(const idEntity* entity) const;
+    virtual void ReportNonActorAIUse(const idEntity* entity) const;
+    virtual idVec3 GetEntityOrigin(const idEntity* entity) const;
+    virtual idBounds GetEntityBounds(const idEntity* entity) const;
+    virtual void PlaySound(idDoor_Parametric& door,
+        const idSoundShader* sound);
+    virtual void DeleteRequiredKey(idEntity* owner,
+        const idDeclInventory* key);
+
+    virtual bool IsMegaModel(const idDoor_Parametric& door) const;
+    virtual void WarnSpawn(const idDoor_Parametric& door,
+        const char* reason);
+    virtual void QueueRemove(idDoor_Parametric& door);
+    virtual idClipModel* AllocateFrameClip(idDoor_Parametric& door,
+        idRenderModel* model);
+    virtual idPresentable* AllocateFramePresentable(
+        idDoor_Parametric& door, idRenderModel* model);
+    virtual idPresentable* AllocateAnimatedPresentable(
+        idDoor_Parametric& door, idRenderModel* model);
+    virtual void DeleteClipModel(idClipModel* clipModel);
+    virtual void DeletePresentable(idPresentable* presentable);
+    virtual void FreeMainPresentable(idDoor_Parametric& door);
+    virtual void ReleaseRenderModel(idRenderModel* model);
+    virtual void ConfigureFrame(idDoor_Parametric& door,
+        idClipModel* clipModel, idPresentable* presentable,
+        const idVec3& origin, const idMat3& axis);
+    virtual void ConfigureParametricPhysics(idDoor_Parametric& door,
+        idRenderModel* model, const idVec3& origin,
+        const idMat3& axis, int contents);
+    virtual idBounds GetDoorClipBounds(
+        const idDoor_Parametric& door) const;
+    virtual void SetDoorContents(idDoor_Parametric& door, int contents);
+    virtual void PresentFrame(idPresentable* presentable);
+    virtual void PresentAttachment(idPresentable* presentable,
+        const idVec3& origin, const idMat3& axis);
+    virtual void PresentDoor(idDoor_Parametric& door);
+    virtual void ConfigureMainClipInfo(idDoor_Parametric& door,
+        const idVec3& origin, const idMat3& axis, int contents);
+
+    virtual void AddDoorMotionEvent(idDoor_Parametric& door,
+        idEntity* user, const idVec3& origin, int delay);
+    virtual bool IsGatherQuerySubmitted(std::uint64_t query) const;
+    virtual bool GatheredQueryHasActor(std::uint64_t query) const;
+    virtual std::uint64_t SubmitActorGather(const idBounds& bounds,
+        int contents);
+    virtual float GetDoorClosingRange() const;
+
+    virtual void BeginAngularInterpolation(idDoor_Parametric& door,
+        int currentTime, int durationMilliseconds,
+        float startAngle, float endAngle);
+    virtual void BeginLinearInterpolation(idDoor_Parametric& door,
+        int currentTime, int durationMilliseconds,
+        const idVec3& startOffset, const idVec3& endOffset);
+    virtual void ConvertToRigidBody(idDoor_Parametric& door,
+        const idVec3& origin, const idMat3& axis,
+        const idVec3& linearVelocity);
+    virtual void SetFrameClipContents(idDoor_Parametric& door,
+        int contents);
+    virtual void ScheduleLockGrindAngle(idDoor_Parametric& door,
+        const idDoorParametricAngleCommand& command);
+    virtual void ScheduleDisableObstacle(idDoor_Parametric& door,
+        int delayMilliseconds);
+};
+
+class idDoor_Parametric : public idDoor_Base {
+public:
+    enum slideDir_t {
+        SLIDE_UP = 0,
+        SLIDE_DOWN,
+        SLIDE_LEFT,
+        SLIDE_RIGHT,
+        SLIDE_FORWARD,
+        SLIDE_BACKWARD
+    };
+
+    enum axis_t {
+        AXIS_X = 0,
+        AXIS_Y,
+        AXIS_Z
+    };
+
+    idDoor_Parametric();
+    ~idDoor_Parametric() override;
+
+    static void SetServices(idDoorParametricServices* services);
+    static idDoorParametricServices& ParametricServices();
+
+    virtual void Hide();
+    virtual void Show();
+    void SetLocked(bool lock, idEntity* user) override;
+    bool IsLockedForEntity(const idEntity* entity,
+        float kickedAmount) const override;
+    bool Event_IsOpen() const;
+    bool Event_IsClosed() const;
+    bool Event_IsLockedForEntity(idEntity* entity) const;
+    idVec3 Event_GetCenterOfDoor() const;
+    virtual idPresentable* AllocPresentable(idRenderModel* renderModel);
+    void AutoClose();
+    bool Unlock(idEntity* user, float kickedAmount);
+    virtual void GetUseLocation(const idEntity* actor, idVec3& position) const;
+    float GetCurrentAngle() const;
+    virtual void GetSoundTransform(idVec3& soundOrigin,
+        idMat3& soundAxis) const;
+    idVec3 Event_GetAIUsePosition(idEntity* entity) const;
+    void Event_LockGrinderSetAngleAtTime(idEntity* activator,
+        const idVec3& direction, float duration, float yaw);
+    void Event_DisableObstacleFlag();
+    virtual void LockGrind(idEntity* source, idEntity* lockGrinder);
+    void Spawn();
+    virtual void Think();
+    bool CanClose(bool testingForUse) const override;
+    bool Use(idEntity* user, int usableState) override;
+    bool IsOpen() const override;
+    bool IsClosed() const override;
+    void Event_SetAngleAtTime(idEntity* source,
+        float duration, float yaw);
+
+    idClipModel* frameClip;
+    idPresentable* framePresentable;
+    idPresentable* doorAttachment;
+    idRenderModel* frame;
+    idRenderModel* door;
+    axis_t heading_axis;
+    axis_t rotation_axis;
+    float min_angle;
+    float max_angle;
+    float min_kick_angle;
+    float max_kick_angle;
+    float start_angle;
+    float angularspeed;
+    bool invertRotationDir;
+    bool slidingDoor;
+    slideDir_t slideDir;
+    float slideDist;
+    float slideSpeed;
+    float lockGrindRestAngle;
+    idVec3 rotate_axis;
+    idVec3 default_axis;
+    const idSoundShader* start_sound;
+    const idSoundShader* close_sound;
+    const idSoundShader* kick_open_sound;
+    idVec3 door_center;
+    idVec3 door_ai_offset;
+    int close_time;
+    int close_range;
+    int autoCloseTime;
+    int forceUnopenedTime;
+    idVec3 slideVec;
+    idVec3 closedPos;
+    mutable std::uint64_t canCloseQuery;
+
+    idVec3 spawnPosition;
+    idMat3 spawnOrientation;
+    idVec3 physicsOrigin;
+    idMat3 physicsAxis;
+    idBounds doorClipBounds;
+    idVec3 linearOffset;
+    idVec3 targetLinearOffset;
+    float currentAngle;
+    float targetAngle;
+    int linearEndTime;
+    int angularEndTime;
+    int physicsContents;
+    int frameClipContents;
+    int thinkFlags;
+    bool hidden;
+    bool clipLinked;
+    bool removed;
+    bool usingRigidBody;
 };

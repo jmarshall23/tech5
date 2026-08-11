@@ -411,6 +411,7 @@ void idCutterGraphManager::Graph::BuildGraphTree(
 bool idCutterGraphManager::Graph::PathFind(
         idList<idVec2i, 5>& points) const {
     if (prevNode == nullptr || lastNode == nullptr) return false;
+    points.Clear();
     std::queue<Node_t*> open;
     std::unordered_map<Node_t*, Node_t*> parent;
     open.push(prevNode);
@@ -422,6 +423,14 @@ bool idCutterGraphManager::Graph::PathFind(
             if (link->edge == nullptr || !link->edge->allocated ||
                     link->invalid != 0 || parent.find(link->node) != parent.end())
                 continue;
+            // BuildEdge has just connected prevNode to lastNode.  Retail's
+            // depth-first walk marks the destination visited before walking
+            // from the source, which deliberately excludes that new edge and
+            // searches for the alternate path that closes the cut polygon.
+            if ((current == prevNode && link->node == lastNode) ||
+                    (current == lastNode && link->node == prevNode)) {
+                continue;
+            }
             parent[link->node] = current;
             open.push(link->node);
         }
@@ -799,124 +808,113 @@ bool idCutterGraphManager::PointInPolygon(const idVec2i& pos,
 
 bool idCutterGraphManager::BuildEdge(const idVec2i& destination) {
     if (graph == nullptr) return false;
-    Node_t* destinationNode = GenerateNode(graph->GetPosition3D(destination),
-        destination, 0);
-    if (destinationNode == nullptr) return false;
+
+    auto distanceSquared = [](const idVec2i& first, const idVec2i& second) {
+        const std::int64_t dx = static_cast<std::int64_t>(first.x) - second.x;
+        const std::int64_t dy = static_cast<std::int64_t>(first.y) - second.y;
+        return dx * dx + dy * dy;
+    };
+    auto insideInnerContour = [this](const idVec2i& point) {
+        for (Contour* contour = graph->contoursInner; contour != nullptr;
+                contour = contour->next) {
+            if (contour->ContainsPoint(point)) return true;
+        }
+        return false;
+    };
+    auto linked = [](const Node_t* first, const Node_t* second) {
+        for (const Link_t* link = first != nullptr ? first->link : nullptr;
+                link != nullptr; link = link->next) {
+            if (link->node == second) return true;
+        }
+        return false;
+    };
+
+    if (graph->lastNode != nullptr &&
+            distanceSquared(graph->lastNode->pos, destination) > 225) {
+        graph->lastNode = nullptr;
+    }
     if (graph->lastNode == nullptr) {
-        graph->lastNode = destinationNode;
+        if (graph->FindNodeIndex(destination, 6) < 0 &&
+                insideInnerContour(destination)) {
+            return false;
+        }
         graph->prevNode = nullptr;
-        return true;
+        graph->lastNode = GenerateNode(graph->GetPosition3D(destination),
+            destination, 6);
+        return false;
     }
+
     Node_t* source = graph->lastNode;
+    const int destinationIndex = graph->FindNodeIndex(destination, 6);
+    Node_t* destinationNode = destinationIndex >= 0
+        ? graph->nodes[destinationIndex].data : nullptr;
     if (source == destinationNode) return false;
-
-    struct Crossing { double fraction; Node_t* node; };
-    std::vector<Crossing> crossings;
-    crossings.push_back({0.0, source});
-    crossings.push_back({1.0, destinationNode});
-
-    const std::vector<edgeHandle_t> edgeSnapshot(graph->edges.Ptr(),
-        graph->edges.Ptr() + graph->edges.Num());
-    for (const edgeHandle_t& handle : edgeSnapshot) {
-        Edge_t* edge = handle.data;
-        if (edge == nullptr || !edge->allocated) continue;
-        idVec2i hit;
-        double fraction = 0.0;
-        if (!SegmentIntersection(source->pos, destination,
-                edge->node1->pos, edge->node2->pos, hit, &fraction)) continue;
-        Node_t* crossing = GenerateNode(graph->GetPosition3D(hit), hit, 0);
-        crossings.push_back({fraction, crossing});
-        if (crossing != edge->node1 && crossing != edge->node2) {
-            Node_t* first = edge->node1;
-            Node_t* second = edge->node2;
-            Contour* contour = edge->contour;
-            ContourEdge_t* contourEdge = edge->contourEdge;
-            Disconnect(edge);
-            Connect(first, crossing, contour, contourEdge);
-            Connect(crossing, second, contour, contourEdge);
-            if (contourEdge != nullptr)
-                contourManager->SplitEdge(contourEdge, first->pos,
-                    second->pos, hit);
-        }
+    if (destinationNode != nullptr && linked(source, destinationNode)) {
+        graph->prevNode = source;
+        graph->lastNode = destinationNode;
+        return false;
     }
 
-    for (Contour* contour = graph->contoursOuter; contour != nullptr;
-            contour = contour->next) {
-        for (ContourEdge_t* edge = contour->edges; edge != nullptr;
-                edge = edge->next) {
-            for (ContourNode_t* node = edge->node;
-                    node != nullptr && node->next != nullptr;
-                    node = node->next) {
-                idVec2i hit;
-                double fraction = 0.0;
-                if (SegmentIntersection(source->pos, destination, node->pos,
-                        node->next->pos, hit, &fraction)) {
-                    crossings.push_back({fraction,
-                        GenerateNode(graph->GetPosition3D(hit), hit, 0)});
-                }
+    const idVec2i target = destinationNode != nullptr
+        ? destinationNode->pos : destination;
+    idVec2i intersection;
+    Edge_t* const splitEdge = graph->FindSplitEdge(source, target,
+        intersection);
+    if (splitEdge == nullptr) {
+        const idVec2i midpoint((source->pos.x + target.x) / 2,
+            (source->pos.y + target.y) / 2);
+        if (!insideInnerContour(midpoint)) {
+            if (destinationNode == nullptr &&
+                    distanceSquared(source->pos, destination) > 36) {
+                destinationNode = GenerateNode(
+                    graph->GetPosition3D(destination), destination, 6);
             }
-        }
-    }
-    for (Contour* contour = graph->contoursInner; contour != nullptr;
-            contour = contour->next) {
-        for (ContourEdge_t* edge = contour->edges; edge != nullptr;
-                edge = edge->next) {
-            for (ContourNode_t* node = edge->node;
-                    node != nullptr && node->next != nullptr;
-                    node = node->next) {
-                idVec2i hit;
-                double fraction = 0.0;
-                if (SegmentIntersection(source->pos, destination, node->pos,
-                        node->next->pos, hit, &fraction)) {
-                    crossings.push_back({fraction,
-                        GenerateNode(graph->GetPosition3D(hit), hit, 0)});
-                }
+            if (destinationNode != nullptr &&
+                    !linked(source, destinationNode)) {
+                Connect(source, destinationNode, nullptr);
             }
+            graph->prevNode = source;
+            graph->lastNode = destinationNode;
         }
+        return false;
     }
-    std::sort(crossings.begin(), crossings.end(),
-        [](const Crossing& a, const Crossing& b) {
-            return a.fraction < b.fraction;
-        });
-    crossings.erase(std::unique(crossings.begin(), crossings.end(),
-        [](const Crossing& a, const Crossing& b) { return a.node == b.node; }),
-        crossings.end());
 
-    bool connected = false;
-    for (std::size_t index = 0; index + 1 < crossings.size(); ++index) {
-        Node_t* first = crossings[index].node;
-        Node_t* second = crossings[index + 1].node;
-        const idVec2i midpoint((first->pos.x + second->pos.x) / 2,
-            (first->pos.y + second->pos.y) / 2);
-        if (graph->contoursOuter != nullptr &&
-                !graph->contoursOuter->ContainsPoint(midpoint)) continue;
-        bool insideHole = false;
-        for (Contour* hole = graph->contoursInner; hole != nullptr;
-                hole = hole->next) {
-            if (hole->ContainsPoint(midpoint) &&
-                    hole->FindEdge(first->pos, second->pos) == nullptr) {
-                insideHole = true;
-                break;
-            }
+    int intersectionIndex = graph->FindClosestNode(splitEdge,
+        intersection, 6);
+    Node_t* intersectionNode = intersectionIndex >= 0
+        ? graph->nodes[intersectionIndex].data : nullptr;
+    if (intersectionNode == nullptr) {
+        intersectionNode = GenerateNode(graph->GetPosition3D(intersection),
+            intersection, 0);
+    }
+    if (intersectionNode == nullptr || intersectionNode == source) {
+        return false;
+    }
+
+    const idVec2i midpoint(
+        (source->pos.x + intersectionNode->pos.x) / 2,
+        (source->pos.y + intersectionNode->pos.y) / 2);
+    const bool insideHole = insideInnerContour(midpoint);
+
+    Node_t* const first = splitEdge->node1;
+    Node_t* const second = splitEdge->node2;
+    Contour* const owner = splitEdge->contour;
+    ContourEdge_t* const ownerEdge = splitEdge->contourEdge;
+    if (intersectionNode != first && intersectionNode != second) {
+        Disconnect(splitEdge);
+        Connect(first, intersectionNode, owner, ownerEdge);
+        Connect(intersectionNode, second, owner, ownerEdge);
+        if (ownerEdge != nullptr) {
+            contourManager->SplitEdge(ownerEdge, first->pos, second->pos,
+                intersectionNode->pos);
         }
-        if (insideHole) continue;
-        Contour* owner = nullptr;
-        ContourEdge_t* ownerEdge = nullptr;
-        for (Contour* candidate = graph->contoursInner; candidate != nullptr;
-                candidate = candidate->next) {
-            ownerEdge = candidate->FindEdge(first->pos, second->pos);
-            if (ownerEdge != nullptr) { owner = candidate; break; }
-        }
-        if (ownerEdge == nullptr && graph->contoursOuter != nullptr) {
-            ownerEdge = graph->contoursOuter->FindEdge(first->pos,
-                second->pos);
-            if (ownerEdge != nullptr) owner = graph->contoursOuter;
-        }
-        connected |= Connect(first, second, owner, ownerEdge) != nullptr;
+    }
+    if (!insideHole && !linked(source, intersectionNode)) {
+        Connect(source, intersectionNode, owner);
     }
     graph->prevNode = source;
-    graph->lastNode = destinationNode;
-    return connected;
+    graph->lastNode = intersectionNode;
+    return !insideHole;
 }
 
 bool idCutterGraphManager::PathFind(idList<idVec2i, 5>& points) const {

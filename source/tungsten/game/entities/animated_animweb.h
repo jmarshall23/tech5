@@ -1,256 +1,191 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\animated_animweb.h
-// Recovered logical types: 5
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "game/gamesys/eventarg.h"
+#include "gamelib/animstack/animstacktypes.h"
+#include "idlib/bv/bounds.h"
+#include "idlib/containers/list.h"
+#include "idlib/math/vector.h"
+#include "idlib/text/str.h"
 
+class idAnimated_AnimWeb;
+class idDeclDamage;
+class idDeclEntityDef;
+class idDeclInventory;
+class idDeclMD6;
+class idDeclVoiceOver;
+class idEntity;
+class idInventoryItem;
+class idMD6Anim;
+class idSoundShader;
 
-// IDA Local Type ordinal 19611; PDB kind: struct.
-struct idAnimated_AnimWeb::animWebParms_t
-{
-  const idDeclAnimWeb *webDecl;
-  idAnimWebPath initialWebNode;
-  idList<idAnimWebPath,5> ambientAnims;
-};
-
-// IDA Local Type ordinal 19612; PDB kind: struct.
-struct idAnimated_AnimWeb::attachment_t
-{
-  equipSlot_t equipSlot;
-  idStr tag;
-  const idDeclEntityDef *entityDef;
-  idStr entityName;
-  const idDeclInventory *declInventory;
-  const idDeclMD6 *md6;
-  idStr lwoName;
-};
-
-// IDA Local Type ordinal 19614; PDB kind: struct.
-struct idAnimated_AnimWeb::collisionPieceStage_t
-{
-  idStrClipModel collisionModel;
-  idVec3 collisionBounds;
-  idStr tag;
-  idJointName joint;
-  idContents clipMask;
-  idContents contents;
-  bool clipBounds;
-  bool push;
-  bool crush;
-  idClipModel *clipModel;
-  idIndex<short,enum invalidJointIndex_t> jointIndex;
-  idQuat rOffset;
-  idVec3 tOffset;
-};
-
-// IDA Local Type ordinal 19616; PDB kind: struct.
-struct idAnimated_AnimWeb::collisionPiece_t
-{
-  idList<idAnimated_AnimWeb::collisionPieceStage_t,5> stages;
-  idPhysics_Static physicsObj;
-  int pushFlags;
-  int curStage;
-};
-
-// IDA Local Type ordinal 19619; PDB kind: class.
-class idAnimated_AnimWeb : public idAnimatedEntity
-{
+class idAnimatedAnimWebServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 19620.
-  virtual idTypeInfo *GetType();
-  virtual ~idAnimated_AnimWeb();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-  virtual void Reset();
-  virtual int GetDefaultSurfaceType();
-  virtual idList<idIndex<short,enum invalidJointIndex_t>,5> *GetRadiusDamageJointIndices();
-  virtual const idList<idIndex<short,enum invalidJointIndex_t>,5> *GetRadiusDamageJointIndices_2();
-  virtual idMD6Node *GetMD6Tree();
-  virtual const idMD6Node *GetMD6Tree_2();
-  virtual idAnimator_AnimWeb *GetAnimatorAnimWeb();
-  virtual bool IsAnimating();
-  virtual const idDeclFX *GetFXDecl();
-  virtual const idDeclFacialAnimationSet *GetFacialAnimationSet();
+    virtual ~idAnimatedAnimWebServices() = default;
+    virtual int GetGameMilliseconds() const { return 0; }
+    virtual void GetSoundTransform(
+        const idAnimated_AnimWeb&, idVec3&, idMat3&) const {}
+    virtual awPathResult_t ChangeState(idAnimated_AnimWeb&,
+        const char*, const char*, const char*, const char*, bool) {
+        return AWPATH_FAILED;
+    }
+    virtual bool StartVoiceOver(idAnimated_AnimWeb&, idEntity*,
+        const idDeclVoiceOver*, bool) { return false; }
+    virtual void EquipInventoryItem(
+        idAnimated_AnimWeb&, const char*, bool) {}
+    virtual void ItemFX(
+        idAnimated_AnimWeb&, const char*, int, bool) {}
+    virtual void SetVisible(idAnimated_AnimWeb&, bool) {}
+    virtual void SetKnifeVisible(idAnimated_AnimWeb&,
+        const char*, const char*, bool) {}
+    virtual void DamagePlayer(idAnimated_AnimWeb&,
+        const idDeclDamage*, int, float) {}
+    virtual void ControllerShake(
+        idAnimated_AnimWeb&, int, int, int, int) {}
+    virtual void UpdateCollisionPiece(idAnimated_AnimWeb&,
+        int, int, idBounds&, bool) {}
+    virtual void SetCollisionStage(
+        idAnimated_AnimWeb&, int, int, bool) {}
+    virtual void TriggerAttachments(idAnimated_AnimWeb&) {}
+    virtual void SetMeshVisible(
+        idAnimated_AnimWeb&, const char*, bool) {}
+    virtual void PauseAnimWeb(idAnimated_AnimWeb&, bool) {}
+    virtual bool InitializeAnimWeb(idAnimated_AnimWeb&) { return true; }
+    virtual void AddAttachment(idAnimated_AnimWeb&,
+        const idDeclEntityDef*, const idDeclInventory*, const idDeclMD6*,
+        const char*, const char*, const char*, int) {}
+    virtual void InitializeCollisionPiece(
+        idAnimated_AnimWeb&, int) {}
+    virtual void ApplyOriginDelta(idAnimated_AnimWeb&) {}
+    virtual void UpdateAnimation(idAnimated_AnimWeb&) {}
+    virtual void UpdateFace(idAnimated_AnimWeb&) {}
+    virtual void Think(idAnimated_AnimWeb&) {}
+    virtual void Shutdown(idAnimated_AnimWeb&) {}
+};
 
-  idAnimated_AnimWeb::animWebParms_t animWebParms;
-  idList<idAnimated_AnimWeb::attachment_t,5> startingAttachments;
-  bool applyAnimDelta;
-  bool useAmbientAnims;
-  int ambientWaitTime;
-  int ambientWait;
-  bool useFaceManager;
-  bool sceneModel;
-  bool overrideUsingDeferredPositions;
-  const idDeclDamage *crushDamage;
-  const idDeclDamage *pushDamage;
-  idJointName soundJoint;
-  idIndex<short,enum invalidJointIndex_t> soundJointIndex;
-  idList<idAnimated_AnimWeb::collisionPiece_t,5> collisionPieces;
-  idStrId subtitleName;
-  idAnimator_AnimWeb animWeb;
-  idAnimator_Channel channelAnimators[2];
-  idAnimator_Paused pausedAnimator;
-  idFaceMgr *faceMgr;
-  idAttachmentCollection attachments;
-  idHandle<int,enum invalidAttachment_t,-1> equipSlots[15];
-  idInventoryCollection inventory;
-  idList<idAnimEventHandler,5> attachmentAnimEventHandlers;
-  bool lightFromJointPositions;
-  idJointName skipJointForLighting;
-  idList<idStr,5> hideMeshes;
-  idList<idStr,5> showMeshes;
+class idAnimated_AnimWeb {
+public:
+    struct animWebParms_t {
+        const void* webDecl = nullptr;
+        idStr initialSubWeb;
+        idStr initialState;
+        idList<idStr, 5> ambientAnims{0};
+    };
+    struct attachment_t {
+        int equipSlot = 0;
+        idStr tag;
+        const idDeclEntityDef* entityDef = nullptr;
+        idStr entityName;
+        const idDeclInventory* declInventory = nullptr;
+        const idDeclMD6* md6 = nullptr;
+        idStr lwoName;
+    };
+    struct collisionPieceStage_t {
+        idVec3 collisionBounds{0.0f, 0.0f, 0.0f};
+        idStr tag;
+        int clipMask = 0;
+        int contents = 0;
+        bool clipBounds = false;
+        bool push = false;
+        bool crush = false;
+    };
+    struct collisionPiece_t {
+        idList<collisionPieceStage_t, 5> stages{0};
+        int pushFlags = 0;
+        int curStage = 0;
+    };
+
+    idAnimated_AnimWeb();
+    virtual ~idAnimated_AnimWeb();
+
+    static void SetServices(idAnimatedAnimWebServices* services);
+    static idAnimatedAnimWebServices& Services();
+
+    virtual void GetSoundTransform(idVec3& origin, idMat3& axis) const;
+    awPathResult_t ChangeAnimWebState(const char* state);
+    awPathResult_t ChangeAnimWebState(
+        const char* subWeb, const char* state);
+    awPathResult_t ChangeAnimWebStateVia(
+        const char* state, const char* viaState);
+    awPathResult_t ForceAnimWebState(const char* state);
+    awPathResult_t ChangeAnimWebStateVia(const char* subWeb,
+        const char* state, const char* viaSubWeb, const char* viaState);
+    eventVoid Event_ChangeAnimState(const char*, const char*);
+    eventVoid Event_ChangeAnimStateVia(
+        const char*, const char*, const char*, const char*);
+    eventVoid Event_ForceAnimState(const char*, const char*, int);
+    eventBool Event_StartVoiceOver(
+        idEntity*, const idDeclVoiceOver*, bool);
+    eventVoid AnimEvent_VoiceOver(
+        const idMD6Anim*, const idDeclVoiceOver*);
+    eventVoid AnimEvent_HolsterItem(const idMD6Anim*, const char*);
+    eventVoid AnimEvent_EquipItem(const idMD6Anim*, const char*);
+    eventVoid AnimEvent_ItemStartFX(const idMD6Anim*, const char*, int);
+    eventVoid AnimEvent_ItemStopFX(const idMD6Anim*, const char*, int);
+    virtual void Hide();
+    virtual void Show();
+    eventVoid AnimEvent_HideFFFKnife(
+        const idMD6Anim*, const char*, const char*);
+    eventVoid AnimEvent_ShowFFFKnife(
+        const idMD6Anim*, const char*, const char*);
+    eventVoid AnimEvent_DamagePlayer(
+        const idMD6Anim*, const idDeclDamage*, int, float);
+    eventVoid AnimEvent_PlayerControllerShake(
+        const idMD6Anim*, int, int, int, int);
+    void UpdateCollisionPieces(idBounds& bounds, bool force);
+    void SetStage(int piece, int stage, bool force);
+    eventVoid AnimEvent_SetStage(const idMD6Anim*, int, int);
+    eventVoid AnimEvent_TriggerAttachments(const idMD6Anim*);
+    eventVoid AnimEvent_HideMesh(const idMD6Anim*, const char*);
+    virtual void Think();
+    void Spawn();
+
+    idStr name;
+    animWebParms_t animWebParms;
+    idList<attachment_t, 5> startingAttachments;
+    bool applyAnimDelta;
+    bool useAmbientAnims;
+    int ambientWaitTime;
+    int ambientWait;
+    bool useFaceManager;
+    bool sceneModel;
+    bool overrideUsingDeferredPositions;
+    const idDeclDamage* crushDamage;
+    const idDeclDamage* pushDamage;
+    idStr soundJoint;
+    idList<collisionPiece_t, 5> collisionPieces;
+    idStr subtitleName;
+    bool lightFromJointPositions;
+    idStr skipJointForLighting;
+    idList<idStr, 5> hideMeshes;
+    idList<idStr, 5> showMeshes;
+};
+
+class idTarget_AnimWebChangeState {
+public:
+    idAnimated_AnimWeb* target = nullptr;
+    idStr subWeb;
+    idStr state;
+    void OnActivate(idEntity* activator);
+};
+
+class idTarget_AnimWebChangeStateVia {
+public:
+    idAnimated_AnimWeb* target = nullptr;
+    idStr subWeb;
+    idStr state;
+    idStr viaSubWeb;
+    idStr viaState;
+    void OnActivate(idEntity* activator);
+};
+
+class idTarget_AnimWebPause {
+public:
+    idAnimated_AnimWeb* target = nullptr;
+    void OnActivate(idEntity* activator);
+};
+
+class idTarget_AnimWebUnpause {
+public:
+    idAnimated_AnimWeb* target = nullptr;
+    void OnActivate(idEntity* activator);
 };

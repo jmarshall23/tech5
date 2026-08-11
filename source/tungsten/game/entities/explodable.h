@@ -1,193 +1,96 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\explodable.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "game/components/healthcomponent.h"
+#include "game/decls/decldamage.h"
+#include "game/entities/entity.h"
 
+class idDeclFX;
+class idDeclParticle;
 
-// IDA Local Type ordinal 19911; PDB kind: class.
-class __declspec(align(8)) idExplodable : public idEntity
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 19912.
-  virtual idTypeInfo *GetType();
-  virtual ~idExplodable();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
+struct idExplodableClipModelInfo {
+    enum clipModelType_t {
+        CLIPMODEL_NONE = 0,
+        CLIPMODEL_RENDERMODEL = 1,
+        CLIPMODEL_CUSTOM = 2,
+        CLIPMODEL_BOX = 3
+    };
 
-  const idSoundShader *soundExplosion;
-  const idDeclParticle *impactParticle;
-  idRenderModel *brokenModel;
-  const idDeclDamage *damageDecl;
-  const idDeclFX *fxDecl;
-  idDeclDamage::damageType_t explodingDamageTypes;
-  idSimpleHealth explodableHealth;
-  bool steamOnDamage;
-  bool callScriptOnExplode;
-  int fxLastSteamIndex;
+    clipModelType_t type = CLIPMODEL_NONE;
+    idVec3 size;
+    idVec3 offset;
 };
 
-// IDA Local Type ordinal 22470; PDB kind: struct.
-struct __declspec(align(4)) explodableEmit_t
-{
-  idMat3 localAxis;
-  idVec3 localOrigin;
-  int startTime;
-  int endTime;
-  float diversity;
-  bool free;
+class idExplodable;
+
+class idExplodableServices {
+public:
+    virtual ~idExplodableServices() = default;
+    virtual idBounds GetRenderModelBounds(const idExplodable& entity) const;
+    virtual void InstallBoxClip(idExplodable& entity,
+        const idBounds& bounds, int contents);
+    virtual void DisablePhysics(idExplodable& entity);
+    virtual void SetBrokenModel(idExplodable& entity,
+        idRenderModel* model);
+    virtual void UpdateVisuals(idExplodable& entity);
+    virtual void PlayExplosionSound(idExplodable& entity,
+        const idSoundShader* sound);
+    virtual void StartEffect(idExplodable& entity, int condition,
+        const idVec3& origin, const idMat3& axis, int gameTime);
+    virtual void RadiusDamage(const idVec3& origin,
+        idExplodable& inflictor, idEntity& attacker,
+        const idDeclDamage& damage, float damagePower);
+    virtual bool HasScriptObject(const idExplodable& entity) const;
+    virtual bool HasOnExplodeFunction(const idExplodable& entity) const;
+    virtual void CallOnExplode(idExplodable& entity,
+        idEntity& attacker, bool deferred);
+    virtual idPresentable* AllocatePresentable(idExplodable& entity,
+        idRenderModel* model, int entityNumber, const idDeclFX* effect);
+    virtual bool GetImpactTransform(const idExplodable& entity,
+        const idVec3& direction, const trace_t* trace,
+        idVec3& origin, idMat3& axis) const;
+    virtual void DamageFeedback(idEntity& attacker,
+        idExplodable& victim, idEntity* inflictor,
+        const idDeclDamage& damage, float& amount);
+    virtual void Warning(const char* message);
+    virtual int GetGameMilliseconds() const;
+};
+
+class idExplodable : public idEntity {
+public:
+    idExplodable();
+
+    static void SetServices(idExplodableServices* services);
+    static idExplodableServices& Services();
+
+    void Spawn() override;
+    void Explode(idEntity* attacker);
+    idPresentable* AllocPresentable(idRenderModel* renderModel) override;
+    void Event_DisablePhysics();
+    float Damage(idEntity* inflictor, idEntity* attacker,
+        const idDeclDamage* damageDef, float damageScale,
+        const idVec3& direction, trace_t* trace);
+    void Think() override;
+    void Hide() override;
+    void Show() override;
+
+    const idSoundShader* soundExplosion;
+    const idDeclParticle* impactParticle;
+    idRenderModel* brokenModel;
+    const idDeclDamage* damageDecl;
+    const idDeclFX* fxDecl;
+    idDeclDamage::damageType_t explodingDamageTypes;
+    idSimpleHealth explodableHealth;
+    bool steamOnDamage;
+    bool callScriptOnExplode;
+    int fxLastSteamIndex;
+    idExplodableClipModelInfo clipModelInfo;
+};
+
+struct explodableEmit_t {
+    idMat3 localAxis;
+    idVec3 localOrigin;
+    int startTime = 0;
+    int endTime = 0;
+    float diversity = 0.0f;
+    bool free = false;
 };

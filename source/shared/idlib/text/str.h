@@ -74,7 +74,18 @@ public:
 
     void Clear() {
         len = 0;
-        data[0] = '\0';
+        if (data != nullptr) {
+            data[0] = '\0';
+        }
+    }
+
+    // EA 0x82776B58
+    void ToUpper() {
+        for (int index = 0; data[index] != '\0'; ++index) {
+            if (data[index] >= 'a' && data[index] <= 'z') {
+                data[index] = static_cast<char>(data[index] - ('a' - 'A'));
+            }
+        }
     }
 
     void TrimWhitespaceRecovered() {
@@ -295,7 +306,12 @@ private:
         if (replacement == nullptr) {
             return false;
         }
-        std::memcpy(replacement, data, static_cast<std::size_t>(len + 1));
+        if (data != nullptr) {
+            std::memcpy(replacement, data,
+                static_cast<std::size_t>(len + 1));
+        } else {
+            replacement[0] = '\0';
+        }
         if (data != baseBuffer) {
             std::free(data);
         }

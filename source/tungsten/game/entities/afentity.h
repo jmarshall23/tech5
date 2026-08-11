@@ -1,198 +1,159 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\afentity.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "idlib/containers/list.h"
+#include "idlib/math/angles.h"
+#include "idlib/math/matrix.h"
+#include "idlib/math/vector.h"
+#include "idlib/text/str.h"
 
+class idAFEntity_Dummy;
+class idAFEntity_Generic;
+class idDeclAF;
+class idDeclDamage;
+class idDeclGore;
+class idEntity;
+struct trace_t;
 
-// IDA Local Type ordinal 19014; PDB kind: class.
-class __declspec(align(8)) idAFEntity_Dummy : public idAnimatedEntity
-{
+struct idAFDamageParameters {
+    float radius = 0.0f;
+    float ragdollImpulseMagnitude = 0.0f;
+    float maximumDamage = 0.0f;
+};
+
+struct idAFTraceParameters {
+    bool valid = false;
+    int entityId = -1;
+    int joint = -1;
+    idVec3 point{0.0f, 0.0f, 0.0f};
+    idVec3 normal{0.0f, 0.0f, 1.0f};
+    idVec3 direction{0.0f, 0.0f, 0.0f};
+};
+
+class idAFEntityServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 19015.
-  virtual idTypeInfo *GetType();
-  virtual ~idAFEntity_Dummy();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-  virtual void Reset();
-  virtual int GetDefaultSurfaceType();
-  virtual idList<idIndex<short,enum invalidJointIndex_t>,5> *GetRadiusDamageJointIndices();
-  virtual const idList<idIndex<short,enum invalidJointIndex_t>,5> *GetRadiusDamageJointIndices_2();
-  virtual idMD6Node *GetMD6Tree();
-  virtual const idMD6Node *GetMD6Tree_2();
-  virtual idAnimator_AnimWeb *GetAnimatorAnimWeb();
-  virtual bool IsAnimating();
-  virtual const idDeclFX *GetFXDecl();
-  virtual const idDeclFacialAnimationSet *GetFacialAnimationSet();
+    virtual ~idAFEntityServices() = default;
+    virtual int GetGameMilliseconds() const { return 0; }
+    virtual void ShowAFEditor() {}
+    virtual void UpdateAFEditor() {}
+    virtual void ShutdownGenericAF(idAFEntity_Generic&) {}
+    virtual void InitializeGenericAnimator(idAFEntity_Generic&) {}
+    virtual bool LoadGenericAF(
+        idAFEntity_Generic&, const idDeclAF*, bool) { return false; }
+    virtual void SyncGenericAF(idAFEntity_Generic&, int) {}
+    virtual void RunGenericPhysics(idAFEntity_Generic&) {}
+    virtual bool IsGenericAFAtRest(const idAFEntity_Generic&) const {
+        return false;
+    }
+    virtual void SetGenericThinkActive(idAFEntity_Generic&, bool) {}
+    virtual void UpdateGenericAnimation(idAFEntity_Generic&) {}
+    virtual void ShowGeneric(idAFEntity_Generic&) {}
+    virtual void ActivateGenericAF(idAFEntity_Generic&) {}
+    virtual void SetGenericVelocity(
+        idAFEntity_Generic&, const idVec3&, bool) {}
+    virtual void PostGenericVelocity(
+        idAFEntity_Generic&, const idVec3&, bool, float) {}
+    virtual void SetGenericTestFlags(idAFEntity_Generic&) {}
+    virtual void UpdateGenericVisuals(idAFEntity_Generic&) {}
 
-  idAnimator_AF afProperties;
-  idPhysics_Static phys;
-  idAnimator_Channel channelAnimator;
-  idHandle<unsigned short,enum invalidAliasHandle_t,65535> idleAnimHandle;
-  idHandle<unsigned short,enum invalidAliasHandle_t,65535> deathAnimHandle;
-  bool takesDamage;
-  bool isEnemyOfPlayer;
-  bool useSphereModels;
-  bool playedDeathAnim;
-  bool hasRagDolledYet;
-  idList<idStr,5> radiusDamageJointNames;
-  int numHitsToKill;
-  const idDeclGore *goreDef;
-  idGoreComponent goreComponent;
-  idAnimator_TurretNxN<3> turretAnimator;
-  idAttachmentCollection attachments;
+    virtual void ShutdownDummy(idAFEntity_Dummy&) {}
+    virtual bool IsDummyAFActive(const idAFEntity_Dummy&) const {
+        return false;
+    }
+    virtual bool InitializeDummyAF(idAFEntity_Dummy&) { return false; }
+    virtual void StartDummyRagdoll(idAFEntity_Dummy&, int) {}
+    virtual bool IsDummyAtRest(const idAFEntity_Dummy&) const {
+        return false;
+    }
+    virtual void ActivateDummyPhysics(idAFEntity_Dummy&) {}
+    virtual void ConfigureDummyRagdollCollision(idAFEntity_Dummy&) {}
+    virtual void ResetDummyPhysics(idAFEntity_Dummy&) {}
+    virtual void InitializeDummyGore(
+        idAFEntity_Dummy&, const idDeclGore*) {}
+    virtual void UpdateDummyPVSAreas(idAFEntity_Dummy&) {}
+    virtual void PlayDummyIdleAnimation(idAFEntity_Dummy&, int) {}
+    virtual void PlayDummyDeathAnimation(idAFEntity_Dummy&, int) {}
+    virtual void DisableTargetTurrets(idAFEntity_Dummy&) {}
+    virtual idVec3 GetEntityOrigin(const idEntity*) const {
+        return idVec3(0.0f, 0.0f, 0.0f);
+    }
+    virtual idAFDamageParameters GetDamageParameters(
+        const idDeclDamage*) const { return {}; }
+    virtual idAFTraceParameters GetTraceParameters(
+        const trace_t*) const { return {}; }
+    virtual void ApplyDummyRagdollImpulse(idAFEntity_Dummy&,
+        idEntity*, int, const idVec3&, const idVec3&) {}
+    virtual void RecordDummyKill(idEntity*, idAFEntity_Dummy&,
+        idEntity*, const idDeclDamage*) {}
+    virtual void IncrementEntityKillCount(idEntity*) {}
+    virtual void AddDummyGore(idAFEntity_Dummy&, int,
+        const idDeclDamage*, float, const idAFTraceParameters&) {}
+    virtual bool UpdateDummyDormancy(idAFEntity_Dummy&) { return false; }
+    virtual void SyncDummyAF(idAFEntity_Dummy&, int) {}
+    virtual void RunDummyPhysics(idAFEntity_Dummy&) {}
+    virtual void UpdateDummyTurret(idAFEntity_Dummy&, int) {}
+    virtual void UpdateDummyAnimation(idAFEntity_Dummy&) {}
+    virtual void UpdateDummyGore(idAFEntity_Dummy&) {}
+};
+
+class idAFEntity_Generic {
+public:
+    idAFEntity_Generic();
+    virtual ~idAFEntity_Generic();
+
+    static void SetServices(idAFEntityServices* services);
+    static idAFEntityServices& Services();
+
+    virtual void ShowEditingDialog();
+    virtual void UpdateEditingDialog();
+    void InitTestAF();
+    virtual void Think();
+    virtual void OnActivate(idEntity* activator);
+    bool LoadAF(const idDeclAF* decl);
+    void Spawn();
+
+    idStr name;
+    int entityNumber;
+    idVec3 spawnPosition;
+    idMat3 spawnOrientation;
+    const idDeclAF* articulatedFigure;
+    bool keepRunningPhysics;
+    bool noDrop;
+    idVec3 initVelocity;
+    idVec3 initAVelocity;
+    float initVelocityDelay;
+    float initAVelocityDelay;
+};
+
+class idAFEntity_Dummy {
+public:
+    idAFEntity_Dummy();
+    virtual ~idAFEntity_Dummy();
+
+    void StartRagdoll();
+    virtual void OnActivate(idEntity* activator);
+    void Spawn();
+    virtual void Reset();
+    void ForceStartRagdoll(idEntity* inflictor,
+        const idDeclDamage* damageDef, float damageScale,
+        const idVec3& direction, trace_t* trace);
+    float Damage(idEntity* inflictor, idEntity* attacker,
+        const idDeclDamage* damageDef, float damageScale,
+        const idVec3& direction, trace_t* trace);
+    virtual void Think();
+    bool TakesDamage() const { return takesDamage; }
+
+    idStr name;
+    int entityNumber;
+    idVec3 spawnPosition;
+    idMat3 spawnOrientation;
+    int idleAnimHandle;
+    int deathAnimHandle;
+    bool takesDamage;
+    bool isEnemyOfPlayer;
+    bool useSphereModels;
+    bool playedDeathAnim;
+    bool hasRagDolledYet;
+    idList<idStr, 5> radiusDamageJointNames;
+    int numHitsToKill;
+    const idDeclGore* goreDef;
 };

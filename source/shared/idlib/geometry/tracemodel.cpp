@@ -204,6 +204,151 @@ void idTraceModel::SetupBox(const float size) {
     SetupBox(boxBounds);
 }
 
+// Retail: 0x82F28F40 ?SetupPolygon@idTraceModel@@QAAXPBVidVec3@@H@Z
+void idTraceModel::SetupPolygon(const idVec3* const vertices,
+        int count) {
+    if (vertices == nullptr || count < 3) {
+        type = TRM_INVALID;
+        numVerts = numEdges = numPolys = maxPolyEdges = 0;
+        offset.Zero();
+        bounds[0].Zero();
+        bounds[1].Zero();
+        isConvex = false;
+        ClearUnused();
+        return;
+    }
+    // A polygon volume uses three edges per input vertex.  The retail code
+    // falls back to ten vertices when the caller exceeds the 32-edge store.
+    if (count * 3 > 32) {
+        count = 10;
+    }
+
+    type = TRM_POLYGON;
+    numVerts = static_cast<unsigned int>(count);
+    numEdges = static_cast<unsigned int>(count);
+    numPolys = 2;
+    maxPolyEdges = static_cast<unsigned int>(count);
+    numPolyEdges[0] = static_cast<unsigned int>(count);
+    numPolyEdges[1] = static_cast<unsigned int>(count);
+
+    idVec3 normal = (vertices[1] - vertices[0]).Cross(
+        vertices[2] - vertices[0]);
+    if (normal.NormalizeFast() == 0.0f) {
+        normal.Set(0.0f, 0.0f, 1.0f);
+    }
+    polyPlaneX[0] = normal.x;
+    polyPlaneY[0] = normal.y;
+    polyPlaneZ[0] = normal.z;
+    polyPlaneW[0] = -normal.Dot(vertices[0]);
+    polyPlaneX[1] = -normal.x;
+    polyPlaneY[1] = -normal.y;
+    polyPlaneZ[1] = -normal.z;
+    polyPlaneW[1] = normal.Dot(vertices[0]);
+
+    bounds[0] = vertices[0];
+    bounds[1] = vertices[0];
+    offset.Zero();
+    for (int index = 0; index < count; ++index) {
+        const int next = (index + 1) % count;
+        vertsX[index] = vertices[index].x;
+        vertsY[index] = vertices[index].y;
+        vertsZ[index] = vertices[index].z;
+        edges[index].v[0] = static_cast<std::uint16_t>(index);
+        edges[index].v[1] = static_cast<std::uint16_t>(next);
+        polyEdges[0][index] = static_cast<std::uint8_t>(index);
+        polyEdges[1][index] = static_cast<std::uint8_t>(
+            0x80 | (count - index - 1));
+        bounds[0].x = (std::min)(bounds[0].x, vertices[index].x);
+        bounds[0].y = (std::min)(bounds[0].y, vertices[index].y);
+        bounds[0].z = (std::min)(bounds[0].z, vertices[index].z);
+        bounds[1].x = (std::max)(bounds[1].x, vertices[index].x);
+        bounds[1].y = (std::max)(bounds[1].y, vertices[index].y);
+        bounds[1].z = (std::max)(bounds[1].z, vertices[index].z);
+        offset = offset + vertices[index];
+    }
+    offset = offset * (1.0f / static_cast<float>(count));
+    CalculateInsetSphereRadius();
+    isConvex = false;
+    GenerateEdgeNormals();
+    ClearUnused();
+}
+
+// Retail: 0x82F29298 ?ExtendPolygonToVolume@idTraceModel@@AAAXABVidVec3@@@Z
+void idTraceModel::ExtendPolygonToVolume(const idVec3& direction) {
+    const int count = static_cast<int>(numVerts);
+    if (type != TRM_POLYGON || count < 3 || count * 3 > 32
+            || count + 2 > 16) {
+        return;
+    }
+
+    type = TRM_POLYGONVOLUME;
+    numVerts = static_cast<unsigned int>(count * 2);
+    numEdges = static_cast<unsigned int>(count * 3);
+    numPolys = static_cast<unsigned int>(count + 2);
+
+    bounds[0].Set(1.0e30f, 1.0e30f, 1.0e30f);
+    bounds[1].Set(-1.0e30f, -1.0e30f, -1.0e30f);
+    for (int index = 0; index < count; ++index) {
+        const int next = (index + 1) % count;
+        const idVec3 lower(vertsX[index], vertsY[index], vertsZ[index]);
+        const idVec3 upper = lower + direction;
+        vertsX[count + index] = upper.x;
+        vertsY[count + index] = upper.y;
+        vertsZ[count + index] = upper.z;
+
+        edges[count + index].v[0] =
+            static_cast<std::uint16_t>(count + index);
+        edges[count + index].v[1] =
+            static_cast<std::uint16_t>(count + next);
+        edges[2 * count + index].v[0] =
+            static_cast<std::uint16_t>(index);
+        edges[2 * count + index].v[1] =
+            static_cast<std::uint16_t>(count + index);
+
+        polyEdges[1][index] = static_cast<std::uint8_t>(
+            0x80 | (2 * count - index - 1));
+        const int side = index + 2;
+        numPolyEdges[side] = 4;
+        polyEdges[side][0] = static_cast<std::uint8_t>(0x80 | index);
+        polyEdges[side][1] = static_cast<std::uint8_t>(2 * count + index);
+        polyEdges[side][2] = static_cast<std::uint8_t>(count + index);
+        polyEdges[side][3] = static_cast<std::uint8_t>(
+            0x80 | (2 * count + next));
+
+        const idVec3 nextLower(vertsX[next], vertsY[next], vertsZ[next]);
+        idVec3 sideNormal = direction.Cross(nextLower - lower);
+        sideNormal.NormalizeFast();
+        polyPlaneX[side] = sideNormal.x;
+        polyPlaneY[side] = sideNormal.y;
+        polyPlaneZ[side] = sideNormal.z;
+        polyPlaneW[side] = -sideNormal.Dot(lower);
+
+        const idVec3 points[2] = {lower, upper};
+        for (const idVec3& point : points) {
+            bounds[0].x = (std::min)(bounds[0].x, point.x);
+            bounds[0].y = (std::min)(bounds[0].y, point.y);
+            bounds[0].z = (std::min)(bounds[0].z, point.z);
+            bounds[1].x = (std::max)(bounds[1].x, point.x);
+            bounds[1].y = (std::max)(bounds[1].y, point.y);
+            bounds[1].z = (std::max)(bounds[1].z, point.z);
+        }
+    }
+    polyPlaneW[1] = -(polyPlaneX[1] * vertsX[count]
+        + polyPlaneY[1] * vertsY[count]
+        + polyPlaneZ[1] * vertsZ[count]);
+    CalculateInsetSphereRadius();
+    isConvex = true;
+    GenerateEdgeNormals();
+    ClearUnused();
+}
+
+// Retail: 0x82F296B8 ?SetupPolygonVolume@idTraceModel@@QAAXPBVidVec3@@HABV2@@Z
+void idTraceModel::SetupPolygonVolume(const idVec3* const vertices,
+        const int count, const idVec3& direction) {
+    SetupPolygon(vertices, count);
+    ExtendPolygonToVolume(direction);
+}
+
 void idTraceModel::Translate(const idVec3& translation) {
     for (unsigned int vertex = 0; vertex < numVerts; ++vertex) {
         vertsX[vertex] += translation.x;

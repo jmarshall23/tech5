@@ -1,34 +1,77 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\decls\declfaction.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decltypeinfo.h"
+#include "game/decls/relationship_core.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 14375; PDB kind: class.
-class idDeclFaction : public idDeclTypeInfo
-{
+class idEntity;
+class idPresentable;
+
+class idRelationshipList {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 14380.
-  virtual ~idDeclFaction();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    bool GetAttitudeTowards(const idDeclFaction* otherFaction,
+        float& attitude) const;
+    const idRelationship* GetRelationship(const idEntity* otherEntity) const;
+    bool GetAttitudeTowards(const idEntity* otherEntity,
+        float& attitude) const;
+    void CullEntityRelationships();
+    void AdjustAttitudeTowards(const idDeclFaction* myFaction,
+        const idEntity* otherEntity, float adjust);
 
-  idStr factionNameId;
-  const idDeclFaction *parentFaction;
-  idRelationshipList relationships;
+    idList<idRelationship, 5> relationships;
 };
+
+class idDeclFaction : public idDeclTypeInfo {
+public:
+    idDeclFaction();
+    ~idDeclFaction() override = default;
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    bool GetAttitudeTowards(const idDeclFaction* otherFaction,
+        idRelationship::attitude_t& attitude) const;
+
+    idStr factionNameId;
+    const idDeclFaction* parentFaction;
+    idRelationshipList relationships;
+    static idDeclInfoTemplate<idDeclFaction> resourceList;
+};
+
+class idFactionServices {
+public:
+    virtual ~idFactionServices() = default;
+    virtual std::int32_t GetSpawnId(const idEntity* entity) const = 0;
+    virtual const idEntity* ResolveSpawnId(std::int32_t spawnId) const = 0;
+    virtual bool IsDead(const idEntity* entity) const = 0;
+    virtual const class idFaction* GetFaction(const idEntity* entity) const = 0;
+    virtual const idEntity* GetPresentableEntity(
+        const idPresentable* presentable) const = 0;
+    virtual bool IsPlayer(const idEntity* entity) const = 0;
+    virtual int GetPlayerAttitudeOverride() const = 0;
+    virtual int GetOtherFactionAttitudeOverride() const = 0;
+};
+
+void Tungsten_SetFactionServices(idFactionServices* services);
+idFactionServices& Tungsten_FactionServices();
+
+class idFaction {
+public:
+    idFaction();
+
+    idRelationship::attitude_t GetAttitudeTowards(
+        const idFaction* otherFaction) const;
+    idRelationship::attitude_t GetAttitudeTowards(
+        const idEntity* otherEntity) const;
+    idRelationship::attitude_t GetAttitudeTowards(
+        const idPresentable* otherPresentable) const;
+    idRelationship::attitude_t GetAttitudeTowards(
+        std::int32_t spawnId) const;
+    void SetDeclFaction(const idDeclFaction* faction,
+        bool clearRelationships);
+    void CullEntityRelationships();
+    void AdjustAttitudeTowards(const idEntity* otherEntity, float adjust);
+
+    const idDeclFaction* myFaction;
+    idRelationshipList relationships;
+};
+

@@ -34,7 +34,7 @@ struct idRelationship {
 
     const idDeclFaction* otherFaction;
     attitude_t attitude;
-    float curAttitude;
+    mutable float curAttitude;
     idEntityPtr<const idEntity> otherEntity;
 };
 

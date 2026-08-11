@@ -1,5 +1,7 @@
 #pragma once
 
+#include "sound/soundchannel.h"
+
 // Shared declaration/runtime enums recovered from tungsten.exe metadata.
 // Keep these in a small header so GameLib can consume FX declarations
 // without manufacturing a second, numerically different enum set.
@@ -24,10 +26,6 @@ enum fxExtraCondition_t : int {
     FX_EXTRA_COND_ENGINE_1 = 0x4000,
     FX_EXTRA_COND_ENGINE_2 = 0x8000,
     FX_EXTRA_COND_MAX = 0x10000
-};
-
-enum soundChannel_t : int {
-    SND_CHANNEL_ANY = 0
 };
 
 enum fxActionType_t : int {

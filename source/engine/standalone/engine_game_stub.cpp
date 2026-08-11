@@ -11,7 +11,6 @@
 class idGame;
 
 idGame* game = nullptr;
-idCmdSystem* cmdSystem = nullptr;
 
 idCVar com_productionMode("com_productionMode", "0", CVAR_INTEGER,
     "standalone production mode");

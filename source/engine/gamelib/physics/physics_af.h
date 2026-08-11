@@ -107,6 +107,8 @@ public:
     idAFBody* GetBody(int id) const;
     idAFConstraint* GetConstraint(const char* name) const;
     idAFConstraint* GetConstraint(int id) const;
+    // Retail inline accessor emitted into decljob.cpp (EA 0x82BC5BD8).
+    int GetNumConstraints() const { return constraints.Num(); }
     int AddBody(idAFBody*);
     void DeleteBody(int);
     void AddConstraint(idAFConstraint*);

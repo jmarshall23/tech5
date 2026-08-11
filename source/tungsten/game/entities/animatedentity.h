@@ -1,197 +1,353 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\animatedentity.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "game/gamesys/eventarg.h"
+#include "gamelib/animstack/animstacktypes.h"
+#include "idlib/containers/list.h"
+#include "idlib/geometry/jointtransform.h"
+#include "idlib/math/vector.h"
+#include "idlib/text/str.h"
 
+class idAnimatedEntity;
+class idAnimStack;
+class idDeclDamage;
+class idDeclFX;
+class idDeclParticle;
+class idDeclSkins;
+class idEntity;
+class idGame;
+class idMD6Anim;
+class idMD6Node;
+class idPresentable;
+class idRenderModel;
+class idSoundShader;
+class idTreeAnimator;
+struct trace_t;
 
-// IDA Local Type ordinal 14221; PDB kind: class.
-class __declspec(align(8)) idAnimatedEntity : public idEntity
-{
+enum collide_t : int;
+enum fxCondition_t : int;
+enum meshKitComponents_t : int;
+enum soundShaderGroups_t : int;
+enum surfTypes_t : int;
+
+enum idAnimatedSoundChannel : int {
+    ANIMATED_SOUND_ANY = 0,
+    ANIMATED_SOUND_MUSIC1,
+    ANIMATED_SOUND_WEAPON,
+    ANIMATED_SOUND_VOICE2,
+    ANIMATED_SOUND_VOICE,
+    ANIMATED_SOUND_BODY,
+    ANIMATED_SOUND_BODY2,
+    ANIMATED_SOUND_BODY3,
+    ANIMATED_SOUND_ITEM
+};
+
+struct idAnimatedSoundOverrideParms {
+    float pitchMin = 1.0f;
+    float pitchMax = 1.0f;
+};
+
+struct idAnimatedDamageEffect {
+    idAnimatedDamageEffect* next = nullptr;
+    const idDeclParticle* type = nullptr;
+    idJointIndex jointNum;
+    idVec3 localOrigin{0.0f, 0.0f, 0.0f};
+    int time = 0;
+};
+
+class idAnimatedEntityServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15221.
-  virtual idTypeInfo *GetType();
-  virtual ~idAnimatedEntity();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-  virtual void Reset();
-  virtual int GetDefaultSurfaceType();
-  virtual idList<idIndex<short,enum invalidJointIndex_t>,5> *GetRadiusDamageJointIndices();
-  virtual const idList<idIndex<short,enum invalidJointIndex_t>,5> *GetRadiusDamageJointIndices_2();
-  virtual idMD6Node *GetMD6Tree();
-  virtual const idMD6Node *GetMD6Tree_2();
-  virtual idAnimator_AnimWeb *GetAnimatorAnimWeb();
-  virtual bool IsAnimating();
-  virtual const idDeclFX *GetFXDecl();
-  virtual const idDeclFacialAnimationSet *GetFacialAnimationSet();
+    virtual ~idAnimatedEntityServices() = default;
 
-  idAnimStack animStack;
-  idDamageEffect *damageEffects;
-  idImpactManager impactManager;
-  const idDeclSkins *skinPreload;
-  const idDeclFX *fxDecl;
-  idAnimEventHandler animEventHandler;
-  idStr damageSwapSkin;
-  float initialMorphValue;
-  soundShaderParms_t soundOverrideParms;
-  idClothComponent clothComponent;
-  idTypesafeNumber<int,enum gameTimeUnique_t> pauseTime;
-  idEntityPtr<idAnimatedEntity> animationMaster;
-  idAnimator_Proxy proxyAnimator;
-  idList<idIndex<short,enum invalidJointIndex_t>,5> radiusDamageJointIndices;
-  idAnimatedEntityPhysicsCallbacks defaultPhysicsCallbacks;
+    virtual int GetGameMilliseconds() const { return 0; }
+    virtual bool HasArticulatedFigure(const idAnimatedEntity&) const {
+        return false;
+    }
+    virtual bool IsArticulatedFigureLoaded(const idAnimatedEntity&) const {
+        return false;
+    }
+    virtual bool IsArticulatedFigureActive(const idAnimatedEntity&) const {
+        return false;
+    }
+    virtual collide_t CollideArticulatedFigure(idAnimatedEntity&, int,
+        trace_t&, const idVec3&) { return static_cast<collide_t>(0); }
+    virtual void ApplyArticulatedFigureForce(idAnimatedEntity&, int, int,
+        const idVec3&, const idVec3&) {}
+    virtual void ApplyArticulatedFigureImpulse(idAnimatedEntity&, int, int,
+        const idVec3&, const idVec3&, int) {}
+    virtual void ApplyArticulatedFigureWaterSplash(
+        idAnimatedEntity&, int, int, surfTypes_t, int) {}
+    virtual void ActivateArticulatedFigure(idAnimatedEntity&, int, bool) {}
+
+    virtual void UpdateAttachments(idAnimatedEntity&) {}
+    virtual void FreePresentable(idAnimatedEntity&) {}
+    virtual void AddBindConstraints(idAnimatedEntity&) {}
+    virtual void RemoveBindConstraints(idAnimatedEntity&) {}
+    virtual idAnimStack* GetAnimStack(idAnimatedEntity&) const {
+        return nullptr;
+    }
+    virtual idTreeAnimator* GetTreeAnimator(idAnimatedEntity&) const {
+        return nullptr;
+    }
+    virtual idTreeAnimator* GetTreeAnimator(
+        idAnimatedEntity&, int) const { return nullptr; }
+    virtual void ShutdownFX(idAnimatedEntity&) {}
+    virtual void ShutdownImpacts(idAnimatedEntity&) {}
+    virtual void JobSync(idAnimatedEntity&) {}
+    virtual void SetModel(idAnimatedEntity&, idRenderModel*) {}
+    virtual idPresentable* AllocPresentable(
+        idAnimatedEntity&, idRenderModel*) { return nullptr; }
+    virtual bool GetTagPosition(idAnimatedEntity&, const char*, const char*,
+        idVec3&, idMat3&) const { return false; }
+    virtual bool GetTagPosition(idAnimatedEntity&, int, int,
+        idVec3&, idMat3&) const { return false; }
+    virtual void GetFallbackTransform(
+        const idAnimatedEntity&, idVec3& origin, idMat3& axis) const {
+        origin.Zero();
+        axis = idMat3(1.0f);
+    }
+    virtual void UpdateImpacts(idAnimatedEntity&) {}
+    virtual void ApplyBaseImpulse(idAnimatedEntity&, int, int,
+        const idVec3&, const idVec3&) {}
+    virtual void ApplyBaseForce(idAnimatedEntity&, int, int,
+        const idVec3&, const idVec3&) {}
+    virtual bool GetArticulatedFigureModelTransform(
+        const idAnimatedEntity&, idVec3&, idMat3&) const { return false; }
+    virtual void GetPhysicsTransform(
+        const idAnimatedEntity&, idVec3& origin, idMat3& axis) const {
+        origin.Zero();
+        axis = idMat3(1.0f);
+    }
+    virtual idJointIndex GetJointIndex(
+        const idAnimatedEntity&, const char*) const { return {}; }
+    virtual bool GetJointLocalTransform(const idAnimatedEntity&,
+        idJointIndex, idVec3&, idMat3&) const { return false; }
+    virtual bool GetJointWorldTransform(const idAnimatedEntity&,
+        idJointIndex, idVec3&, idMat3&) const { return false; }
+    virtual bool CalculateDamageImpulse(const idAnimatedEntity&, idEntity*,
+        const idEntity*, const idDeclDamage*, float, const idVec3&,
+        const trace_t*, const idVec3*, idVec3&, idVec3&) const {
+        return false;
+    }
+
+    virtual void PauseAnimation(idAnimatedEntity&, int) {}
+    virtual void OffsetAnimEventTimes(idAnimatedEntity&, int) {}
+    virtual void UnpauseAnimation(idAnimatedEntity&, int) {}
+    virtual void UpdateModelTransform(idAnimatedEntity&) {}
+    virtual void SetJointPosition(idAnimatedEntity&, idJointIndex,
+        jointModTransform_t, const idVec3&) {}
+    virtual void SetJointAngles(idAnimatedEntity&, idJointIndex,
+        jointModTransform_t, const idAngles&) {}
+    virtual bool GetJointAngles(const idAnimatedEntity&, idJointIndex,
+        idAngles&) const { return false; }
+
+    virtual void StopFX(idAnimatedEntity&, fxCondition_t) {}
+    virtual void StartFX(idAnimatedEntity&, fxCondition_t) {}
+    virtual void SpawnParticle(idAnimatedEntity&, const idDeclParticle*,
+        const char*) {}
+    virtual void TriggerEntity(idAnimatedEntity&, const char*) {}
+    virtual void DamageByName(idAnimatedEntity&, const idDeclDamage*,
+        const char*, const char*) {}
+    virtual void RadiusDamage(idAnimatedEntity&, const idDeclDamage*,
+        const char*) {}
+    virtual void Notify(idAnimatedEntity&, const char*) {}
+    virtual void AddPlayerWhiplash(
+        idAnimatedEntity&, const idAngles&) {}
+    virtual void ShowKit(idAnimatedEntity&, meshKitComponents_t,
+        const char*) {}
+    virtual void SetSkin(idAnimatedEntity&, const char*) {}
+    virtual void CallFrameCommand(idAnimatedEntity&, const char*, bool) {}
+    virtual bool SuppressWeaponSound(const idAnimatedEntity&) const {
+        return false;
+    }
+    virtual bool SuppressVoiceSound(const idAnimatedEntity&) const {
+        return false;
+    }
+    virtual void PlaySound(idAnimatedEntity&, idAnimatedSoundChannel,
+        const idSoundShader*, float) {}
+    virtual void FadeSoundGroup(
+        soundShaderGroups_t, float, int) {}
+    virtual void AttachEntity(
+        idAnimatedEntity&, const char*, const char*) {}
+    virtual void DetachEntity(idAnimatedEntity&, const char*) {}
+    virtual void WarnDefaultAnimEvent(
+        const idAnimatedEntity&, const idMD6Anim*) {}
+
+    virtual void Spawn(idAnimatedEntity&) {}
+    virtual bool GetRepairBotTetherPoint(const idAnimatedEntity&, int,
+        int, idVec3&) const { return false; }
+    virtual bool GetMasterPosition(
+        const idAnimatedEntity&, idVec3&, idMat3&) const { return false; }
+    virtual idMD6Node* ResolveAnimationMasterTree(
+        idAnimatedEntity&, idAnimatedEntity*) const { return nullptr; }
+    virtual void SetProxyTree(idAnimatedEntity&, idMD6Node*) {}
+    virtual idJointIndex ResolveRadiusDamageJoint(
+        const idAnimatedEntity&, const char*) const { return {}; }
+    virtual bool UseRelaxedChatter(const idAnimatedEntity&) const {
+        return false;
+    }
+    virtual void UpdateFrameCommands(idAnimatedEntity&, idMD6Node*) {}
+    virtual void UpdateCloth(idAnimatedEntity&) {}
+    virtual void BlendAnimation(idAnimatedEntity&, bool) {}
+    virtual void UpdateVisuals(idAnimatedEntity&) {}
+    virtual void ClearJointMods(idAnimatedEntity&) {}
+    virtual bool BloodEffectsEnabled() const { return true; }
+    virtual bool UpdateDamageEffect(
+        idAnimatedEntity&, idAnimatedDamageEffect&) { return true; }
+    virtual void DestroyDamageEffect(idAnimatedDamageEffect* effect) {
+        delete effect;
+    }
+    virtual void RunPhysics(idAnimatedEntity&) {}
+    virtual void UpdateFX(idAnimatedEntity&) {}
+    virtual void Shutdown(idAnimatedEntity&) {}
+};
+
+class idAnimatedEntityPhysicsCallbacks {
+public:
+    explicit idAnimatedEntityPhysicsCallbacks(
+        idAnimatedEntity* entity = nullptr) : ent(entity) {}
+
+    collide_t Collide(int physId, trace_t& collision,
+        const idVec3& velocity);
+    void ApplyForce(int physId, int bodyId,
+        const idVec3& point, const idVec3& force);
+    void ApplyWaterSplashEffects(int physId, int bodyId,
+        surfTypes_t surface, int splashState);
+    const char* GetName() const;
+    void ApplyImpulse(int physId, int bodyId,
+        const idVec3& point, const idVec3& impulse);
+    void ActivatePhysics(int physId);
+    void DeactivatePhysics(int physId);
+    bool GetMasterPosition(idVec3& origin, idMat3& axis) const;
+
+    idAnimatedEntity* ent;
+};
+
+class idAnimatedEntityInterface {
+public:
+    idAnimatedEntityInterface(idGame* game, idAnimatedEntity* entity);
+    virtual ~idAnimatedEntityInterface() = default;
+
+    virtual idAnimStack* GetAnimStack();
+    virtual idTreeAnimator* GetTreeAnimator(int id);
+
+    idGame* game;
+    idAnimatedEntity* entity;
+};
+
+class idAnimatedEntity {
+public:
+    enum { TH_ANIMATE = 4 };
+
+    idAnimatedEntity();
+    virtual ~idAnimatedEntity();
+
+    static void SetServices(idAnimatedEntityServices* services);
+    static idAnimatedEntityServices& Services();
+
+    virtual void UpdateAttachments();
+    void FreePresentable();
+    virtual void PreBind();
+    virtual void PreUnbind();
+    virtual void JobSync();
+    virtual void SetModel(idRenderModel* model);
+    virtual idPresentable* AllocPresentable(idRenderModel* model);
+    bool GetTagPosition(const char* propName, const char* tagName,
+        idVec3& origin, idMat3& axis) const;
+    bool GetTagPosition(int propIndex, int tagIndex,
+        idVec3& origin, idMat3& axis) const;
+    void KillFX();
+    void UpdateImpacts();
+    virtual void ApplyImpulse(int physId, int bodyId,
+        const idVec3& point, const idVec3& impulse);
+    virtual void ApplyForce(int physId, int bodyId,
+        const idVec3& point, const idVec3& force);
+    virtual void GetModelTransform(idVec3& origin, idMat3& axis) const;
+    bool GetJointLocalTransform(const char* jointName,
+        idVec3& origin, idMat3& axis) const;
+    bool GetWorldSpaceJointTransform(idJointIndex jointIndex,
+        idVec3& origin, idMat3& axis) const;
+    bool GetWorldSpaceJointTransform(const char* jointName,
+        idVec3& origin, idMat3& axis) const;
+    virtual bool CalcDamageImpulse(idEntity* inflictor,
+        const idEntity* attacker, const idDeclDamage* damageDef,
+        float damageScale, const idVec3& direction, const trace_t* trace,
+        const idVec3* impulsePoint, idVec3& point, idVec3& impulse) const;
+    void PauseAnimation();
+    void UnpauseAnimation();
+    virtual bool IsAnimating() const;
+
+    eventInt Event_GetJointHandle(const char* jointName);
+    eventVoid Event_SetJointPos(idJointIndex joint,
+        jointModTransform_t transform, const idVec3& position);
+    eventVoid Event_SetJointAngle(idJointIndex joint,
+        jointModTransform_t transform, const idAngles& angles);
+    eventVector Event_GetJointPos(idJointIndex joint);
+    eventVector Event_GetJointAngle(idJointIndex joint);
+    eventVoid Event_StartFX(fxCondition_t condition);
+    eventVoid Event_StopFX(fxCondition_t condition);
+    void StopFX(fxCondition_t condition);
+
+    eventVoid AnimEvent_DeclParticle(const idMD6Anim*,
+        const idDeclParticle* particle, const char* jointName);
+    eventVoid AnimEvent_StopFX(const idMD6Anim*, fxCondition_t condition);
+    eventVoid AnimEvent_Trigger(const idMD6Anim*, const char* entityName);
+    eventVoid AnimEvent_Damage(const idMD6Anim*,
+        const idDeclDamage*, const char* attacker, const char* inflictor);
+    eventVoid AnimEvent_RadiusDamage(const idMD6Anim*,
+        const idDeclDamage*, const char* tagName);
+    eventVoid AnimEvent_Notify(const idMD6Anim*, const char* message);
+    eventVoid AnimEvent_AddPlayerWhiplash(
+        const idMD6Anim*, float pitch, float yaw, float roll);
+    eventVoid AnimEvent_ShowKit(
+        const idMD6Anim*, meshKitComponents_t, const char*);
+    eventVoid AnimEvent_SetSkin(const idMD6Anim*, const char* skinName);
+    eventVoid AnimEvent_ScriptFunction(const idMD6Anim*, const char* name);
+    eventVoid AnimEvent_ScriptFunctionObject(
+        const idMD6Anim*, const char* name);
+    eventVoid AnimEvent_Sound(const idMD6Anim*, const idSoundShader*);
+    eventVoid AnimEvent_SoundMusic(const idMD6Anim*, const idSoundShader*);
+    eventVoid AnimEvent_PitchedSound(
+        const idMD6Anim*, const idSoundShader*, float pitch);
+    eventVoid AnimEvent_SoundWeapon(const idMD6Anim*, const idSoundShader*);
+    eventVoid AnimEvent_SoundVoice(const idMD6Anim*, const idSoundShader*);
+    eventVoid AnimEvent_SoundVoice2(const idMD6Anim*, const idSoundShader*);
+    eventVoid AnimEvent_SoundVoiceHighPrio(
+        const idMD6Anim*, const idSoundShader*);
+    eventVoid AnimEvent_SoundBody(const idMD6Anim*, const idSoundShader*);
+    eventVoid AnimEvent_SoundBody2(const idMD6Anim*, const idSoundShader*);
+    eventVoid AnimEvent_SoundBody3(const idMD6Anim*, const idSoundShader*);
+    eventVoid AnimEvent_SoundItem(const idMD6Anim*, const idSoundShader*);
+    eventVoid AnimEvent_FadeSoundGroup(const idMD6Anim*,
+        soundShaderGroups_t group, float toDB, float overSeconds);
+    eventVoid AnimEvent_AttachEntity(
+        const idMD6Anim*, const char* entityName, const char* tagName);
+    eventVoid AnimEvent_DetachEntity(
+        const idMD6Anim*, const char* entityName);
+    eventVoid AnimEvent_Pause(const idMD6Anim*);
+    eventVoid AnimEvent_StartFX(const idMD6Anim*, fxCondition_t condition);
+    eventVoid AnimEvent_Default(const idMD6Anim* anim);
+
+    virtual bool GetRepairBotTetherPoint(
+        int pointIndex, int clipMask, idVec3& outPosition) const;
+    void UpdateProxyAnimator();
+    void SetRadiusDamageJointIndices(const idList<idStr, 5>& jointNames);
+    void UpdateFrameCommands();
+    void UpdateAnimation(bool forceNonDeferredBlend);
+    void UpdateDamageEffects();
+    virtual void Think();
+    void Spawn();
+
+    idStr name;
+    int entityNumber;
+    int thinkFlags;
+    int animationPauseTime;
+    idAnimatedDamageEffect* damageEffects;
+    const idDeclSkins* skinPreload;
+    const idDeclFX* fxDecl;
+    idStr damageSwapSkin;
+    float initialMorphValue;
+    idAnimatedSoundOverrideParms soundOverrideParms;
+    idAnimatedEntity* animationMaster;
+    idList<idJointIndex, 5> radiusDamageJointIndices;
+    idAnimatedEntityPhysicsCallbacks defaultPhysicsCallbacks;
 };

@@ -77,16 +77,41 @@ std::uint64_t FrameNumber() {
 #include "framework/streamfilecache.h"
 #include "framework/sysevent.h"
 #include "framework/usercmdgen.h"
+#include "framework/keyinput.h"
+#include "cm/collisionmodelmanager.h"
+#include "decls/declmanager.h"
 #include "idlib/csystems/cmdsystem.h"
 #include "idlib/csystems/cvarsystem.h"
 #include "idlib/filesystem/filesystem.h"
 #include "idlib/lib_print.h"
 #include "idlib/sys/sys_alloc.h"
+#include "idlib/sys/sys_utils.h"
 #include "idlib/text/cmdargs.h"
+#include "idlib/text/parser.h"
+#include "models/skeletalanimation/animation.h"
+#include "renderer/ingamevideo.h"
+#include "renderer/rendersystem.h"
+#include "renderer/virtualtexturepreloader.h"
+#include "renderer/virtualtexturesystem.h"
+#include "sound/soundsystem.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cctype>
+#include <ctime>
 #include <string>
+#include <vector>
+
+void Sys_InitInput();
+void Sys_InitNetworking();
+void Sys_Quit();
+void Sys_SessionInitialize();
+void Sys_SessionInitializeSoundRelatedSystems();
+void Sys_SessionMoveToPressStart();
+void Sys_SessionShutdown();
+void Sys_SessionShutdownSoundRelatedSystems();
+void Sys_SessionWaitForSaveGames();
+void Sys_SetLanguageFromSystem();
 
 // CVar declarations and defaults recovered from common.cpp. The PC port keeps
 // the original public names, including timescale/slowmoscale and the historical
@@ -290,6 +315,8 @@ void idCommonLocal::Init(const int argc, const char** const argv,
     tech5Framework::Init(commandLineText.c_str());
 
     idLibPrint::RegisterFatalErrorHandler(BitmapConsoleFatalError);
+    idParser::SetupGlobalDefines();
+    Sys_SetLanguageFromSystem();
     ClearWarnings("Tungsten initialization");
     if (cmdSystem != nullptr) cmdSystem->Init();
     idCVar::RegisterStaticVars();
@@ -303,25 +330,50 @@ void idCommonLocal::Init(const int argc, const char** const argv,
         fileSystem->Init();
     }
     logFileWriter.RegisterPrintListener();
+
+    Sys_InitNetworking();
+    if (cmdSystem != nullptr) {
+        for (int device = 0; device < 4; ++device) {
+            idKeyInput::SetUserDeviceNumForBind(device);
+            cmdSystem->AppendCommandText("exec default.cfg -s\n");
+            idLibPrint::Printf("Executing default.cfg for device #%d...\n",
+                device);
+            cmdSystem->ExecuteCommandBuffer();
+        }
+        idKeyInput::SetUserDeviceNumForBind(0);
+    }
+
     if (resourceManager != nullptr) resourceManager->Init();
     if (streamFileCache != nullptr) streamFileCache->Init();
 
     SetCommandLineCVars(commandLineArgs, false);
     multiplayer = com_multiplayer.GetBool();
+    idLibPrint::Printf("Command line is: %s\n", commandLineText.c_str());
+
+    if (renderSystem != nullptr) renderSystem->Init();
+    if (com_uploadDumps.GetBool()) UploadCrashDumps();
 
     if (console != nullptr) console->InitGuiModel();
+    if (soundSystem != nullptr) soundSystem->Init();
+    if (declManager != nullptr) declManager->Init();
     if (gameSystem != nullptr) gameSystem->Init();
     if (resourceManager != nullptr) resourceManager->SetFileHook();
     if (frameworkHooks.ownerCommand != nullptr) InitLanguageDict();
     if (resourceManager != nullptr) resourceManager->ReleaseFileHook();
+    if (animation != nullptr) animation->Initialize();
     if (usercmdGen != nullptr) usercmdGen->Init();
+    Sys_InitInput();
     if (resourceManager != nullptr) resourceManager->Init2(false);
     if (console != nullptr) console->LoadGraphics();
 
     InitCommands();
     if (debugMenu != nullptr) debugMenu->Init();
+    collisionModelManager.Init();
+    Sys_SessionInitialize();
+    Sys_SessionInitializeSoundRelatedSystems();
     InitDialog();
     idResourceList::MarkAllStaticResources();
+    if (declManager != nullptr) declManager->MarkStatic();
     loadScreen.Init();
     LoadMainMenu();
     if (console != nullptr) console->ClearNotifyLines();
@@ -336,7 +388,6 @@ void idCommonLocal::Init(const int argc, const char** const argv,
     if (resourceManager != nullptr) resourceManager->StartupComplete();
     if (cvarSystem != nullptr) cvarSystem->ClearModifiedCVars();
 
-    idLibPrint::Printf("Command line is: %s\n", commandLineText.c_str());
     PrintWarnings();
     ExecuteStartupCommands(commandLineArgs);
 }
@@ -359,22 +410,26 @@ void idCommonLocal::Shutdown(const int code) {
 
     CloseEventPlayback(*this);
     CloseSnapshotFiles();
-    if (frameworkHooks.syncRenderThread != nullptr) {
-        frameworkHooks.syncRenderThread();
-    }
+    if (renderSystem != nullptr) renderSystem->SyncRenderThread(false);
     KillDialog();
-    if (frameworkHooks.stopAllSounds != nullptr) {
-        frameworkHooks.stopAllSounds();
+    if (soundSystem != nullptr) soundSystem->StopAllSounds();
+    if (renderSystem != nullptr && renderSystem->BinkVideoIsLoaded()) {
+        renderSystem->FreeBinkVideo();
     }
+    Sys_SessionMoveToPressStart();
     if (gameSystem != nullptr) gameSystem->FreeGame(&game);
     insideUpdateScreen = false;
     loadScreen.Shutdown();
-    if (frameworkHooks.shutdownSoundRelatedSystems != nullptr) {
-        frameworkHooks.shutdownSoundRelatedSystems();
-    }
+    Sys_SessionShutdownSoundRelatedSystems();
+    if (soundSystem != nullptr) soundSystem->Shutdown();
+    if (animation != nullptr) animation->Shutdown();
     if (usercmdGen != nullptr) usercmdGen->Shutdown();
+    collisionModelManager.Shutdown();
+    if (renderSystem != nullptr) renderSystem->Shutdown();
     if (streamFileCache != nullptr) streamFileCache->Shutdown();
+    if (declManager != nullptr) declManager->Shutdown();
     if (gameSystem != nullptr) gameSystem->Shutdown();
+    Sys_SessionShutdown();
     if (resourceManager != nullptr) resourceManager->Shutdown();
     logFileWriter.CloseLogFile();
     if (console != nullptr) console->Shutdown();
@@ -389,6 +444,8 @@ void idCommonLocal::Shutdown(const int code) {
 
     if (frameworkHooks.systemQuit != nullptr) {
         frameworkHooks.systemQuit(code);
+    } else {
+        Sys_Quit();
     }
 }
 
@@ -406,31 +463,21 @@ void idCommonLocal::EndTerminationThread() {
 
 void idCommonLocal::SyncAllBackgroundOperations(const bool exceptSounds) {
     renderManager.ClearAllGuiModels();
-    if (frameworkHooks.endVirtualTexturePreloading != nullptr) {
-        frameworkHooks.endVirtualTexturePreloading();
-    }
-    if (frameworkHooks.syncRenderThread != nullptr) {
-        frameworkHooks.syncRenderThread();
-    }
-    if (frameworkHooks.finishVirtualTextureFeedback != nullptr) {
-        frameworkHooks.finishVirtualTextureFeedback();
-    }
-    if (frameworkHooks.waitCollisionQueries != nullptr) {
-        frameworkHooks.waitCollisionQueries();
-    }
+    virtualTexturePreloader.EndPreloading();
+    if (renderSystem != nullptr) renderSystem->SyncRenderThread(true);
+    virtualTextureSystem.FinishFeedback(false, 0);
+    collisionModelManager.WaitForAllQueries();
     if (frameworkHooks.waitParallelJobs != nullptr) {
         frameworkHooks.waitParallelJobs();
     }
     if (com_waitForSavegames.GetBool()
             && frameworkHooks.waitSaveGames != nullptr) {
         frameworkHooks.waitSaveGames();
+    } else if (com_waitForSavegames.GetBool()) {
+        Sys_SessionWaitForSaveGames();
     }
-    if (frameworkHooks.waitSoundThread != nullptr) {
-        frameworkHooks.waitSoundThread();
-    }
-    if (!exceptSounds && frameworkHooks.stopAllSounds != nullptr) {
-        frameworkHooks.stopAllSounds();
-    }
+    if (soundSystem != nullptr) soundSystem->WaitForSoundThread();
+    if (!exceptSounds && soundSystem != nullptr) soundSystem->StopAllSounds();
     if (streamFileCache != nullptr) streamFileCache->Flush();
 }
 
@@ -460,7 +507,7 @@ void idCommonLocal::RegisterMapChangeListener(
 
 void idCommonLocal::UnRegisterMapChangeListener(
         idMapChangeListener* const listener) {
-    mapChangeListeners.Remove(listener);
+    mapChangeListeners.RemoveIndexFast(mapChangeListeners.FindIndex(listener));
 }
 
 void idCommonLocal::RecordPlayback(const bool record,
@@ -654,44 +701,119 @@ void idCommonLocal::ResetMapHeap() {
     if (frameworkHooks.resetNetworkingState != nullptr) {
         frameworkHooks.resetNetworkingState();
     }
+    idResourceList::ResetNetworkResources();
     tech5Framework::ClearNetworkMessages();
     renderManager.Clear();
     KillDialog();
     if (console != nullptr) console->ClearEditLine();
     ClearWarnings("");
-    if (frameworkHooks.unbindAllVideos != nullptr) {
-        frameworkHooks.unbindAllVideos();
-    }
-    if (frameworkHooks.resetVirtualTextures != nullptr) {
-        frameworkHooks.resetVirtualTextures();
-    }
+    if (videoManager != nullptr) videoManager->UnbindAll();
+    virtualTextureSystem.FreeLockedPages();
+    virtualTextureSystem.ClearFeedback();
 
     const bool canReset = frameworkHooks.canResetMapHeap != nullptr
-        ? frameworkHooks.canResetMapHeap() : renderWorld == nullptr;
+        ? frameworkHooks.canResetMapHeap()
+        : renderSystem == nullptr || renderSystem->GetNumRenderWorlds() <= 0;
     if (canReset) {
-        if (frameworkHooks.shutdownSoundRelatedSystems != nullptr) {
-            frameworkHooks.shutdownSoundRelatedSystems();
-        }
+        virtualTextureSystem.FreeDynamicMedia();
+        Sys_SessionShutdownSoundRelatedSystems();
+        if (soundSystem != nullptr) soundSystem->Shutdown();
         if (streamFileCache != nullptr) streamFileCache->ClearMem(true);
         idResourceList::FreeAllDynamicResources();
+        if (animation != nullptr) animation->FreeDynamic();
+        if (declManager != nullptr) declManager->FreeDynamic();
         if (frameworkHooks.freeDynamicMapResources != nullptr) {
             frameworkHooks.freeDynamicMapResources();
         }
         if (com_useMapHeap.GetBool()) mem.ResetMapHeap();
-        if (frameworkHooks.initializeSoundRelatedSystems != nullptr) {
-            frameworkHooks.initializeSoundRelatedSystems();
-        }
+        if (soundSystem != nullptr) soundSystem->Init();
+        Sys_SessionInitializeSoundRelatedSystems();
     }
     InitDialog();
 }
 
 void idCommonLocal::UploadCrashDumps() {
-    // The dump uploader is platform/network owned. AMQP remains intentionally
-    // outside this framework conversion until that subsystem is recovered.
-    idCmdArgs args("uploadCrashDumps", true);
-    if (frameworkHooks.ownerCommand != nullptr) {
-        frameworkHooks.ownerCommand("uploadCrashDumps", args);
+    if (fileSystem == nullptr) return;
+
+    idFileList* const files = fileSystem->ListFilesTree(
+        "DEVKIT:/dumps", "", false);
+    if (files == nullptr) return;
+
+    const char* const machineName = Sys_GetMachineName();
+    std::vector<unsigned char> buffer(1024u * 1024u);
+    for (int index = 0; index < files->GetNumFiles(); ++index) {
+        const char* const sourceName = files->GetFile(index);
+        if (sourceName == nullptr || *sourceName == '\0') continue;
+
+        idFile* const source = fileSystem->OpenFileRead(
+            sourceName, false, true);
+        if (source == nullptr) continue;
+        const std::int64_t sourceLength = source->Length();
+        if (sourceLength <= 0) {
+            delete source;
+            continue;
+        }
+
+        std::string leaf(sourceName);
+        const std::size_t slash = leaf.find_last_of("/\\");
+        if (slash != std::string::npos) leaf.erase(0, slash + 1);
+
+        const std::time_t timestamp = static_cast<std::time_t>(
+            source->Timestamp());
+        std::tm localTime = {};
+        localtime_s(&localTime, &timestamp);
+        char date[32] = {};
+        std::snprintf(date, sizeof(date), "%04d.%02d.%02d-%02d.%02d.%02d",
+            localTime.tm_year + 1900, localTime.tm_mon + 1,
+            localTime.tm_mday, localTime.tm_hour, localTime.tm_min,
+            localTime.tm_sec);
+
+        std::string destination = com_uploadDumpPath.GetString();
+        if (!destination.empty() && destination.back() != '/'
+                && destination.back() != '\\') {
+            destination.push_back('/');
+        }
+        destination += "tungsten.pc/";
+        destination += date;
+        destination.push_back('_');
+        destination += machineName != nullptr ? machineName : "unknown";
+        destination.push_back('_');
+        destination += leaf;
+
+        idFile* const output = fileSystem->OpenFileWritePermanent(
+            destination.c_str(), FSPATH_BASE);
+        bool copied = output != nullptr;
+        std::int64_t total = 0;
+        idLibPrint::Printf("Uploading crashdump %d/%d '%s'\n",
+            index + 1, files->GetNumFiles(), leaf.c_str());
+        while (copied && total < sourceLength) {
+            const unsigned int request = static_cast<unsigned int>(
+                std::min<std::int64_t>(sourceLength - total,
+                    static_cast<std::int64_t>(buffer.size())));
+            const unsigned int amount = source->Read(buffer.data(), request);
+            if (amount != request || output->Write(buffer.data(), amount)
+                    != amount) {
+                copied = false;
+                break;
+            }
+            total += amount;
+        }
+        if (output != nullptr) {
+            output->Flush();
+            delete output;
+        }
+        delete source;
+
+        if (copied && total == sourceLength
+                && fileSystem->GetFileLength(destination.c_str())
+                    == sourceLength) {
+            fileSystem->RemoveFile(sourceName, FSPATH_BASE);
+        } else {
+            idLibPrint::Warning("Crashdump upload failed for '%s'",
+                sourceName);
+        }
     }
+    fileSystem->FreeFileList(files);
 }
 
 void idCommonLocal::Frame() {

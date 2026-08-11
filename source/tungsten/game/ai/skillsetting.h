@@ -5,8 +5,13 @@
 // Recovered logical types: 7
 // Signatures retain Xbox 360 ABI evidence and may still require manual review.
 
+template<typename type>
+class idSkillSetting;
+
+enum aiAccuracy_t : int;
 
 // IDA Local Type ordinal 16645; PDB kind: class.
+template<>
 class idSkillSetting<float>
 {
 public:
@@ -14,6 +19,7 @@ public:
 };
 
 // IDA Local Type ordinal 16648; PDB kind: class.
+template<>
 class idSkillSetting<int>
 {
 public:
@@ -21,6 +27,7 @@ public:
 };
 
 // IDA Local Type ordinal 16649; PDB kind: class.
+template<>
 class idSkillSetting<bool>
 {
 public:

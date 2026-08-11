@@ -1,32 +1,68 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\decls\declmenupopup.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "decls/decltypeinfo.h"
+#include "idlib/containers/list.h"
+#include "idlib/langdict.h"
+#include "idlib/text/str.h"
 
-
-// IDA Local Type ordinal 18499; PDB kind: class.
-class idDeclMenuPopup : public idDeclTypeInfo
-{
+class idDeclMenuPopup : public idDeclTypeInfo {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 18500.
-  virtual ~idDeclMenuPopup();
-  virtual void LoadResource();
-  virtual bool ReloadIfStale();
-  virtual void WriteResourceFile();
-  virtual idResourceList *GetResourceList();
-  virtual void Print();
-  virtual void List();
-  virtual unsigned int GetDeclTimestamp();
-  virtual idDeclInfo *GetDeclInfo();
-  virtual bool RebuildTextSource();
-  virtual bool SetImplicitText();
-  virtual const char *DefaultDefinition();
-  virtual void LogMissingDecl();
-  virtual void Parse(idParser *);
-  virtual void FreeData();
-  virtual unsigned int Size();
+    idDeclMenuPopup();
+    ~idDeclMenuPopup() override;
 
-  idStr fileName;
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    const char* GetScriptName() const;
+    static void LoadAllDecls();
+
+    idStr fileName;
+
+    static idDeclInfoTemplate<idDeclMenuPopup> resourceList;
 };
+
+class idDeclCredits : public idDeclTypeInfo {
+public:
+    enum creditEntry_t : int {
+        CREDIT_SPACER = -1,
+        CREDIT_HEADING = 0,
+        CREDIT_SUBHEADING = 1,
+        CREDIT_SINGLE = 2,
+        CREDIT_DOUBLE = 3,
+        CREDIT_IMAGE = 4
+    };
+
+    struct creditInfo_t {
+        creditEntry_t entryType;
+        idStrId localizedStr;
+        idStr entry0;
+        idStr entry1;
+
+        creditInfo_t()
+            : entryType(CREDIT_SPACER)
+            , localizedStr()
+            , entry0()
+            , entry1() {
+        }
+    };
+
+    idDeclCredits();
+    ~idDeclCredits() override;
+
+    idDeclInfo* GetDeclInfo() const override { return &resourceList; }
+
+    creditEntry_t GetCreditType(int index) const;
+    idStr GetCreditEntry(int index, int entry) const;
+
+    idList<creditInfo_t, 5> creditList;
+
+    static idDeclInfoTemplate<idDeclCredits> resourceList;
+};
+
+#if defined(_WIN32) && !defined(_WIN64)
+static_assert(sizeof(idDeclMenuPopup) == 96,
+    "Recovered menu-popup declaration ABI changed");
+static_assert(sizeof(idDeclCredits::creditInfo_t) == 72,
+    "Recovered credit-entry ABI changed");
+static_assert(sizeof(idDeclCredits) == 80,
+    "Recovered credits declaration ABI changed");
+#endif

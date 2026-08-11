@@ -26,6 +26,13 @@ public:
         , a(alpha) {
     }
 
+    void Set(float red, float green, float blue, float alpha = 1.0f) {
+        r = red;
+        g = green;
+        b = blue;
+        a = alpha;
+    }
+
     const char* ToString(int precision, bool parens) const;
     void Lerp(const idColor& from, const idColor& to, float lerp);
 

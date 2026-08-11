@@ -25,8 +25,6 @@ struct rageStatXpBonus {
     int xp;
 };
 
-const char* Tungsten_GetDeclWeaponName(const idDeclWeapon* weapon);
-
 class idDeclMetric : public idDeclTypeInfo {
 public:
     idDeclMetric();

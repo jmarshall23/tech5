@@ -1,195 +1,160 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\cuttable.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "gamelib/effectphysics/effectphysicscuttable.h"
+#include "idlib/containers/linklist.h"
+#include "idlib/containers/list.h"
+#include "idlib/math/vector.h"
+#include "idlib/text/str.h"
+#include "models/cuttable/cuttergraph.h"
 
+class Contour;
+class idClipModel;
+class idCollisionGrid;
+class idCollisionModel;
+class idCutterClip;
+class idDeclDamage;
+class idDeclImpactSound;
+class idEntity;
+class idFile;
+class idPhysics;
+class idPresentable;
+class idRenderModel;
+class idRenderModelCuttableBeams;
+class idRenderModelCuttableSurface;
+struct trace_t;
+class idCuttable;
 
-// IDA Local Type ordinal 15934; PDB kind: class.
-class __declspec(align(8)) idCuttable : public idEntity
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 15935.
-  virtual idTypeInfo *GetType();
-  virtual ~idCuttable();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
+struct cuttableStateInfo_t {
+    idStr name;
+    bool graphValid;
 
-  idPhysics *physicsObj;
-  __unaligned __declspec(align(1)) idLinkList<idCuttable> cuttableNode;
-  idCollisionGrid *collisionGrid;
-  idRenderModelCuttableSurface *cutModel;
-  idRenderModelCuttableBeams *beamModel;
-  idClipModel *clipModel;
-  idClipModel *gridClipModel;
-  idCollisionModel *collisionModel;
-  idCollisionModel *gridCollisionModel;
-  int graphHandle;
-  int infoHandle;
-  const idDeclImpactSound *impactTable;
-  int nestedPolygons;
-  int connectedPolygons;
+    cuttableStateInfo_t() : name(), graphValid(false) {}
 };
 
-// IDA Local Type ordinal 17352; PDB kind: struct.
-struct cuttableInfo_t
-{
-  idRenderModelCuttableSurface *renderModel;
-  idPhysics *physics;
-  Contour *outerContour;
-  Contour *innerContour;
+struct cuttableInfo_t {
+    idRenderModelCuttableSurface* renderModel;
+    idPhysics* physics;
+    Contour* outerContour;
+    Contour* innerContour;
+
+    cuttableInfo_t()
+        : renderModel(nullptr), physics(nullptr), outerContour(nullptr),
+          innerContour(nullptr) {}
+};
+
+struct idCuttableContourPoints {
+    idList<idVec2i, 5> points;
+};
+
+class idCuttableServices {
+public:
+    virtual ~idCuttableServices() = default;
+
+    virtual idPresentable* AllocPresentable(idCuttable&, idRenderModel*);
+    virtual void RegisterCuttable(idCuttable&);
+    virtual void UnregisterCuttable(idCuttable&);
+    virtual void ClearCuttable(int infoHandle);
+    virtual idCutterGraphManager* GetGraphManager();
+    virtual idCutterClip* GetClipHelper();
+    virtual bool ShouldSaveCuttableState() const;
+
+    virtual idStr GetRenderWorldName() const;
+    virtual idRenderModelCuttableSurface* LoadCuttableSurface(
+        const idStr& assetName);
+    virtual bool SurfaceHasGeometry(
+        const idRenderModelCuttableSurface* model) const;
+    virtual idCollisionGrid* LoadCollisionGrid(const idStr& assetName);
+    virtual bool CollisionGridIsValid(const idCollisionGrid* grid) const;
+    virtual void ReleaseCollisionGrid(idCollisionGrid* grid);
+    virtual idPhysics* CreatePhysics(idCuttable&);
+    virtual void AttachModelAndPhysics(idCuttable&);
+    virtual int AllocateCuttableInfo(const idStr& name,
+        idRenderModelCuttableSurface* model, idPhysics* physics);
+    virtual idRenderModelCuttableBeams* CreateBeamModel(idCuttable&);
+    virtual void ConfigureBeamModel(idCuttable&);
+    virtual void SetAllClipTransforms(idCuttable&, const idVec3&,
+        const idMat3&);
+    virtual void UpdateVisuals(idCuttable&);
+    virtual void SetThinkActive(idCuttable&, bool active);
+    virtual void SetHidden(idCuttable&, bool hidden);
+
+    virtual void DetachClipModels(idCuttable&);
+    virtual bool RebuildClipModels(idCuttable&,
+        const idList<idCuttableContourPoints, 5>& inactiveFills);
+    virtual void ReleaseRuntimeResources(idCuttable&);
+
+    virtual void GetTransform(const idCuttable&, idVec3& origin,
+        idMat3& axis) const;
+    virtual bool DebugCuttable() const;
+    virtual int GetGameMillisecondsPerFrame() const;
+    virtual void DebugDrawGraph(idCutterGraphManager&, int graphHandle,
+        int lifeTime);
+    virtual void UpdateBeamModel(idCuttable&, idCutterGraphManager&,
+        int graphHandle, const idVec3& origin, const idMat3& axis);
+    virtual void RunPhysics(idCuttable&);
+    virtual void UpdateEffects(idCuttable&);
+
+    virtual int GetGameMilliseconds() const;
+    virtual int GetEntityNumber(const idCuttable&) const;
+    virtual bool EmitCutPiece(const cuttablePhysicsEmitInfo_t& emitInfo,
+        const idList<idDrawVert, 5>& vertices,
+        const idList<idVec2, 5>& textureCoordinates,
+        const idList<unsigned short, 5>& indices);
+    virtual void UpdateCuttableModel(int infoHandle, Contour* outer,
+        Contour* inner);
+    virtual void InvalidateCuttableModel(idCuttable&);
+    virtual void Warning(const char* message);
+
+    virtual int GetDamageTypes(const idDeclDamage* damage) const;
+    virtual bool GetDamageCutPoint(const trace_t* trace,
+        idVec3& cutPoint) const;
+};
+
+class idCuttable {
+public:
+    idCuttable();
+    virtual ~idCuttable();
+
+    static void SetServices(idCuttableServices* services);
+    static idCuttableServices& Services();
+
+    virtual idPresentable* AllocPresentable(idRenderModel* renderModel);
+    void CreateStateInfo(cuttableStateInfo_t& state) const;
+    bool GetPolygon(idList<idVec2i, 5>& points,
+        idCutterClip* cutterClip);
+    static void WriteLevelStateToFile(idFile* file,
+        idList<cuttableStateInfo_t, 5>& stateInfo,
+        idCutterGraphState& graphState);
+    static void ReadLevelStateFromFile(idFile* file,
+        idList<cuttableStateInfo_t, 5>& stateInfo,
+        idCutterGraphState& graphState);
+    void BuildClipModel();
+    void Spawn();
+    virtual void Think();
+    void ApplyStateInfo(const cuttableStateInfo_t& state);
+    void PushCut(idVec3 point, const idVec3& direction);
+    virtual float Damage(idEntity* inflictor, idEntity* attacker,
+        const idDeclDamage* damageDef, float damageScale,
+        const idVec3& direction, trace_t* trace);
+
+    idStr name;
+    idVec3 spawnPosition;
+    idMat3 spawnOrientation;
+    int thinkFlags;
+    int entityNumber;
+
+    idPhysics* physicsObj;
+    idLinkList<idCuttable> cuttableNode;
+    idCollisionGrid* collisionGrid;
+    idRenderModelCuttableSurface* cutModel;
+    idRenderModelCuttableBeams* beamModel;
+    idClipModel* clipModel;
+    idClipModel* gridClipModel;
+    idCollisionModel* collisionModel;
+    idCollisionModel* gridCollisionModel;
+    int graphHandle;
+    int infoHandle;
+    const idDeclImpactSound* impactTable;
+    int nestedPolygons;
+    int connectedPolygons;
 };

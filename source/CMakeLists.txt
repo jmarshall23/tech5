@@ -55,6 +55,7 @@ target_include_directories(tech5_build_options INTERFACE
     "${TECH5_SOURCE_ROOT}"
     "${TECH5_SOURCE_ROOT}/engine"
     "${TECH5_SOURCE_ROOT}/shared"
+    "${TECH5_SOURCE_ROOT}/shared/idlib"
     "${TECH5_SOURCE_ROOT}/libs"
 )
 target_compile_definitions(tech5_build_options INTERFACE
