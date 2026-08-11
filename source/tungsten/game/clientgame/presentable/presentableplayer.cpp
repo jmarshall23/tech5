@@ -119,7 +119,6 @@ idPresentablePlayer::~idPresentablePlayer() {
 
 idPresentableActor::idPresentableActor()
     : inventory(nullptr)
-    , useSphereModel(false)
     , actorModifierManager(this)
     , overdrivePoints(0.0f) {
 }
@@ -129,9 +128,8 @@ idPresentableActor::idPresentableActor(idEntity* entity_,
         idInventoryCollection* actorInventory, int entityNumber_,
         const idDeclFX* fx, bool sphereModel)
     : idPresentableAnimatedEntity(entity_, renderModel, stack,
-        entityNumber_, fx)
+        entityNumber_, fx, sphereModel)
     , inventory(actorInventory)
-    , useSphereModel(sphereModel)
     , actorModifierManager(this)
     , overdrivePoints(0.0f) {
 }

@@ -4,6 +4,7 @@
 #include "../../../../engine/network/serializer.h"
 #include "../../../../shared/idlib/bv/bounds.h"
 #include "../../../../shared/idlib/text/str.h"
+#include "../../../../shared/idlib/langdict.h"
 
 #include <cstdint>
 
@@ -16,6 +17,7 @@ class idDeclFX;
 class idDeclRenderParm;
 class idEntity;
 class idInventoryCollection;
+class idInventoryItem;
 class idFocusTrace;
 class idFXManager;
 class idMaterial;
@@ -27,8 +29,14 @@ class idPresentableMultiplayerTrigger;
 class idPresentableParticleEmitter;
 class idPresentablePieceEmitter;
 class idPresentablePlayer;
+class idPresentableProp;
+class idPresentablePusher;
+class idPresentableTurret;
 class idPresentableVehicle;
+class idPresentableWeapon;
+class idPresentableWeaponStatic;
 class idRenderModel;
+class idTreeAnimator;
 class idSoundEmitter;
 class idWeapon;
 class idDeclWeapon;
@@ -284,7 +292,14 @@ public:
         return nullptr;
     }
     virtual idPresentablePlayer* GetPlayerInterface() { return nullptr; }
+    virtual idPresentableProp* GetPropInterface() { return nullptr; }
+    virtual idPresentablePusher* GetPusherInterface() { return nullptr; }
+    virtual idPresentableTurret* GetTurretInterface() { return nullptr; }
     virtual idPresentableVehicle* GetVehicleInterface() { return nullptr; }
+    virtual idPresentableWeapon* GetWeaponInterface() { return nullptr; }
+    virtual idPresentableWeaponStatic* GetWeaponStaticInterface() {
+        return nullptr;
+    }
     virtual idPresentableMultiplayerTrigger* GetMultiplayerTriggerInterface() {
         return nullptr;
     }
@@ -294,6 +309,7 @@ public:
     virtual idPresentablePieceEmitter* GetPieceEmitterInterface() {
         return nullptr;
     }
+    virtual idStrId GetOnlineUsableText() const { return idStrId(); }
 
     void Delete();
     void SetClipModelContents(int contents);
@@ -422,26 +438,116 @@ public:
     int shouldPresentCounter;
 };
 
-// The actor and animated-entity implementations are materialized in
-// presentableplayer.cpp in the retail source.  These declarations preserve
-// that hierarchy for earlier alphabetical translation units.
+class idPresentableAnimatedEntityServices {
+public:
+    virtual ~idPresentableAnimatedEntityServices() = default;
+    virtual idTreeAnimator* AsTreeAnimator(idRenderModel*) const {
+        return nullptr;
+    }
+    virtual bool EntityHasClipModel(idEntity*) const { return true; }
+    virtual idClipModel* CreateSphereModel(idTreeAnimator*, int) {
+        return nullptr;
+    }
+    virtual void DeleteSphereModel(idClipModel*) {}
+    virtual void UnlinkSphereModel(idClipModel*) {}
+    virtual void LinkSphereModel(idClipModel*, int, const idVec3&,
+        const idMat3&, bool) {}
+    virtual void EnableSphereModel(idClipModel*, bool) {}
+    virtual int GetSphereModelContents(idClipModel*) const { return 0; }
+    virtual void SetSphereModelContents(idClipModel*, int) {}
+    virtual void GetAnimatorTransform(idTreeAnimator*, idVec3& origin,
+        idMat3& axis) const {
+        origin.Zero();
+        axis = idMat3(1.0f);
+    }
+    virtual idBounds GetAnimatorBounds(idTreeAnimator*) const {
+        return idBounds();
+    }
+    virtual void SetAnimatorDeferred(idTreeAnimator*, bool) {}
+    virtual void SyncAnimatorJoints(idTreeAnimator*, int) {}
+    virtual bool GetTagTransform(idTreeAnimator*, const char*, const char*,
+        idVec3&, idMat3&) const { return false; }
+    virtual bool GetTagTransform(idTreeAnimator*, int, int,
+        idVec3&, idMat3&) const { return false; }
+    virtual idVec3 GetRenderModelBoundsCenter(idRenderModel*) const {
+        return idVec3(0.0f, 0.0f, 0.0f);
+    }
+
+    virtual bool IsServer() const { return false; }
+    virtual bool IsClient() const { return true; }
+    virtual int GetServerGameTime() const { return 0; }
+    virtual int GetScaledGameTime() const { return 0; }
+    virtual int GetScaledFrameTime() const { return 0; }
+    virtual int GetTicksPerSecond() const { return 0; }
+    virtual idInventoryCollection* GetEntityInventory(idEntity*) const {
+        return nullptr;
+    }
+    virtual void InventoryAdded(idEntity*, idInventoryItem*, int, bool) {}
+    virtual idVec3 GetEntityEyePosition(idEntity*) const {
+        return idVec3(0.0f, 0.0f, 0.0f);
+    }
+    virtual float GetEntityCurrentHealth(idEntity*) const { return 0.0f; }
+    virtual float GetEntityMaximumHealth(idEntity*) const { return 0.0f; }
+    virtual bool EntityCanAimAssist(idEntity*) const { return false; }
+    virtual bool EntityIsTargetLockable(idEntity*, const idDeclAmmo*) const {
+        return false;
+    }
+    virtual void AddAimAssistTarget(idPresentableAnimatedEntity*) {}
+    virtual void RemoveAimAssistTarget(idPresentableAnimatedEntity*) {}
+
+    virtual idTreeAnimator* GetAnimStackTreeAnimator(idAnimStack*) const {
+        return nullptr;
+    }
+    virtual idAnimStack* CreateAnimStack(idTreeAnimator*) { return nullptr; }
+    virtual void DestroyAnimStack(idAnimStack*) {}
+    virtual void FreeSerializedAnimators(idAnimStack*) {}
+    virtual void SerializeAnimStack(idAnimStack*, idSerializer&, int) {}
+    virtual void BlendAnimStack(idAnimStack*, int, int, int, float) {}
+    virtual void ResetFXTreeAnimator(idPresentableAnimatedEntity*,
+        idTreeAnimator*) {}
+};
+
+void Tungsten_SetPresentableAnimatedEntityServices(
+    idPresentableAnimatedEntityServices* services);
+
 class idPresentableAnimatedEntity : public idPresentable {
 public:
-    idPresentableAnimatedEntity() : animStack(nullptr) {}
+    idPresentableAnimatedEntity();
     idPresentableAnimatedEntity(idEntity* entity, idRenderModel* renderModel,
-            idAnimStack* stack, int entityNumber, const idDeclFX* fx)
-        : idPresentable(entity, renderModel, entityNumber, fx)
-        , animStack(stack) {}
+        idAnimStack* stack, int entityNumber, const idDeclFX* fx,
+        bool useSphereModel = false);
+    ~idPresentableAnimatedEntity() override;
 
-    void Interpolate(int currentTime, float fraction) override {
-        idPresentable::Interpolate(currentTime, fraction);
-    }
-    void ClientThink(int currentTime, float fraction, bool predict) override {
-        idPresentable::ClientThink(currentTime, fraction, predict);
-    }
-    void Serialize(idSerializer& serializer) override {
-        idPresentable::Serialize(serializer);
-    }
+    void Hide(bool stopFX) override;
+    const idTreeAnimator* GetTreeAnimator() const;
+    void Present() override;
+    void UpdateClientCollision(const idVec3& oldOrigin,
+        const idMat3& oldAxis, const idVec3& newOrigin,
+        const idMat3& newAxis) override;
+    void Show() override;
+    void ClientJobSync() override;
+    void SetRenderModel(idRenderModel* renderModel,
+        bool inheritTransform) override;
+    bool GetPresentableTagPosition(const char* propName,
+        const char* tagName, idVec3& outOrigin, idMat3& outAxis) const;
+    bool GetPresentableTagPosition(int propIndex, int tagIndex,
+        idVec3& outOrigin, idMat3& outAxis) const;
+    virtual const idInventoryCollection* GetInventory() const;
+    virtual idInventoryCollection* GetInventory();
+    virtual void InventoryAdded(idInventoryItem* item, int count,
+        bool canIntro);
+    void GetEyePos(idVec3& eyePosition) const;
+    virtual float GetTotalCurHealth() const;
+    virtual float GetTotalMaxHealth() const;
+    bool GetCanAimAssist();
+    bool IsTargetLockable(const idDeclAmmo* ammo) const override;
+    void Serialize(idSerializer& serializer) override;
+    void UpdateAnimation(int currentTime, float fraction);
+    void ClientThink(int currentTime, float fraction, bool predict) override;
+    void PostSerializeRead(bool firstClientFrame) override;
+    void UpdateAimAssist();
+    virtual bool ShouldEnableSphereCollision() const { return true; }
+
     presentableType_t GetType() const override {
         return PRESENTABLE_ANIMATED_ENTITY;
     }
@@ -450,6 +556,17 @@ public:
     }
 
     idAnimStack* animStack;
+    bool useSphereModel;
+    idClipModel* sphereModel;
+    int sphereModelContents;
+    bool createdAnimStack;
+    idVec3 serializedEyePos;
+    bool isAimAssistable;
+    bool serializedAimAssist;
+    float serializedTotalCurHealth;
+    bool wasAddedToAimAssistList;
+    float serializedTotalMaxHealth;
+    idTreeAnimator* cachedAnimator;
 };
 
 class idPresentableActor : public idPresentableAnimatedEntity {
@@ -476,7 +593,6 @@ public:
     virtual void PostAlloc();
 
     idInventoryCollection* inventory;
-    bool useSphereModel;
     void* actorModifierManager;
     float overdrivePoints;
     std::uint32_t predictedModifierParentSpawnId{0};

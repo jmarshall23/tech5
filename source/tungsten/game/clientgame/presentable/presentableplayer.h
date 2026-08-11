@@ -21,9 +21,35 @@ class idRenderModelGui;
 class idSWF;
 class idWeapon;
 class idSoundShader;
+class idDeclThrowable;
+class idPresentableProjectile;
+class idDeclMD6;
+class idDeclAnimWeb;
+class idDeclProjectile;
+struct idFireParms;
+class idTestFireResults;
+class idFinishFireResults;
+struct trace_t;
+enum idPlayerBehaviorEvent_t : int;
 struct sysEvent_t;
 struct lobbyUserID_t;
 struct idHudInfo;
+enum walkState_t : int;
+enum footStepType_t : int;
+
+struct playerExplicitMove_t {
+    enum velocityType_t : int {
+        VEL_EXPLICIT = 0,
+        VEL_OVERRIDE = 1,
+        VEL_CURRENT = 2
+    };
+
+    idVec3 delta{0.0f, 0.0f, 0.0f};
+    bool clipMove{false};
+    velocityType_t velocityType{VEL_EXPLICIT};
+    idVec3 overrideVelocity{0.0f, 0.0f, 0.0f};
+    int ignoreEntityNum{-1};
+};
 
 struct decayParams_s {
     float linear{0.0f};
@@ -324,7 +350,6 @@ public:
         idSerializer&) {}
     virtual void SerializePlayerPhysicsNonPrediction(idPresentablePlayer&,
         idSerializer&) {}
-    virtual int GetClientGameFrame() const { return 0; }
     virtual idVec3 GetPlayerPhysicsOrigin(
         const idPresentablePlayer&) const { return idVec3(); }
     virtual float GetControlledVehicleSpeed(idPresentable*) const {
@@ -469,6 +494,147 @@ public:
     virtual void ClearHudPickupItems(idPresentablePlayer&) {}
     virtual bool UseThirdPersonSoundOrigin() const { return false; }
     virtual void PredictCollisionTriggers(idPresentablePlayer&) {}
+    virtual bool ToggleDualWieldPlayerItem(idPresentablePlayer&,
+        bool, bool, bool) { return false; }
+    virtual bool EquipPlayerItem(idPresentablePlayer&,
+        idInventoryItem*) { return false; }
+    virtual idInventoryItem* GetEquippedPlayerItem(
+        const idPresentablePlayer&, equipSlot_t) const { return nullptr; }
+    virtual bool IsServerPlayerDead(const idPresentablePlayer&) const {
+        return false;
+    }
+    virtual bool IsServerPlayerCrouching(
+        const idPresentablePlayer&) const { return false; }
+    virtual bool IsPredictedPlayerCrouching(
+        const idPresentablePlayer&) const { return false; }
+    virtual bool IsPlayerAFActive(const idPresentablePlayer&) const {
+        return false;
+    }
+    virtual bool GetServerFocusFriendly(
+        const idPresentablePlayer&) const { return false; }
+    virtual bool ThrowableUsesDeployableRules(
+        const idDeclThrowable*) const { return false; }
+    virtual bool CanAddServerDeployable(
+        const idPresentablePlayer&) const { return false; }
+    virtual void GetServerFireTrajectory(const idPresentablePlayer&,
+        idVec3&, idMat3&) const {}
+    virtual bool ServerBeforeUse(idPresentablePlayer&) { return false; }
+    virtual bool ServerBeforeUseIsRunning(idPresentablePlayer&) {
+        return false;
+    }
+    virtual void SetServerPlayerAngles(idPresentablePlayer&,
+        const idAngles&) {}
+    virtual bool IsGamePaused() const { return false; }
+    virtual bool GuiInhibitsPlayerControl(const idSWF*) const {
+        return false;
+    }
+    virtual bool LocalViewInhibitsPlayerControl(
+        const idPresentablePlayer&) const { return false; }
+    virtual void ShowServerInventory(idPresentablePlayer&, bool) {}
+    virtual void SetServerWalkState(idPresentablePlayer&, int) {}
+    virtual bool PlayServerFootStepEffect(idPresentablePlayer&, int) {
+        return false;
+    }
+    virtual void PlayPlayerPainFeedback(idPresentablePlayer&, float) {}
+    virtual void UpdateServerEditEntityMode(idPresentablePlayer&) {}
+    virtual bool WeaponSupportsZoom(const idWeapon*) const { return false; }
+    virtual bool WeaponForcesIronsight(const idWeapon*) const {
+        return false;
+    }
+    virtual float GetWeaponMovementScale(const idWeapon*) const {
+        return 1.0f;
+    }
+    virtual float GetWeaponCrouchedScale(const idWeapon*) const {
+        return 1.0f;
+    }
+    virtual void NotifyServerThrowRelease(idPresentablePlayer&,
+        const idDeclThrowable*, idPresentableProjectile*) {}
+    virtual void InitializeSharedPlayer(idPresentablePlayer&,
+        const idDeclMD6*, const idDeclAnimWeb*, const idDeclAnimWeb*,
+        const idDeclFX*) {}
+    virtual bool CanTogglePlayerZoom(const idPresentablePlayer&,
+        const idWeapon*, bool requested) const { return requested; }
+    virtual float GetWeaponZoomedFovValue(const idWeapon*) const {
+        return 0.0f;
+    }
+    virtual int GetWeaponZoomDuration(const idWeapon*) const { return 0; }
+    virtual void SetPlayerWeaponZoomed(idPresentablePlayer&,
+        idWeapon*, bool) {}
+    virtual void SetZoomHandsHidden(idPresentablePlayer&, bool) {}
+    virtual void SetZoomBobScale(idPresentablePlayer&, float) {}
+    virtual float GetNormalViewHeight() const { return 64.0f; }
+    virtual float GetCrouchViewHeight() const { return 32.0f; }
+    virtual void SelectHandsAmmo(idPresentablePlayer&,
+        const idDeclAmmo*, bool) {}
+    virtual float GetCurrentProjectileSpread(const idWeapon*, bool) const {
+        return 0.0f;
+    }
+    virtual float GetWeaponSpreadScale() const { return 1.0f; }
+    virtual void UpdateWeaponAmmoHud(idPresentablePlayer&) {}
+    virtual void ApplyWeaponFireFeedback(idPresentablePlayer&,
+        const idWeapon*, const idDeclProjectile*) {}
+    virtual idWeapon* GetEquippedPlayerWeapon(
+        const idPresentablePlayer&, equipSlot_t) const { return nullptr; }
+    virtual void PlayDamageDealtFeedback(idPresentablePlayer&,
+        idPresentable*, bool) {}
+    virtual void UpdatePlayerDecal(idPresentablePlayer&, float,
+        const idStr&, float) {}
+    virtual void GetWeaponSensitivityScale(const idWeapon*,
+        float& mouseScale, float& joyScale) const {
+        mouseScale = 1.0f;
+        joyScale = 1.0f;
+    }
+    virtual void RenderSharedPlayerView(idPresentablePlayer&) {}
+    virtual void GetDefaultPlayerInputSettings(inputSettings_t&) const {}
+    virtual void OffsetPlayerThirdPersonView(idPresentablePlayer&,
+        float, float, float, const char*, bool) {}
+    virtual void UpdatePlayerStepUpSprings(idPresentablePlayer&) {}
+    virtual void RecordClientWeaponFire(idPresentablePlayer&,
+        const idWeapon*, const idDeclProjectile*, const idFireParms&,
+        const idTestFireResults&, const idFinishFireResults&) {}
+    virtual idEntity* GetServerFocusEntity(
+        const idPresentablePlayer&) const { return nullptr; }
+    virtual std::uint32_t GetProjectileSpawnId(
+        const idPresentableProjectile*) const { return 0; }
+    virtual int GetClientGameFrame() const { return 0; }
+    virtual bool UniqueTrackedProjectileIsActive(
+        const idPresentablePlayer&, const idDeclThrowable*,
+        std::uint32_t) const { return false; }
+    virtual bool UsePlayerFocus(idPresentablePlayer&) { return false; }
+    virtual void AddPlayerAttackerFeedback(idPresentablePlayer&,
+        idPresentable*, float, const idVec3*, const idDeclDamage*) {}
+    virtual void UpdatePlayerDamageDealtFeedback(idPresentablePlayer&) {}
+    virtual void UpdatePlayerDamageIndicatorFeedback(idPresentablePlayer&) {}
+    virtual void ResetSharedPlayerDefaults(idPresentablePlayer&) {}
+    virtual void CalculatePlayerView(idPresentablePlayer&) {}
+    virtual void UpdatePlayerViewAngles(idPresentablePlayer&) {}
+    virtual void GetWeaponSpreadState(const idPresentablePlayer&,
+        float& target, float& transition, float& recoveryDelay) const {
+        target = 1.0f;
+        transition = 0.0f;
+        recoveryDelay = 100.0f;
+    }
+    virtual bool CanProcessWeaponSelection(
+        const idPresentablePlayer&) const { return true; }
+    virtual bool PendingAmmoIsUsable(const idPresentablePlayer&,
+        const idWeapon*, const idDeclAmmo*) const { return false; }
+    virtual void ForceHandsAmmo(idPresentablePlayer&,
+        const idDeclAmmo*) {}
+    virtual void PostHandsUpdated(idPresentablePlayer&) {}
+    virtual bool BuildClientFireRecord(idPresentablePlayer&,
+        const idWeapon*, const idDeclProjectile*, const idFireParms&,
+        const idTestFireResults&, const idFinishFireResults&,
+        idVec3&, idAngles&) { return false; }
+    virtual void ApplyClientHitScanHit(idPresentablePlayer&, int, int,
+        int, const idDeclWeapon*, const idDeclProjectile*, int) {}
+    virtual void PerformRecordedClientFire(idPresentablePlayer&,
+        idWeapon*, int, const idVec3&, const idMat3&) {}
+    virtual bool ClientFireEvaluationEnabled() const { return true; }
+    virtual void ReleaseClientFireTrigger(idWeapon*) {}
+    virtual void PostServerPlayerBehaviorEvent(idPresentablePlayer&,
+        int) {}
+    virtual float TracePlayerBehaviorBlock(const idVec3&, const idVec3&,
+        int, int, bool, trace_t*) { return 1.0f; }
 };
 
 void Tungsten_SetPresentablePlayerServices(
@@ -582,6 +748,7 @@ public:
 
 class idPresentablePlayer : public idPresentableActor {
 public:
+    using idPresentableActor::GetEquippedWeapon;
     using idPresentable::SetSoundVolume;
     using idPresentable::StartSoundShader;
     using idPresentable::StopSound;
@@ -752,6 +919,104 @@ public:
     void ClearPickupItems();
     void UpdateSound();
     void ClientPredictTriggers();
+    bool ToggleDualWieldItem(bool justClear,
+        bool leftWeaponToRightHand, bool forceOn);
+    bool EquipItem(idInventoryItem* item);
+    idInventoryItem* GetEquipped(equipSlot_t slot) const;
+    bool IsDead() const;
+    bool IsCrouching() const;
+    bool AFIsActive() const;
+    bool GetFocusFriendly() const;
+    bool DeployableAllowed(const idDeclThrowable* declaration) const;
+    void GetFireTrajectory(idVec3& firePosition, idMat3& fireAxis) const;
+    bool BeforeUse();
+    bool BeforeUseIsRunning();
+    void SetAngles(const idAngles& angles);
+    bool IsPlayerControlInhibited();
+    void InhibitFire(bool inhibit);
+    bool CheckInhibitFire();
+    const idWeapon* GetControlWeapon() const;
+    void SetControllerShake(float highMagnitude, int highDuration,
+        float lowMagnitude, int lowDuration);
+    void ShowInventory(bool inVehicle);
+    void SetWalkState(walkState_t state);
+    bool PlayFootStepEffect(footStepType_t footstepType);
+    void PresentableDamaged(float damage);
+    void UpdateEditEntityMode();
+    bool IsFullyZoomedIn() const;
+    bool IsFullyZoomedOut() const;
+    float GetMovementScale() const;
+    float GetCrouchedScale() const;
+    void NotifyThrowRelease(const idDeclThrowable* throwItem,
+        idPresentableProjectile* spawnedProjectile);
+    void HandleCameraShake();
+    void SetExplicitMove(const playerExplicitMove_t& move,
+        bool alsoAllowPhysicsMove, bool useExplicitMove2);
+    void Init(const idDeclMD6* handsDeclMD6,
+        const idDeclAnimWeb* handsDeclAnimWeb,
+        const idDeclAnimWeb* handsDeclSecondaryAnimWeb,
+        const idDeclFX* handsFX);
+    void ToggleZoom(bool zoom);
+    void SetupZoom(bool handsZoomIn, idWeapon* weapon);
+    idVec3 GetEyeOffset() const;
+    void SelectWeapon(int slot);
+    void ClearWeaponKick();
+    void UpdateWeaponKick(idAngles& viewAngles);
+    float GetCurWeaponSpread(bool secondary) const;
+    void UpdateWeaponAmmoInfo();
+    void WeaponFireFeedback(const idWeapon* weapon,
+        const idDeclProjectile* projectileDeclaration);
+    idWeapon* GetEquippedWeapon(equipSlot_t slot) override;
+    void DamageDealtFeedback(idPresentable* victim, bool predicted);
+    void UpdateDecal(float value, idStr tagName, float decalSize);
+    void GetSensitivityScale(float& mouseSensitivityScale,
+        float& joySensitivityScale) const;
+    void Draw_Shared();
+    inputSettings_t GetPlayerInputSettings();
+    void PlayerUpdateZoomState();
+    void OffsetThirdPersonView(float angle, float range, float height,
+        const char* focusJoint, bool clip);
+    void UpdateStepUpSprings();
+    void WeaponFireFeedback(const idWeapon* weapon,
+        const idDeclProjectile* projectileDeclaration,
+        const idFireParms& fireParameters,
+        const idTestFireResults& testResults,
+        const idFinishFireResults& finishResults);
+    idEntity* GetFocusEntity() const;
+    void TrackUniqueProjectile(idPresentableProjectile* projectile);
+    bool UniqueProjectileAllowed(
+        const idDeclThrowable* throwableDeclaration) const;
+    bool Use();
+    void AddAttacker(idPresentable* attacker, float damage,
+        const idVec3* direction, const idDeclDamage* damageDefinition);
+    void UpdateDamageDealt();
+    void UpdateDamageFeedback();
+    void SetDefaults();
+    void CalculateView();
+    void SetViewAngles(const idAngles& angles, bool force);
+    void UpdateViewAngles();
+    void CalcCurWeaponSpread();
+    void UpdateWeapon();
+    void RecordClientFire(const idWeapon* weapon,
+        const idDeclProjectile* projectileDeclaration,
+        const idFireParms& fireParameters,
+        const idTestFireResults& testResults,
+        const idFinishFireResults& finishResults);
+    void ClientHitScanHit(int hitEntityNumber, int jointNumber, int bodyId,
+        const idDeclWeapon* weaponDeclaration,
+        const idDeclProjectile* projectileDeclaration,
+        int serverTimeOfHit);
+    void PerformClientFire(idWeapon* weapon, int serverTime,
+        const idVec3& commandFirePosition,
+        const idMat3& commandFireAxis);
+    void EvaluateClientFire(const usercmd_t& command,
+        int startTime, int endTime);
+    void PresentablePlayerBehavior_PostEvent(
+        idPlayerBehaviorEvent_t event);
+    static bool PlayerBehavior_Shared_CheckBlocked(
+        const idVec3& startPosition, const idVec3& endPosition,
+        float& blockDistance, int entityNumber, bool debug,
+        trace_t* trace, int contentMask);
     void PlayLootSound(bool hasLoot);
     localView_t* GetLocalView();
     void ChallengeExit();
@@ -910,6 +1175,37 @@ public:
     idAngles localMaxViewAngles{89.0f, 180.0f, 0.0f};
     idAngles playerViewAngles{0.0f, 0.0f, 0.0f};
     idWeaponKick weaponKick[5];
+    bool replicatedDead{false};
+    bool replicatedFullyZoomed{false};
+    bool playerControlInhibited{false};
+    bool inhibitFireControl{false};
+    bool focusUseButtonOverride{false};
+    int inhibitFireControlStartTime{0};
+    int painDebounceTime{0};
+    int throwCount{0};
+    struct cameraShakeState_t {
+        bool active{false};
+        int startTime{0};
+        float decay{0.0f};
+        float scale{0.0f};
+    } cameraShake;
+    enum explicitMoveType_t : int {
+        EXPLICIT_MOVE_NONE = 0,
+        EXPLICIT_MOVE_SINGLE_ADDITIONAL = 1,
+        EXPLICIT_MOVE_SINGLE_EXCLUSIVE = 2
+    } explicitMoveType{EXPLICIT_MOVE_NONE};
+    playerExplicitMove_t explicitMove{};
+    playerExplicitMove_t explicitMove2{};
+    bool wantZoom{false};
+    float lastFov{90.0f};
+    float savedViewPitchForKick{0.0f};
+    idInterpolate<float> baseWeaponSpread;
+    idInterpolate<float> kickWeaponSpread;
+    std::uint32_t uniqueTrackedProjectileSpawnId{0};
+    int uniqueTrackedProjectileClientGameFrameWhenFired{0};
+    bool useIntroBringUp{false};
+    int weaponButtonPressTime{0};
+    float lastDecalValue{0.0f};
     bool challengeRestartingSoon{false};
     bool disableSubtitles{false};
     int subtitleStartTime{-1};

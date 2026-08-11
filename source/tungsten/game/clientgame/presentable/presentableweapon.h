@@ -1,121 +1,129 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\clientgame\presentable\presentableweapon.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "presentable.h"
+#include "presentableptr.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 15482; PDB kind: class.
-class idPresentableWeapon : public idPresentableAnimatedEntity
-{
+class idDeclAmmo;
+class idDeclWeapon;
+class idFinishFireResults;
+class idFXManager;
+class idTestFireResults;
+struct idFireParms;
+
+class idPresentableWeapon;
+
+class idPresentableWeaponServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 34021.
-  virtual ~idPresentableWeapon();
-  virtual void Shutdown();
-  virtual void ClientJobSync();
-  virtual void ControlReleased();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPresentablePlayer *);
-  virtual void Present();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void Interpolate(int, float);
-  virtual bool ShouldSerializeHidden();
-  virtual bool ShouldInterpolate();
-  virtual void ClientPredict(int, float);
-  virtual void ClientThink(int, float, bool);
-  virtual void ServerThink(int);
-  virtual bool Draw(idPresentablePlayer *);
-  virtual void SerializeFX(idSerializer *);
-  virtual void PostAlloc();
-  virtual presentableType_t GetType();
-  virtual idPresentableAnimatedEntity *GetAnimatedEntityInterface();
-  virtual idPresentableVehicle *GetVehicleInterface();
-  virtual idPresentableBreakable *GetBreakableInterface();
-  virtual idPresentablePieceEmitter *GetPieceEmitterInterface();
-  virtual idPresentableDamageable *GetDamageableInterface();
-  virtual const idPresentableActor *GetActorInterface();
-  virtual idPresentableActor *GetActorInterface_2();
-  virtual const idPresentablePlayer *GetPlayerInterface();
-  virtual idPresentablePlayer *GetPlayerInterface_2();
-  virtual idPresentableProjectile *GetProjectileInterface();
-  virtual idPresentableProjectile_Rocket *GetProjectileRocketInterface();
-  virtual idPresentableProjectile_Homing *GetProjectileHomingInterface();
-  virtual idPresentableProjectile_Grenade *GetProjectileGrenadeInterface();
-  virtual idPresentableMultiplayerTrigger *GetMultiplayerTriggerInterface();
-  virtual idPresentableWeaponStatic *GetWeaponStaticInterface();
-  virtual idPresentableAI *GetAIInterface();
-  virtual idPresentableProp *GetPropInterface();
-  virtual idPresentableDoorAnimated *GetDoorAnimatedInterface();
-  virtual idPresentableWeapon *GetWeaponInterface();
-  virtual idOnlineVehicleDeathCameraPresentable *GetVehicleCameraInterface();
-  virtual idPresentableReviveCamera *GetReviveCameraInterface();
-  virtual idPresentableArmorPiece *GetArmorInterface();
-  virtual idPresentablePusher *GetPusherInterface();
-  virtual idPresentableTurret *GetTurretInterface();
-  virtual idPresentableParticleEmitter *GetParticleEmitterInterface();
-  virtual idPresentableCollisionTrigger *GetCollisionTriggerInterface();
-  virtual idPresentableSpectatorCamera *GetSpectatorCameraInterface();
-  virtual idPresentableAnimatedEntity *GetAnimatedPhysicsInterface();
-  virtual void SetRenderModel(idRenderModel *, bool);
-  virtual bool ShouldSerializeRenderModelParms();
-  virtual void StopSound_Predicted(const soundChannel_t);
-  virtual void Hide(bool);
-  virtual void Show();
-  virtual void GetWorldTransform(idVec3 *, idMat3 *);
-  virtual idBounds *GetBounds(idBounds *result, int);
-  virtual idBounds *GetAbsBounds(idBounds *result, int);
-  virtual bool ShouldTriggerClientHitScanHit();
-  virtual void ClientHitScanHit(int, int, int, const idDeclWeapon *, const idDeclProjectile *, int);
-  virtual void ClientHitScanHit_ClientFire(int, const idDeclWeapon *, int);
-  virtual void PredictHitScanHit(idPresentable *, float, const idVec3 *, const idVec3 *, const idDeclProjectile *, trace_t *);
-  virtual int GetPeerIndex();
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual float GetTotalCurHealth();
-  virtual float GetTotalMaxHealth();
-  virtual bool ShouldSaveForTimeTrial();
-  virtual void StartFX(fxCondition_t, fxExtraCondition_t);
-  virtual void StopAllFX();
-  virtual void UpdateFX(const idVec3 *, const idMat3 *, idFXManager *, const float, const float);
-  virtual void UpdateFX_2(const idVec3 *, const idMat3 *);
-  virtual void UpdateFX_3(const float, const float);
-  virtual void LocalStartFX(fxCondition_t);
-  virtual usableState_t GetOnlineUsableState(idPresentablePlayer *, int);
-  virtual void GetOnlineModifiedCrosshairInfo(const idPresentable *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual idStrId *GetOnlineUsableText(idStrId *result);
-  virtual void BecomeReplicated();
-  virtual int GetControllingPlayerIndex();
-  virtual idPresentablePlayer *GetControllingPlayer();
-  virtual bool IsLocallyControlled();
-  virtual idWeapon *GetFiredWeapon(const idDeclWeapon *);
-  virtual void InitFXMgr(const idDeclFX *);
-  virtual void ShutdownFXMgr();
-  virtual void UpdateClientCollision(const idVec3 *, const idMat3 *, const idVec3 *, const idMat3 *);
-  virtual bool ShouldLinkPresentableCollision();
-  virtual idInventoryCollection *GetInventory();
-  virtual const idInventoryCollection *GetInventory_2();
-  virtual bool ShouldEnableSphereCollision();
-  virtual void InventoryAdded(idInventoryItem *, int, bool);
+    virtual ~idPresentableWeaponServices() = default;
+    virtual idPresentable* ResolveOwner(int) const { return nullptr; }
+    virtual idPresentable* ResolveSpawnId(std::uint32_t) const {
+        return nullptr;
+    }
+    virtual bool IsLocalPlayer(int) const { return false; }
+    virtual bool IsClient() const { return true; }
+    virtual bool SerializeLocallyControlledWeapons() const { return false; }
+    virtual int GetGameTime() const { return 0; }
+    virtual int GetMinimumReplayInterval() const { return 0; }
+    virtual float GetRollStartAcceleration() const { return 0.0f; }
+    virtual float GetRollEndAcceleration() const { return 0.0f; }
+    virtual float GetRollTopSpeed() const { return 0.0f; }
+    virtual int GetRollEndTime() const { return 0; }
+    virtual idWeapon* CreateClientWeapon(const idDeclWeapon*) { return nullptr; }
+    virtual void DestroyClientWeapon(idWeapon*) {}
+    virtual void BindPresentableWeapon(idWeapon*, idPresentableWeapon*) {}
+    virtual void InitializeClientWeapon(idPresentableWeapon&, idWeapon*) {}
+    virtual void ShutdownLaserSight(idPresentableWeapon&) {}
+    virtual void ShowLaserSight(idPresentableWeapon&, int) {}
+    virtual bool GetMuzzleFlashWorldTransform(idWeapon*, const idTreeAnimator*,
+        int, idVec3&, idMat3&) const { return false; }
+    virtual bool GetLaserSightWorldTransform(const idTreeAnimator*, idVec3&,
+        idMat3&) const { return false; }
+    virtual void UpdateLaserSight(idPresentableWeapon&, const idVec3&,
+        const idVec3&, int) {}
+    virtual void SetBarrelRoll(idPresentableWeapon&, const idTreeAnimator*, int,
+        const idVec3&, float) {}
+    virtual void UpdateWeaponFX(idPresentableWeapon&, idFXManager&,
+        const idVec3&, const idMat3&, float, float) {}
+    virtual std::uint32_t FindFireHit(const idTestFireResults&, int&) const {
+        return 0;
+    }
+    virtual const idDeclAmmo* GetFiredAmmo(const idFireParms&) const {
+        return nullptr;
+    }
+    virtual bool ReplayFire(idPresentableWeapon&, idWeapon*,
+        idPresentable*, idPresentable*, int) { return false; }
+    virtual void ForceAmmo(idWeapon*, const idDeclAmmo*) {}
+    virtual void SerializeWeaponDeclaration(idSerializer&,
+        const idDeclWeapon*&) {}
+    virtual void SerializeAmmoDeclaration(idSerializer&,
+        const idDeclAmmo*&) {}
+    virtual void MarkSerialized(idPresentableWeapon&) {}
+};
 
-  idPresentablePtr<idPresentable> attacker;
-  idPresentablePtr<idPresentableVehicle> vehicleAttacker;
-  fxEmitterSound_t soundInfo;
-  int lastWeaponID;
-  int presentableWeaponID;
-  const idDeclWeapon *weaponDecl;
-  idWeapon *clientWeapon;
-  const idDeclAmmo *ammoDecl;
-  int ownerEntityNum;
-  idPresentable *expectedHit;
-  idLaserSight laserSight;
-  int netFireIndex;
-  int netFireIndexLastSerialize;
-  idPresentablePtr<idPresentable> hitPresentable;
-  idIndex<short,enum invalidJointIndex_t> hitJoint;
-  idIndex<short,enum invalidJointIndex_t> rollJointIndex;
-  float rollDelta;
-  float rollAngle;
-  idVec3 spinJointOrigin;
-  idMat3 spinJointMat;
-  int lastFireTime;
+void Tungsten_SetPresentableWeaponServices(
+    idPresentableWeaponServices* services);
+
+class idPresentableWeapon : public idPresentableAnimatedEntity {
+public:
+    enum attack_t : int { ATTACK_DEFAULT = 0, ATTACK_SECONDARY = 1 };
+
+    idPresentableWeapon(idRenderModel* renderModel,
+        const idDeclWeapon* declaration, int ownerEntityNumber,
+        idAnimStack* animStack, idEntity* entity, bool useSphereModel);
+    ~idPresentableWeapon() override;
+
+    void WeaponDeleted();
+    void Shutdown() override;
+    void Present() override;
+    bool GetMuzzleFlashWorldTransform(idVec3& origin, idMat3& axis,
+        attack_t attackType);
+    void InitClientWeapon();
+    void ShowLaserSight();
+    void UpdateOwnerAndAttacker();
+    void UpdateLaserSight(const idVec3& start, const idVec3& end,
+        int passEntityNumber);
+    bool GetLaserSightWorldTransform(const idTreeAnimator* parentModel,
+        idVec3& origin, idMat3& axis) const;
+    void UpdateFX(const idVec3& origin, const idMat3& axis,
+        idFXManager& manager, float fovScale, float depthHack);
+    void PostSerializeRead(bool firstClientFrame) override;
+    void RecordFireEvent(const idFireParms& fire,
+        const idTestFireResults& tests, idFinishFireResults& finish,
+        int loadedCount);
+    void Serialize(idSerializer& serializer) override;
+    bool IsLocallyControlledByPlayer();
+    void ClientThink(int currentTime, float fraction, bool predict) override;
+    void SetClientWeapon(idWeapon* weapon);
+
+    virtual idWeapon* GetFiredWeapon(const idDeclWeapon*) {
+        return clientWeapon;
+    }
+    idPresentableWeapon* GetWeaponInterface() override { return this; }
+    presentableType_t GetType() const override { return PRESENTABLE_WEAPON; }
+
+    static int presentableWeaponCounter;
+
+    idPresentablePtr<idPresentable> attacker;
+    idPresentablePtr<idPresentable> vehicleAttacker;
+    idPresentablePtr<idPresentable> hitPresentable;
+    std::int16_t hitJoint;
+    std::int16_t rollJointIndex;
+    int presentableWeaponID;
+    int lastWeaponID;
+    float rollDelta;
+    const idDeclWeapon* weaponDecl;
+    float rollAngle;
+    idWeapon* clientWeapon;
+    int netFireIndex;
+    int netFireIndexLastSerialize;
+    const idDeclAmmo* ammoDecl;
+    idPresentable* expectedHit;
+    int lastFireTime;
+    int ownerEntityNum;
+    idVec3 spinJointOrigin;
+    idMat3 spinJointMat;
+    bool laserSightVisible;
+    bool laserSightInitialized;
 };
