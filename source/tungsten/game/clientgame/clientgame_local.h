@@ -39,7 +39,7 @@ class idMat3;
 struct localView_t;
 struct renderView_t;
 struct trace_t;
-struct usercmd_t;
+class usercmd_t;
 
 struct lobbyUserID_t {
     std::uint32_t localUserHandle;

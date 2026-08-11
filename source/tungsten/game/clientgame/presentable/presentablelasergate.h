@@ -1,105 +1,118 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\clientgame\presentable\presentablelasergate.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "presentable.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 20316; PDB kind: class.
-class idPresentableLaserGate : public idPresentable
-{
+class idDeclLaserGate;
+class idMaterial;
+
+#ifndef TUNGSTEN_LASER_GATE_STATE_T_DEFINED
+#define TUNGSTEN_LASER_GATE_STATE_T_DEFINED
+enum laserGateState_t : int {
+    LASERGATE_OPENING = 0,
+    LASERGATE_OPENED = 1,
+    LASERGATE_CLOSING = 2,
+    LASERGATE_CLOSED = 3
+};
+#endif
+
+#ifndef TUNGSTEN_LASER_GATE_BEAM_INFO_T_DEFINED
+#define TUNGSTEN_LASER_GATE_BEAM_INFO_T_DEFINED
+struct laserGateBeamInfo_t {
+    idVec3 point1;
+    idVec3 point2;
+};
+#endif
+
+struct idRecoveredLaserBeam {
+    const idMaterial* material{nullptr};
+    float height{0.0f};
+};
+
+class idLaserGateBeam;
+class idPresentableLaserGate;
+
+class idPresentableLaserGateServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 20317.
-  virtual ~idPresentableLaserGate();
-  virtual void Shutdown();
-  virtual void ClientJobSync();
-  virtual void ControlReleased();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPresentablePlayer *);
-  virtual void Present();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void Interpolate(int, float);
-  virtual bool ShouldSerializeHidden();
-  virtual bool ShouldInterpolate();
-  virtual void ClientPredict(int, float);
-  virtual void ClientThink(int, float, bool);
-  virtual void ServerThink(int);
-  virtual bool Draw(idPresentablePlayer *);
-  virtual void SerializeFX(idSerializer *);
-  virtual void PostAlloc();
-  virtual presentableType_t GetType();
-  virtual idPresentableAnimatedEntity *GetAnimatedEntityInterface();
-  virtual idPresentableVehicle *GetVehicleInterface();
-  virtual idPresentableBreakable *GetBreakableInterface();
-  virtual idPresentablePieceEmitter *GetPieceEmitterInterface();
-  virtual idPresentableDamageable *GetDamageableInterface();
-  virtual const idPresentableActor *GetActorInterface();
-  virtual idPresentableActor *GetActorInterface_2();
-  virtual const idPresentablePlayer *GetPlayerInterface();
-  virtual idPresentablePlayer *GetPlayerInterface_2();
-  virtual idPresentableProjectile *GetProjectileInterface();
-  virtual idPresentableProjectile_Rocket *GetProjectileRocketInterface();
-  virtual idPresentableProjectile_Homing *GetProjectileHomingInterface();
-  virtual idPresentableProjectile_Grenade *GetProjectileGrenadeInterface();
-  virtual idPresentableMultiplayerTrigger *GetMultiplayerTriggerInterface();
-  virtual idPresentableWeaponStatic *GetWeaponStaticInterface();
-  virtual idPresentableAI *GetAIInterface();
-  virtual idPresentableProp *GetPropInterface();
-  virtual idPresentableDoorAnimated *GetDoorAnimatedInterface();
-  virtual idPresentableWeapon *GetWeaponInterface();
-  virtual idOnlineVehicleDeathCameraPresentable *GetVehicleCameraInterface();
-  virtual idPresentableReviveCamera *GetReviveCameraInterface();
-  virtual idPresentableArmorPiece *GetArmorInterface();
-  virtual idPresentablePusher *GetPusherInterface();
-  virtual idPresentableTurret *GetTurretInterface();
-  virtual idPresentableParticleEmitter *GetParticleEmitterInterface();
-  virtual idPresentableCollisionTrigger *GetCollisionTriggerInterface();
-  virtual idPresentableSpectatorCamera *GetSpectatorCameraInterface();
-  virtual idPresentableAnimatedEntity *GetAnimatedPhysicsInterface();
-  virtual void SetRenderModel(idRenderModel *, bool);
-  virtual bool ShouldSerializeRenderModelParms();
-  virtual void StopSound_Predicted(const soundChannel_t);
-  virtual void Hide(bool);
-  virtual void Show();
-  virtual void GetWorldTransform(idVec3 *, idMat3 *);
-  virtual idBounds *GetBounds(idBounds *result, int);
-  virtual idBounds *GetAbsBounds(idBounds *result, int);
-  virtual bool ShouldTriggerClientHitScanHit();
-  virtual void ClientHitScanHit(int, int, int, const idDeclWeapon *, const idDeclProjectile *, int);
-  virtual void ClientHitScanHit_ClientFire(int, const idDeclWeapon *, int);
-  virtual void PredictHitScanHit(idPresentable *, float, const idVec3 *, const idVec3 *, const idDeclProjectile *, trace_t *);
-  virtual int GetPeerIndex();
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual float GetTotalCurHealth();
-  virtual float GetTotalMaxHealth();
-  virtual bool ShouldSaveForTimeTrial();
-  virtual void StartFX(fxCondition_t, fxExtraCondition_t);
-  virtual void StopAllFX();
-  virtual void UpdateFX(const idVec3 *, const idMat3 *, idFXManager *, const float, const float);
-  virtual void UpdateFX_2(const idVec3 *, const idMat3 *);
-  virtual void UpdateFX_3(const float, const float);
-  virtual void LocalStartFX(fxCondition_t);
-  virtual usableState_t GetOnlineUsableState(idPresentablePlayer *, int);
-  virtual void GetOnlineModifiedCrosshairInfo(const idPresentable *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual idStrId *GetOnlineUsableText(idStrId *result);
-  virtual void BecomeReplicated();
-  virtual int GetControllingPlayerIndex();
-  virtual idPresentablePlayer *GetControllingPlayer();
-  virtual bool IsLocallyControlled();
-  virtual idWeapon *GetFiredWeapon(const idDeclWeapon *);
-  virtual void InitFXMgr(const idDeclFX *);
-  virtual void ShutdownFXMgr();
-  virtual void UpdateClientCollision(const idVec3 *, const idMat3 *, const idVec3 *, const idMat3 *);
-  virtual bool ShouldLinkPresentableCollision();
+    virtual ~idPresentableLaserGateServices() = default;
 
-  int gateActivationTime;
-  int shutdownTime;
-  laserGateState_t currentGateState;
-  laserGateState_t requestedGateState;
-  const idDeclLaserGate *laserGateDecl;
-  idList<idLaserGateBeam,5> laserBeams;
-  idList<laserGateBeamInfo_t,5> laserEndPoints;
-  bool collisionLastFrame;
-  idGatherQuery gatherQuery;
+    virtual int GetScaledGameTime() const { return 0; }
+    virtual void GetEntitySpawnTransform(const idEntity*, idVec3& outOrigin,
+        idMat3& outAxis) const {
+        outOrigin.Set(0.0f, 0.0f, 0.0f);
+        outAxis = idMat3(1.0f);
+    }
+    virtual const idDeclFX* GetFXDeclaration(
+        const idDeclLaserGate*) const { return nullptr; }
+    virtual const idMaterial* GetBeamMaterial(
+        const idDeclLaserGate*) const { return nullptr; }
+    virtual float GetBeamHeight(const idDeclLaserGate*) const { return 0.0f; }
+    virtual int GetBeamSpacing(const idDeclLaserGate*) const { return 0; }
+    virtual int GetBeamPowerUpTime(const idDeclLaserGate*) const { return 1; }
+    virtual const idSoundShader* GetPassThroughSound(
+        const idDeclLaserGate*) const { return nullptr; }
+    virtual void SerializeDeclaration(idSerializer&, const void*&) {}
+
+    virtual bool SuppressEndpointFX(const idEntity*) const { return false; }
+    virtual void StartEndpointFX(idPresentableLaserGate*, int, int,
+        const idVec3&, const idVec3&) {}
+    virtual void StopEndpointFX(idPresentableLaserGate*, int, int) {}
+    virtual void RenderBeam(idLaserGateBeam&) {}
+
+    virtual bool PollGather(std::uint64_t) const { return false; }
+    virtual std::uint64_t SubmitGather(const idBounds&, int, int) {
+        return 0;
+    }
+};
+
+void Tungsten_SetPresentableLaserGateServices(
+    idPresentableLaserGateServices* services);
+idPresentableLaserGateServices*
+Tungsten_GetPresentableLaserGateServices();
+
+class idLaserGateBeam {
+public:
+    idLaserGateBeam();
+
+    void UpdateLaserBeams(laserGateState_t parentState,
+        unsigned int beamPowerUpTime, int startTime, float maxBeamHeight);
+
+    idRecoveredLaserBeam beam;
+    idVec3 point1;
+    idVec3 point2;
+    laserGateState_t state;
+};
+
+class idPresentableLaserGate : public idPresentable {
+public:
+    idPresentableLaserGate();
+    idPresentableLaserGate(idEntity* entity, idRenderModel* renderModel,
+        int entityNumber, const idDeclLaserGate* laserGateInfo,
+        const idList<laserGateBeamInfo_t, 5>& laserEndPoints,
+        const idDeclFX* overrideFXDecl = nullptr);
+    ~idPresentableLaserGate() override;
+
+    presentableType_t GetType() const override { return PRESENTABLE_GENERIC; }
+    void Serialize(idSerializer& serializer) override;
+    void ClientThink(int currentTime, float fraction, bool predict) override;
+
+    void PowerUp();
+    void PowerDown();
+    void UpdateBeams();
+    void EnterDormancy();
+    void LeaveDormancy();
+    void BuildBeams();
+    void SerializeBeams(idSerializer& serializer, bool firstTimeIn);
+    void UpdateGateLogic();
+
+    int gateActivationTime;
+    int shutdownTime;
+    laserGateState_t currentGateState;
+    laserGateState_t requestedGateState;
+    const idDeclLaserGate* laserGateDecl;
+    idList<idLaserGateBeam, 5> laserBeams;
+    idList<laserGateBeamInfo_t, 5> laserEndPoints;
+    bool collisionLastFrame;
+    std::uint64_t gatherQuery;
 };

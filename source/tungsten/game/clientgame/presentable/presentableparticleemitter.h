@@ -1,112 +1,79 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\clientgame\presentable\presentableparticleemitter.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "presentable.h"
+#include "presentableptr.h"
+#include "../../effects/gameeffects.h"
 
+class idDeclParticle;
 
-// IDA Local Type ordinal 15504; PDB kind: class.
-class __declspec(align(8)) idPresentableParticleEmitter : public idPresentable
-{
+class idPresentableParticleEmitter;
+
+class idPresentableParticleEmitterServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 34011.
-  virtual ~idPresentableParticleEmitter();
-  virtual void Shutdown();
-  virtual void ClientJobSync();
-  virtual void ControlReleased();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPresentablePlayer *);
-  virtual void Present();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void Interpolate(int, float);
-  virtual bool ShouldSerializeHidden();
-  virtual bool ShouldInterpolate();
-  virtual void ClientPredict(int, float);
-  virtual void ClientThink(int, float, bool);
-  virtual void ServerThink(int);
-  virtual bool Draw(idPresentablePlayer *);
-  virtual void SerializeFX(idSerializer *);
-  virtual void PostAlloc();
-  virtual presentableType_t GetType();
-  virtual idPresentableAnimatedEntity *GetAnimatedEntityInterface();
-  virtual idPresentableVehicle *GetVehicleInterface();
-  virtual idPresentableBreakable *GetBreakableInterface();
-  virtual idPresentablePieceEmitter *GetPieceEmitterInterface();
-  virtual idPresentableDamageable *GetDamageableInterface();
-  virtual const idPresentableActor *GetActorInterface();
-  virtual idPresentableActor *GetActorInterface_2();
-  virtual const idPresentablePlayer *GetPlayerInterface();
-  virtual idPresentablePlayer *GetPlayerInterface_2();
-  virtual idPresentableProjectile *GetProjectileInterface();
-  virtual idPresentableProjectile_Rocket *GetProjectileRocketInterface();
-  virtual idPresentableProjectile_Homing *GetProjectileHomingInterface();
-  virtual idPresentableProjectile_Grenade *GetProjectileGrenadeInterface();
-  virtual idPresentableMultiplayerTrigger *GetMultiplayerTriggerInterface();
-  virtual idPresentableWeaponStatic *GetWeaponStaticInterface();
-  virtual idPresentableAI *GetAIInterface();
-  virtual idPresentableProp *GetPropInterface();
-  virtual idPresentableDoorAnimated *GetDoorAnimatedInterface();
-  virtual idPresentableWeapon *GetWeaponInterface();
-  virtual idOnlineVehicleDeathCameraPresentable *GetVehicleCameraInterface();
-  virtual idPresentableReviveCamera *GetReviveCameraInterface();
-  virtual idPresentableArmorPiece *GetArmorInterface();
-  virtual idPresentablePusher *GetPusherInterface();
-  virtual idPresentableTurret *GetTurretInterface();
-  virtual idPresentableParticleEmitter *GetParticleEmitterInterface();
-  virtual idPresentableCollisionTrigger *GetCollisionTriggerInterface();
-  virtual idPresentableSpectatorCamera *GetSpectatorCameraInterface();
-  virtual idPresentableAnimatedEntity *GetAnimatedPhysicsInterface();
-  virtual void SetRenderModel(idRenderModel *, bool);
-  virtual bool ShouldSerializeRenderModelParms();
-  virtual void StopSound_Predicted(const soundChannel_t);
-  virtual void Hide(bool);
-  virtual void Show();
-  virtual void GetWorldTransform(idVec3 *, idMat3 *);
-  virtual idBounds *GetBounds(idBounds *result, int);
-  virtual idBounds *GetAbsBounds(idBounds *result, int);
-  virtual bool ShouldTriggerClientHitScanHit();
-  virtual void ClientHitScanHit(int, int, int, const idDeclWeapon *, const idDeclProjectile *, int);
-  virtual void ClientHitScanHit_ClientFire(int, const idDeclWeapon *, int);
-  virtual void PredictHitScanHit(idPresentable *, float, const idVec3 *, const idVec3 *, const idDeclProjectile *, trace_t *);
-  virtual int GetPeerIndex();
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual float GetTotalCurHealth();
-  virtual float GetTotalMaxHealth();
-  virtual bool ShouldSaveForTimeTrial();
-  virtual void StartFX(fxCondition_t, fxExtraCondition_t);
-  virtual void StopAllFX();
-  virtual void UpdateFX(const idVec3 *, const idMat3 *, idFXManager *, const float, const float);
-  virtual void UpdateFX_2(const idVec3 *, const idMat3 *);
-  virtual void UpdateFX_3(const float, const float);
-  virtual void LocalStartFX(fxCondition_t);
-  virtual usableState_t GetOnlineUsableState(idPresentablePlayer *, int);
-  virtual void GetOnlineModifiedCrosshairInfo(const idPresentable *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual idStrId *GetOnlineUsableText(idStrId *result);
-  virtual void BecomeReplicated();
-  virtual int GetControllingPlayerIndex();
-  virtual idPresentablePlayer *GetControllingPlayer();
-  virtual bool IsLocallyControlled();
-  virtual idWeapon *GetFiredWeapon(const idDeclWeapon *);
-  virtual void InitFXMgr(const idDeclFX *);
-  virtual void ShutdownFXMgr();
-  virtual void UpdateClientCollision(const idVec3 *, const idMat3 *, const idVec3 *, const idMat3 *);
-  virtual bool ShouldLinkPresentableCollision();
-  virtual void TriggerShow();
-  virtual void TriggerHide();
-  virtual void SetParticle(const idDeclParticle *);
+    virtual ~idPresentableParticleEmitterServices() = default;
 
-  const idDeclParticle *particleSystem;
-  netBoolEvent_t activated;
-  netBoolEvent_t deactivated;
-  idFadeHelper fade;
-  float fadeIn;
-  float fadeOut;
-  float alphaScale;
-  int smokeSystemRate;
-  idVec3 distributionScale;
-  idVec3 velocity;
-  idVec4 colorv4;
-  bool useGlobalShadows;
-  bool useSmokeSystem;
+    virtual bool IsServer() const { return false; }
+    virtual int GetGameFrame() const { return 0; }
+    virtual int GetScaledGameTime() const { return 0; }
+    virtual int GetScaledFrameTime() const { return 0; }
+    virtual float RandomUnitFloat() { return 0.0f; }
+    virtual idVec3 GetWind() const { return idVec3(0.0f, 0.0f, 0.0f); }
+    virtual void UpdateFade(idPresentableParticleEmitter&, idFadeHelper&) {}
+    virtual void StartFade(idPresentableParticleEmitter&, idFadeHelper& fade,
+        float from, float to, int duration) {
+        fade.fadeFrom = from;
+        fade.fadeTo = to;
+        fade.fadeStartTime = GetScaledGameTime();
+        fade.fadeEndTime = fade.fadeStartTime + duration;
+        fade.noStippleFade = false;
+    }
+    virtual void ConfigureParticleModel(idPresentableParticleEmitter&,
+        const idDeclParticle*, const idVec4&, const idVec3&, float,
+        int, bool, const idVec3&, const idVec3&, float) {}
+    virtual void RestartParticleModel(idPresentableParticleEmitter&, int,
+        const idVec3&, const idVec3&, float) {}
+    virtual void AddSmokeParticles(const idDeclParticle*, int, int, float,
+        const idVec3&, const idMat3&, const idVec3&, const idVec4&) {}
+    virtual void WarnParticleError(const idDeclParticle*) {}
+    virtual void WarnMissingRenderModel() {}
+    virtual void SerializeDeclaration(idSerializer&, const void*&) {}
+};
+
+void Tungsten_SetPresentableParticleEmitterServices(
+    idPresentableParticleEmitterServices* services);
+
+class idPresentableParticleEmitter : public idPresentable {
+public:
+    idPresentableParticleEmitter();
+    idPresentableParticleEmitter(const idDeclParticle* particle,
+        idEntity* entity, idRenderModel* renderModel, int entityNumber,
+        const idDeclFX* fxDecl);
+
+    void PostSerializeRead(bool firstClientFrame) override;
+    void ClientThink(int currentTime, float fraction, bool predict) override;
+    void Serialize(idSerializer& serializer) override;
+    presentableType_t GetType() const override {
+        return PRESENTABLE_PARTICLE_EMITTER;
+    }
+    idPresentableParticleEmitter* GetParticleEmitterInterface() override {
+        return this;
+    }
+
+    virtual void TriggerShow();
+    virtual void TriggerHide();
+    virtual void SetParticle(const idDeclParticle* particle);
+
+    const idDeclParticle* particleSystem;
+    netBoolEvent_t activated;
+    netBoolEvent_t deactivated;
+    idFadeHelper fade;
+    float fadeIn;
+    float fadeOut;
+    float alphaScale;
+    int smokeSystemRate;
+    idVec3 distributionScale;
+    idVec3 velocity;
+    idVec4 colorv4;
+    bool useGlobalShadows;
+    bool useSmokeSystem;
 };

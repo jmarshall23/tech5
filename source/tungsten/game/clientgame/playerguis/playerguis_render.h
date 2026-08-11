@@ -1,82 +1,138 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\clientgame\playerguis\playerguis_render.h
-// Recovered logical types: 6
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "../../../../shared/idlib/networking/bitmsg.h"
+#include "../../../../shared/idlib/text/str.h"
 
+class idRenderModelGui;
+class idRenderWorld;
+class idSWF;
+struct renderView_t;
+struct sysEvent_t;
 
-// IDA Local Type ordinal 1271; PDB kind: enum.
-enum idPlayerGuis_Render::playerGuis_t : __int32
-{
-  GUI_TEXT_CHAT = 0x0,
-  GUI_GAMEOVER = 0x1,
-  GUI_NUM_GUIS = 0x2,
-};
+enum messageMode_t : int;
 
-// IDA Local Type ordinal 15324; PDB kind: struct.
-struct idPlayerGuis_Render::playerGuisInfo_t::objectiveResults_t::playerResults_t
-{
-  int score;
-  int kills;
-  int multiKills;
-  int headshotKills;
-  int assists;
-  int defends;
-  int revives;
-};
+class idPlayerGuis_Render;
 
-// IDA Local Type ordinal 15325; PDB kind: struct.
-struct idPlayerGuis_Render::playerGuisInfo_t::objectiveResults_t
-{
-  bool show;
-  int earnedCash;
-  int killCount;
-  int killBonus;
-  int itemCount;
-  int itemBonus;
-  int collectNum;
-  int collectMax;
-  int time;
-  int parTime;
-  int bonusCash;
-  int totalCash;
-  idPlayerGuis_Render::playerGuisInfo_t::objectiveResults_t::playerResults_t playerObjectives[2];
-  int totalTime;
-  int collectibles;
-  int collectiblesMax;
-  int collectibleBonusScore;
-  int finalScore;
-  int rating;
-};
-
-// IDA Local Type ordinal 15326; PDB kind: struct.
-struct idPlayerGuis_Render::playerGuisInfo_t
-{
-  idPlayerGuis_Render::playerGuisInfo_t::objectiveResults_t objectiveResults;
-};
-
-// IDA Local Type ordinal 15327; PDB kind: class.
-class idPlayerGuis_Render
-{
+class idPlayerGuisRenderServices {
 public:
-  idPlayerGuis_Render::playerGuisInfo_t playerGuiInfo;
-  idSWF *guis[2];
-  int playerNum;
-  idStr textChatHistory;
+    virtual ~idPlayerGuisRenderServices() = default;
+
+    virtual bool IsMultiplayer() const { return false; }
+    virtual bool IsCooperativeMatch() const { return false; }
+    virtual bool HasGameLocal() const { return false; }
+    virtual bool IsMainMenuActive() const { return false; }
+    virtual void RegisterSWFResources(const char*) {}
+    virtual idSWF* CreateSWF(const char*, bool) { return nullptr; }
+    virtual void DestroySWF(idSWF*) {}
+    virtual void ClearEmitter(idSWF*, bool) {}
+    virtual void Activate(idSWF*, bool) {}
+    virtual bool HandleEvent(idSWF*, const sysEvent_t*) { return false; }
+    virtual bool IsPlayerControlInhibited(idSWF*) const { return false; }
+    virtual void SetListener(idSWF*, int) {}
+    virtual void Render(idSWF*, idRenderModelGui*, int, bool) {}
+    virtual void SetGlobalInteger(idSWF*, const char*, int) {}
+    virtual void SetGlobalString(idSWF*, const char*, const char*) {}
+    virtual void InstallSendChatFunction(idSWF*, idPlayerGuis_Render*) {}
+    virtual void InstallCancelChatFunction(idSWF*) {}
+    virtual void Invoke(idSWF*, const char*) {}
+    virtual void InvokeWithString(idSWF*, const char*, const char*) {}
+    virtual void SendChatText(const char*, int) {}
+    virtual void Warning(const char*) const {}
 };
 
-// IDA Local Type ordinal 20329; PDB kind: class.
-class idPlayerGuis_Render::Init::__l15::idSWFScriptFunction_SendChatText : public idSWFScriptFunction_RefCounted
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 20330.
-  virtual ~idSWFScriptFunction_SendChatText();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
+void Tungsten_SetPlayerGuisRenderServices(
+    idPlayerGuisRenderServices* services);
 
-  idPlayerGuis_Render *owner;
+class idPlayerGuis_Render {
+public:
+    enum playerGuis_t : int {
+        GUI_TEXT_CHAT = 0,
+        GUI_GAMEOVER = 1,
+        GUI_NUM_GUIS = 2
+    };
+
+    struct playerGuisInfo_t {
+        struct objectiveResults_t {
+            struct playerResults_t {
+                int score;
+                int kills;
+                int multiKills;
+                int headshotKills;
+                int assists;
+                int defends;
+                int revives;
+            };
+
+            bool show;
+            int earnedCash;
+            int killCount;
+            int killBonus;
+            int itemCount;
+            int itemBonus;
+            int collectNum;
+            int collectMax;
+            int time;
+            int parTime;
+            int bonusCash;
+            int totalCash;
+            playerResults_t playerObjectives[2];
+            int totalTime;
+            int collectibles;
+            int collectiblesMax;
+            int collectibleBonusScore;
+            int finalScore;
+            int rating;
+        } objectiveResults;
+    } playerGuiInfo;
+
+    idPlayerGuis_Render();
+    ~idPlayerGuis_Render();
+
+    void Cleanup();
+    static void NoteSwfForBuildGame();
+    void DeactivateGuis();
+    bool HandleGuiEvent(const sysEvent_t* event);
+    bool IsPlayerControlInhibited();
+    void SetPlayerNum(int player);
+    void RenderGame(idRenderModelGui* guiModel, int currentTime,
+        const renderView_t* renderView, const idRenderWorld* renderWorld);
+    void HandleReliableGuiMsg(int type, idBitMsg& message);
+    void SetupBindings();
+    void Init(const idStr* mapName);
+    void Render(idRenderModelGui* guiModel, int currentTime,
+        const renderView_t* renderView, const idRenderWorld* renderWorld);
+    void DisplayTextChatEntry();
+    void DisplayTeamTextChatEntry();
+    void DisplayTextChatMessage(const idStr& message);
+
+    idSWF* GetGui(playerGuis_t gui) const { return guis[gui]; }
+    int GetPlayerNum() const { return playerNum; }
+    const idStr& GetTextChatHistory() const { return textChatHistory; }
+    const playerGuisInfo_t::objectiveResults_t& GetObjectiveResults() const {
+        return playerGuiInfo.objectiveResults;
+    }
+
+private:
+    void Render_TextChat(int currentTime);
+
+    idSWF* guis[GUI_NUM_GUIS];
+    int playerNum;
+    idStr textChatHistory;
+};
+
+class idSWFScriptFunction_SendChatText {
+public:
+    explicit idSWFScriptFunction_SendChatText(idPlayerGuis_Render* owner_)
+        : owner(owner_) {}
+    bool Call(const idStr* text, const int* mode, int parameterCount);
+
+    idPlayerGuis_Render* owner;
+};
+
+class idSWFScriptFunction_CancelChatting {
+public:
+    explicit idSWFScriptFunction_CancelChatting(idSWF* gui_) : gui(gui_) {}
+    void Call();
+
+    idSWF* gui;
 };

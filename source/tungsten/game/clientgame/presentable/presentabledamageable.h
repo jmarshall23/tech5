@@ -1,112 +1,73 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\clientgame\presentable\presentabledamageable.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "presentable.h"
 
+class idDamageableEntity;
+class idDeclImpactSound;
 
-// IDA Local Type ordinal 15427; PDB kind: struct.
-struct idPresentableDamageable::rayBufferItem_t
-{
-  idVec3 start;
-  idVec3 end;
-};
+class idPresentableDamageable;
 
-// IDA Local Type ordinal 15428; PDB kind: class.
-class idPresentableDamageable : public idPresentable
-{
+class idPresentableDamageableServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 34008.
-  virtual ~idPresentableDamageable();
-  virtual void Shutdown();
-  virtual void ClientJobSync();
-  virtual void ControlReleased();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPresentablePlayer *);
-  virtual void Present();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void Interpolate(int, float);
-  virtual bool ShouldSerializeHidden();
-  virtual bool ShouldInterpolate();
-  virtual void ClientPredict(int, float);
-  virtual void ClientThink(int, float, bool);
-  virtual void ServerThink(int);
-  virtual bool Draw(idPresentablePlayer *);
-  virtual void SerializeFX(idSerializer *);
-  virtual void PostAlloc();
-  virtual presentableType_t GetType();
-  virtual idPresentableAnimatedEntity *GetAnimatedEntityInterface();
-  virtual idPresentableVehicle *GetVehicleInterface();
-  virtual idPresentableBreakable *GetBreakableInterface();
-  virtual idPresentablePieceEmitter *GetPieceEmitterInterface();
-  virtual idPresentableDamageable *GetDamageableInterface();
-  virtual const idPresentableActor *GetActorInterface();
-  virtual idPresentableActor *GetActorInterface_2();
-  virtual const idPresentablePlayer *GetPlayerInterface();
-  virtual idPresentablePlayer *GetPlayerInterface_2();
-  virtual idPresentableProjectile *GetProjectileInterface();
-  virtual idPresentableProjectile_Rocket *GetProjectileRocketInterface();
-  virtual idPresentableProjectile_Homing *GetProjectileHomingInterface();
-  virtual idPresentableProjectile_Grenade *GetProjectileGrenadeInterface();
-  virtual idPresentableMultiplayerTrigger *GetMultiplayerTriggerInterface();
-  virtual idPresentableWeaponStatic *GetWeaponStaticInterface();
-  virtual idPresentableAI *GetAIInterface();
-  virtual idPresentableProp *GetPropInterface();
-  virtual idPresentableDoorAnimated *GetDoorAnimatedInterface();
-  virtual idPresentableWeapon *GetWeaponInterface();
-  virtual idOnlineVehicleDeathCameraPresentable *GetVehicleCameraInterface();
-  virtual idPresentableReviveCamera *GetReviveCameraInterface();
-  virtual idPresentableArmorPiece *GetArmorInterface();
-  virtual idPresentablePusher *GetPusherInterface();
-  virtual idPresentableTurret *GetTurretInterface();
-  virtual idPresentableParticleEmitter *GetParticleEmitterInterface();
-  virtual idPresentableCollisionTrigger *GetCollisionTriggerInterface();
-  virtual idPresentableSpectatorCamera *GetSpectatorCameraInterface();
-  virtual idPresentableAnimatedEntity *GetAnimatedPhysicsInterface();
-  virtual void SetRenderModel(idRenderModel *, bool);
-  virtual bool ShouldSerializeRenderModelParms();
-  virtual void StopSound_Predicted(const soundChannel_t);
-  virtual void Hide(bool);
-  virtual void Show();
-  virtual void GetWorldTransform(idVec3 *, idMat3 *);
-  virtual idBounds *GetBounds(idBounds *result, int);
-  virtual idBounds *GetAbsBounds(idBounds *result, int);
-  virtual bool ShouldTriggerClientHitScanHit();
-  virtual void ClientHitScanHit(int, int, int, const idDeclWeapon *, const idDeclProjectile *, int);
-  virtual void ClientHitScanHit_ClientFire(int, const idDeclWeapon *, int);
-  virtual void PredictHitScanHit(idPresentable *, float, const idVec3 *, const idVec3 *, const idDeclProjectile *, trace_t *);
-  virtual int GetPeerIndex();
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual float GetTotalCurHealth();
-  virtual float GetTotalMaxHealth();
-  virtual bool ShouldSaveForTimeTrial();
-  virtual void StartFX(fxCondition_t, fxExtraCondition_t);
-  virtual void StopAllFX();
-  virtual void UpdateFX(const idVec3 *, const idMat3 *, idFXManager *, const float, const float);
-  virtual void UpdateFX_2(const idVec3 *, const idMat3 *);
-  virtual void UpdateFX_3(const float, const float);
-  virtual void LocalStartFX(fxCondition_t);
-  virtual usableState_t GetOnlineUsableState(idPresentablePlayer *, int);
-  virtual void GetOnlineModifiedCrosshairInfo(const idPresentable *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual idStrId *GetOnlineUsableText(idStrId *result);
-  virtual void BecomeReplicated();
-  virtual int GetControllingPlayerIndex();
-  virtual idPresentablePlayer *GetControllingPlayer();
-  virtual bool IsLocallyControlled();
-  virtual idWeapon *GetFiredWeapon(const idDeclWeapon *);
-  virtual void InitFXMgr(const idDeclFX *);
-  virtual void ShutdownFXMgr();
-  virtual void UpdateClientCollision(const idVec3 *, const idMat3 *, const idVec3 *, const idMat3 *);
-  virtual bool ShouldLinkPresentableCollision();
-
-  idPresentableDamageable::rayBufferItem_t rayImpactBuffer[10];
-  int rayImpactBufferPos;
-  int explosionFrame;
-  int activateAllNowFrame;
-  int currentExplosionFrame;
-  int currentActivateAllNowFrame;
-  float pieceMinBounceVelocity;
-  const idDeclImpactSound *impactTable;
-  idEffectPhysicsBreakable breakablePhysics;
+    virtual ~idPresentableDamageableServices() = default;
+    virtual int GetScaledGameTime() const { return 0; }
+    virtual int GetScaledFrameTime() const { return 0; }
+    virtual int GetFrameNumber() const { return 0; }
+    virtual float GetRealFrameTime() const { return 0.0f; }
+    virtual bool IsDiscreteAnimation(idRenderModel*) const { return false; }
+    virtual void InitBreakablePhysics(idPresentableDamageable*,
+        idRenderModel*, const idDeclImpactSound*, float) {}
+    virtual void ShutdownBreakablePhysics(idPresentableDamageable*) {}
+    virtual void RemoveSimulatingPhysics(idPresentableDamageable*) {}
+    virtual void AddSimulatingPhysics(idPresentableDamageable*) {}
+    virtual void StartExplosions(idPresentableDamageable*,
+        const idVec3&, const idMat3&, int) {}
+    virtual void ActivateAllNow(idPresentableDamageable*,
+        const idVec3&, const idMat3&) {}
+    virtual void UpdateSimulation(idPresentableDamageable*,
+        const idVec3&, const idMat3&, int, int, int, float) {}
+    virtual void UpdateModel(idPresentableDamageable*,
+        const idVec3&, const idMat3&, int) {}
+    virtual void AddRayImpact(idPresentableDamageable*, int,
+        const idVec3&, const idMat3&, const idVec3&, const idVec3&) {}
 };
+
+void Tungsten_SetPresentableDamageableServices(
+    idPresentableDamageableServices* services);
+
+class idPresentableDamageable : public idPresentable {
+public:
+    struct rayBufferItem_t {
+        idVec3 start;
+        idVec3 end;
+    };
+
+    idPresentableDamageable();
+    idPresentableDamageable(idDamageableEntity* entity,
+        idRenderModel* renderModel);
+    ~idPresentableDamageable() override;
+
+    void Present() override;
+    void Serialize(idSerializer& serializer) override;
+    void Interpolate(int currentTime, float fraction) override;
+    void GetWorldTransform(idVec3& outOrigin, idMat3& outAxis) override;
+    presentableType_t GetType() const override { return PRESENTABLE_DAMAGEABLE; }
+    idPresentableDamageable* GetDamageableInterface() { return this; }
+
+    void SetInitProperties(const idDeclImpactSound* impact,
+        float minimumBounceVelocity);
+    void StartExplosions();
+    void ActivateAllNow();
+    void AddRayImpact(const idVec3& start, const idVec3& end);
+
+    rayBufferItem_t rayImpactBuffer[10];
+    int rayImpactBufferPos;
+    int explosionFrame;
+    int activateAllNowFrame;
+    int currentExplosionFrame;
+    int currentActivateAllNowFrame;
+    float pieceMinBounceVelocity;
+    const idDeclImpactSound* impactTable;
+    bool physicsInitialized;
+};
+

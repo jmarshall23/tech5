@@ -1,112 +1,115 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\clientgame\presentable\presentablebreakable.h
-// Recovered logical types: 1
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "presentable.h"
 
+class idDeclImpactSound;
+class idDeclProjectile;
+struct trace_t;
 
-// IDA Local Type ordinal 15424; PDB kind: class.
-class __declspec(align(8)) idPresentableBreakable : public idPresentable
-{
-public:
-  // Recovered virtual interface; IDA vtable ordinal 34006.
-  virtual ~idPresentableBreakable();
-  virtual void Shutdown();
-  virtual void ClientJobSync();
-  virtual void ControlReleased();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPresentablePlayer *);
-  virtual void Present();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void Interpolate(int, float);
-  virtual bool ShouldSerializeHidden();
-  virtual bool ShouldInterpolate();
-  virtual void ClientPredict(int, float);
-  virtual void ClientThink(int, float, bool);
-  virtual void ServerThink(int);
-  virtual bool Draw(idPresentablePlayer *);
-  virtual void SerializeFX(idSerializer *);
-  virtual void PostAlloc();
-  virtual presentableType_t GetType();
-  virtual idPresentableAnimatedEntity *GetAnimatedEntityInterface();
-  virtual idPresentableVehicle *GetVehicleInterface();
-  virtual idPresentableBreakable *GetBreakableInterface();
-  virtual idPresentablePieceEmitter *GetPieceEmitterInterface();
-  virtual idPresentableDamageable *GetDamageableInterface();
-  virtual const idPresentableActor *GetActorInterface();
-  virtual idPresentableActor *GetActorInterface_2();
-  virtual const idPresentablePlayer *GetPlayerInterface();
-  virtual idPresentablePlayer *GetPlayerInterface_2();
-  virtual idPresentableProjectile *GetProjectileInterface();
-  virtual idPresentableProjectile_Rocket *GetProjectileRocketInterface();
-  virtual idPresentableProjectile_Homing *GetProjectileHomingInterface();
-  virtual idPresentableProjectile_Grenade *GetProjectileGrenadeInterface();
-  virtual idPresentableMultiplayerTrigger *GetMultiplayerTriggerInterface();
-  virtual idPresentableWeaponStatic *GetWeaponStaticInterface();
-  virtual idPresentableAI *GetAIInterface();
-  virtual idPresentableProp *GetPropInterface();
-  virtual idPresentableDoorAnimated *GetDoorAnimatedInterface();
-  virtual idPresentableWeapon *GetWeaponInterface();
-  virtual idOnlineVehicleDeathCameraPresentable *GetVehicleCameraInterface();
-  virtual idPresentableReviveCamera *GetReviveCameraInterface();
-  virtual idPresentableArmorPiece *GetArmorInterface();
-  virtual idPresentablePusher *GetPusherInterface();
-  virtual idPresentableTurret *GetTurretInterface();
-  virtual idPresentableParticleEmitter *GetParticleEmitterInterface();
-  virtual idPresentableCollisionTrigger *GetCollisionTriggerInterface();
-  virtual idPresentableSpectatorCamera *GetSpectatorCameraInterface();
-  virtual idPresentableAnimatedEntity *GetAnimatedPhysicsInterface();
-  virtual void SetRenderModel(idRenderModel *, bool);
-  virtual bool ShouldSerializeRenderModelParms();
-  virtual void StopSound_Predicted(const soundChannel_t);
-  virtual void Hide(bool);
-  virtual void Show();
-  virtual void GetWorldTransform(idVec3 *, idMat3 *);
-  virtual idBounds *GetBounds(idBounds *result, int);
-  virtual idBounds *GetAbsBounds(idBounds *result, int);
-  virtual bool ShouldTriggerClientHitScanHit();
-  virtual void ClientHitScanHit(int, int, int, const idDeclWeapon *, const idDeclProjectile *, int);
-  virtual void ClientHitScanHit_ClientFire(int, const idDeclWeapon *, int);
-  virtual void PredictHitScanHit(idPresentable *, float, const idVec3 *, const idVec3 *, const idDeclProjectile *, trace_t *);
-  virtual int GetPeerIndex();
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual float GetTotalCurHealth();
-  virtual float GetTotalMaxHealth();
-  virtual bool ShouldSaveForTimeTrial();
-  virtual void StartFX(fxCondition_t, fxExtraCondition_t);
-  virtual void StopAllFX();
-  virtual void UpdateFX(const idVec3 *, const idMat3 *, idFXManager *, const float, const float);
-  virtual void UpdateFX_2(const idVec3 *, const idMat3 *);
-  virtual void UpdateFX_3(const float, const float);
-  virtual void LocalStartFX(fxCondition_t);
-  virtual usableState_t GetOnlineUsableState(idPresentablePlayer *, int);
-  virtual void GetOnlineModifiedCrosshairInfo(const idPresentable *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual idStrId *GetOnlineUsableText(idStrId *result);
-  virtual void BecomeReplicated();
-  virtual int GetControllingPlayerIndex();
-  virtual idPresentablePlayer *GetControllingPlayer();
-  virtual bool IsLocallyControlled();
-  virtual idWeapon *GetFiredWeapon(const idDeclWeapon *);
-  virtual void InitFXMgr(const idDeclFX *);
-  virtual void ShutdownFXMgr();
-  virtual void UpdateClientCollision(const idVec3 *, const idMat3 *, const idVec3 *, const idMat3 *);
-  virtual bool ShouldLinkPresentableCollision();
-
-  int explodeFrame;
-  int activatorIndex;
-  int currentExplodeFrame;
-  int serializeFrame;
-  float pieceMinBounceVelocity;
-  idVec3 localExplosionOrigin;
-  int boneToOrientGibTo;
-  bool broken;
-  bool isRenderModelDiscreteAnimation;
-  const idDeclImpactSound *impactTable;
-  idEffectPhysicsBreakable breakablePhysics;
-  idPresentablePtr<idPresentable> breakableParent;
-  int brokenStartTime;
-  int fadeTimeMS;
-  int fadeDelayMS;
-  idFadeHelper fade;
+struct idBreakableFadeState {
+    int fadeStartTime;
+    int fadeEndTime;
+    float fadeFrom;
+    float fadeTo;
+    bool noStippleFade;
 };
+
+class idPresentableBreakable;
+
+class idPresentableBreakableServices {
+public:
+    virtual ~idPresentableBreakableServices() = default;
+    virtual int GetScaledGameTime() const { return 0; }
+    virtual int GetScaledFrameTime() const { return 0; }
+    virtual int GetFrameNumber() const { return 0; }
+    virtual float GetRealFrameTime() const { return 0.0f; }
+    virtual int GetSnapshotsSerialized() const { return 0; }
+    virtual bool PredictionDisabled() const { return false; }
+    virtual bool IsDiscreteAnimation(idRenderModel*) const { return false; }
+    virtual void MarkSerialized(idPresentableBreakable*) {}
+    virtual idPresentable* ResolvePresentableIndex(int) const {
+        return nullptr;
+    }
+    virtual idPresentable* ResolvePresentableSpawnId(std::uint32_t) const {
+        return nullptr;
+    }
+
+    virtual void InitBreakablePhysics(idPresentableBreakable*,
+        idRenderModel*, const idDeclImpactSound*, float) {}
+    virtual void ShutdownBreakablePhysics(idPresentableBreakable*) {}
+    virtual void RemoveSimulatingPhysics(idPresentableBreakable*) {}
+    virtual void AddSimulatingPhysics(idPresentableBreakable*) {}
+    virtual void ResetPhysics(idPresentableBreakable*, bool) {}
+    virtual void UpdatePhysicsModel(idPresentableBreakable*,
+        const idVec3&, const idMat3&, int) {}
+    virtual void UpdatePhysicsSimulation(idPresentableBreakable*,
+        const idVec3&, const idMat3&, int, int, int, float) {}
+    virtual void RemoveExplosions(idPresentableBreakable*) {}
+    virtual void StartExplosions(idPresentableBreakable*,
+        const idVec3&, const idMat3&, int) {}
+    virtual void StopExplosionFX(idPresentableBreakable*, int) {}
+    virtual void AddDefaultExplosion(idPresentableBreakable*, int,
+        const idVec3&) {}
+    virtual void AddActivatorExplosions(idPresentableBreakable*, int,
+        const idVec3&) {}
+    virtual void AddPredictedExplosion(idPresentableBreakable*, int,
+        const idVec3&) {}
+    virtual void AddOrientedExplosion(idPresentableBreakable*, int,
+        const idVec3&) {}
+    virtual bool OrientBodies(idPresentableBreakable*, idPresentable*,
+        int) { return false; }
+    virtual void UnlinkClipModel(idClipModel*) {}
+    virtual void ResetModelVisuals(idPresentableBreakable*) {}
+    virtual void BeginFade(idPresentableBreakable*, idBreakableFadeState&,
+        int) {}
+    virtual void UpdateFade(idPresentableBreakable*, idBreakableFadeState&) {}
+};
+
+void Tungsten_SetPresentableBreakableServices(
+    idPresentableBreakableServices* services);
+
+class idPresentableBreakable : public idPresentable {
+public:
+    idPresentableBreakable();
+    idPresentableBreakable(idEntity* entity, idRenderModel* renderModel,
+        int entityNumber, const idDeclFX* fx);
+    ~idPresentableBreakable() override;
+
+    void Serialize(idSerializer& serializer) override;
+    void PostSerializeRead(bool firstClientFrame) override;
+    void Interpolate(int currentTime, float fraction) override;
+    void SetRenderModel(idRenderModel* renderModel,
+        bool inheritTransform) override;
+    void GetWorldTransform(idVec3& outOrigin, idMat3& outAxis) override;
+    bool ShouldLinkPresentableCollision() override;
+    void StopAllFX() override;
+    presentableType_t GetType() const override { return PRESENTABLE_BREAKABLE; }
+
+    void SetInitProperties(const idDeclImpactSound* impact,
+        float minimumBounceVelocity);
+    void Break(const idPresentable* activator);
+    void PredictHitScanHit(idPresentable* attacker, float damage,
+        const idVec3& hitPosition, const idVec3& projectileDirection,
+        const idDeclProjectile* projectile, trace_t* trace);
+    void GibDefault(int currentTime);
+    void GibWithActivator(int currentTime, const idPresentable* activator);
+    void GibOrientedBodies(int currentTime, idPresentable* activator);
+
+    int explodeFrame;
+    int activatorIndex;
+    int currentExplodeFrame;
+    int serializeFrame;
+    float pieceMinBounceVelocity;
+    idVec3 localExplosionOrigin;
+    int boneToOrientGibTo;
+    bool broken;
+    bool isRenderModelDiscreteAnimation;
+    const idDeclImpactSound* impactTable;
+    std::uint32_t breakableParentSpawnId;
+    int brokenStartTime;
+    int fadeTimeMS;
+    int fadeDelayMS;
+    idBreakableFadeState fade;
+    bool physicsInitialized;
+};
+
