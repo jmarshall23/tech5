@@ -10,6 +10,7 @@
 #include "game/decls/decltwitchpain.h"
 #include "game/effects/gameeffects.h"
 #include "game/entities/entityptr.h"
+#include "game/entities/loot.h"
 #include "game/gamesys/eventarg.h"
 #include "idlib/bv/bounds.h"
 #include "idlib/containers/list.h"
@@ -174,12 +175,6 @@ struct idDamageGroup {
     bool affectsOverallHealth = true;
     idMat3 lastHitAxis{1.0f};
     int currentGoreLevel = 0;
-};
-
-struct idDisassembleLoot {
-    idList<void*, 5> lootBoxes{0};
-    const idDeclParticle* disassembleParticle = nullptr;
-    const idSoundShader* soundShader = nullptr;
 };
 
 struct idInventoryAttachmentDef {

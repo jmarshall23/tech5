@@ -10,6 +10,7 @@
 #include "../gamesys/eventarg.h"
 #include "../gamesys/eventdef.h"
 #include "../player/crosshairinfo.h"
+#include "../entities/info.h"
 #include "../../../engine/cm/jobs/collisionresults.h"
 #include "../../../shared/idlib/bv/bounds.h"
 #include "../../../shared/idlib/index.h"
@@ -145,14 +146,6 @@ enum talkState_t : int {
     TALKSTATE_NONE = 0,
     TALKSTATE_WAIT = 1,
     TALKSTATE_AVAILABLE = 2
-};
-
-class idAICombatHint {
-public:
-    enum combatHintClass_t : int {
-        COMBATHINTCLASS_DEFAULT = 0,
-        COMBATHINTCLASS_MAX = 1
-    };
 };
 
 enum idAI2OpenCombatTransition_t : int {

@@ -1,189 +1,465 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\info.h
-// Recovered logical types: 2
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "game/entities/entity.h"
 
+class idAI2;
+class idPlayer;
+class idSoundShader;
+class idVehicle;
+class idVehicleKey;
+enum aimPoint_t : int;
 
-// IDA Local Type ordinal 17159; PDB kind: class.
-class idInfo : public idEntity
-{
+enum aiHintPrimitive_t : int {
+    AIHINT_PRIMITIVE_CIRCLE = 0,
+    AIHINT_PRIMITIVE_CYLINDER = 1,
+    AIHINT_PRIMITIVE_SPHERE = 2,
+    AIHINT_PRIMITIVE_PLANE = 3,
+    AIHINT_PRIMITIVE_VOLUME = 4,
+    AIHINT_PRIMITIVE_MAX = 5
+};
+
+class idInfoServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 17160.
-  virtual idTypeInfo *GetType();
-  virtual ~idInfo();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
+    virtual ~idInfoServices() = default;
+    virtual int GetGameMilliseconds() const;
+    virtual int RandomInt(int maximum);
+    virtual bool IsProduction() const;
+    virtual const char* GetMapName() const;
+    virtual idEntity* FindEntity(const char* name) const;
+    virtual void SetEntityContents(idEntity& entity, int contents);
+    virtual void QueueRemove(idEntity& entity);
+    virtual void DebugPoint(const idVec3& origin, const idColor& color,
+        int lifetimeMilliseconds, bool depthTest);
+    virtual void DebugText(const char* text, const idVec3& origin,
+        const idColor& color, float scale, int lifetimeMilliseconds,
+        bool depthTest);
+    virtual void RegisterLookTargetGroup(idEntity* group, bool add);
+    virtual void RegisterGarageBay(idEntity* bay, bool add);
+    virtual void ReportWarning(const char* message);
+    virtual void ReportError(const char* message);
 
+    virtual bool ValidateCombatHintType(int hintType,
+        const idEntity& entity) const;
+    virtual bool IsPointInHintVolume(const idEntity* volume,
+        const idVec3& point) const;
+    virtual bool IsEntityInHintVolume(const idEntity* volume,
+        const idEntity* entity) const;
+    virtual int GetCoverPointCount() const;
+    virtual idVec3 GetCoverPoint(int index) const;
+    virtual bool LoadAAS(const char* name) const;
+    virtual bool LoadAAS(int type) const;
+    virtual bool IsAASPointReachable(int type, const idVec3& point) const;
+    virtual bool ActionBlocks(const idAI2* ai,
+        const char* eventName) const;
+    virtual bool ActionStopsMovement(const idAI2* ai,
+        const char* eventName) const;
+
+    virtual bool IsVehicleAtRest(const idVehicle* vehicle) const;
+    virtual void SetVehicleActive(idVehicle* vehicle, bool active);
+    virtual void TeleportVehicle(idVehicle* vehicle,
+        const idVec3& origin, const idMat3& axis);
+    virtual idVehicleKey* GetVehicleKey(idVehicle* vehicle) const;
+    virtual void GetPlayerVehicleKeys(idPlayer* player, int garage,
+        idList<idVehicleKey*, 5>& keys) const;
+    virtual idVehicle* SpawnPlayerVehicle(idVehicleKey* key,
+        const idVec3& origin, const idMat3& axis);
+    virtual bool VehicleKeyIsSelected(const idVehicleKey* key) const;
+    virtual void ClearVehicleKeySelection(idVehicleKey* key);
+    virtual void PrepareGarageVehicle(idVehicle* vehicle,
+        idVehicleKey* key, const idMat3& focusAxis);
+    virtual void RotateGarageSystem(float angle,
+        const idVec3& origin, const idMat3& axis);
+    virtual void ActivateGarageEffect(idEntity* effect,
+        idEntity* activator);
+    virtual void PlayGarageSound(idEntity& owner,
+        const idSoundShader* sound);
 };
 
-// IDA Local Type ordinal 25706; PDB kind: struct.
-struct __declspec(align(8)) ioinfo
-{
-  int osfhnd;
-  char osfile;
-  char pipech;
-  int lockinitflag;
-  _RTL_CRITICAL_SECTION lock;
-  __int8 unicode : 1;
-  __int8 textmode : 7;
-  char pipech2[2];
-  __int64 startpos;
-  int utf8translations;
-  char dbcsBuffer;
-  int dbcsBufferUsed;
+class idInfo : public idEntity {
+public:
+    static void SetServices(idInfoServices* services);
+    static idInfoServices& Services();
+    void Spawn() override;
 };
+
+class idAIHint : public idInfo {
+public:
+    idAIHint();
+    bool enabled;
+};
+
+class idAIHintGroup : public idInfo {
+public:
+    idAIHintGroup();
+};
+
+class idAISearchHintGroup : public idAIHintGroup {
+public:
+    idAISearchHintGroup();
+};
+
+class idAIBackStandHint : public idAIHint {
+public:
+    idAIBackStandHint();
+    void Spawn() override;
+};
+
+class idAIAASHint : public idAIHint {
+public:
+    idAIAASHint();
+};
+
+class idAISearchHintAuto : public idAIHint {
+public:
+    idAISearchHintAuto();
+    float radius;
+};
+
+class idAISearchHintAnimation : public idAIHint {
+public:
+    idAISearchHintAnimation();
+    int searchAnim;
+};
+
+class idInfoCover : public idInfo {
+public:
+    idInfoCover();
+    int coverPosture;
+    float duration;
+    int transitions;
+    float minRange;
+    float maxRange;
+    int aasLayer;
+    bool force;
+};
+
+class idInfoOrbit : public idInfo {
+public:
+    idInfoOrbit();
+    void Spawn() override;
+    void Think() override;
+    void OnActivate(idEntity* activator) override;
+
+    float degreesPerSec;
+    bool useRealTime;
+    float time;
+    float rtDist;
+    float upDist;
+    int startTime;
+    int endTime;
+    idVec3 spawnOrg;
+    idVec3 spawnDir;
+};
+
+class idInfoTexLod : public idInfo {
+public:
+    idInfoTexLod();
+    idStr texLodModelName;
+    float stepDistance;
+};
+
+class idInfoStaticReflection : public idInfo {
+public:
+    idInfoStaticReflection();
+    int spotId;
+};
+
+class idInfoSpawnPoint : public idInfo {
+public:
+    idInfoSpawnPoint();
+};
+
+class idInfoDebugMarker : public idInfo {
+public:
+    void Think() override;
+};
+
+class idInfoDebugText : public idInfo {
+public:
+    idInfoDebugText();
+    void Spawn() override;
+    void Think() override;
+    idStr text;
+    idColor textColor;
+    float textScale;
+    bool depthTest;
+    bool permanent;
+};
+
+class idInfoDebugMapName : public idInfoDebugText {
+public:
+    idInfoDebugMapName();
+};
+
+class idCamera : public idInfo {
+public:
+    void GetAimPoint(aimPoint_t type, idVec3& point) const;
+};
+
+class idInfoLookTargetGroup : public idInfo {
+public:
+    idInfoLookTargetGroup();
+    ~idInfoLookTargetGroup() override;
+    void Spawn() override;
+    bool IsInside(const idVec3& point) const;
+    float radius;
+    float height;
+};
+
+class idAIHintPrimitive {
+public:
+    idAIHintPrimitive();
+    float GetPointWeight(const idVec3& origin, const idMat3& axis,
+        const idVec3& point, float minimumWeight) const;
+    float GetEntityWeight(const idVec3& origin, const idMat3& axis,
+        const idEntity* entity, float minimumWeight) const;
+
+    aiHintPrimitive_t type;
+    float radius;
+    float height;
+    float arcLen;
+    idEntity* volume;
+};
+
+class idAICombatHint : public idAIHint {
+public:
+    enum combatHintType_t : int {
+        COMBAT_HINT_DEFENSE_POINT = 0,
+        COMBAT_HINT_ASSAULT_POINT = 1,
+        COMBAT_HINT_FLANK_POINT = 2,
+        COMBAT_HINT_FLANK_TARGET_POINT = 3,
+        COMBAT_HINT_FLANK_PATH_POINT = 4,
+        COMBAT_HINT_GRENADE_POINT = 5,
+        COMBAT_HINT_RECHARGE_POINT = 6,
+        COMBAT_HINT_SUPPRESSION_FIRE_POINT = 7,
+        COMBAT_HINT_MAX = 8
+    };
+    enum combatHintClass_t : int {
+        COMBATHINTCLASS_DEFAULT = 1,
+        COMBATHINTCLASS_A = 1,
+        COMBATHINTCLASS_B = 2,
+        COMBATHINTCLASS_C = 4,
+        CLASS_ALL = 7,
+        COMBATHINTCLASS_MAX = 8
+    };
+
+    idAICombatHint();
+    const char* GetClassName() const;
+    static const idColor& HintTypeColor(combatHintType_t hintType);
+    void Spawn() override;
+    const idColor& GetDrawColor() const;
+    float GetPointWeight(const idVec3& point) const;
+    float GetEntityWeight(const idEntity* entity) const;
+    int FindAASCoverIndices();
+
+    combatHintType_t combatHintType;
+    idAIHintPrimitive primitive;
+    float minWeight;
+    int delay;
+    combatHintClass_t hintClass;
+    idList<int, 5> coverIndices;
+    int dontUseUntil;
+};
+
+class idInfoVehicleObstacle : public idInfo {
+public:
+    void Spawn() override;
+};
+
+class idInfo_Trigger_Facing_Target : public idInfo {
+public:
+    bool CheckIsFacing(const idVec3& viewDirection,
+        const idVec3& viewPosition) const;
+    float radius = 64.0f;
+    bool doVerticleTest = false;
+};
+
+class idInfoLookTarget : public idInfo {
+public:
+    struct lookerInfo_t {
+        const idEntity* looker = nullptr;
+        int nextLookTime = -1;
+    };
+
+    idInfoLookTarget();
+    bool CanLook(const idEntity* looker) const;
+    void SetLooking(const idEntity* looker);
+
+    float lookTime;
+    float lookDelay;
+    float maxDist;
+    bool aim;
+    lookerInfo_t lookerInfo[3];
+    int nextLookerInfo;
+};
+
+class idInfoSplineChild : public idInfo {
+public:
+    struct splineLocation_t {
+        idEntity* splinePath = nullptr;
+        float controlPointLength = -1.0f;
+        float lengthOnSpline = 0.0f;
+        idVec3 controlPointOrigin = idVec3(0.0f, 0.0f, 0.0f);
+        int controlPointIndex = 0;
+        float controlPointPCT = 0.0f;
+        idVec3 controlPointOriginNext = idVec3(0.0f, 0.0f, 0.0f);
+        bool initialized = false;
+        bool dirty = false;
+    };
+
+    idInfoSplineChild();
+    float Event_GetLengthOnSpline() const;
+    idEntity* Event_GetParentSpline() const;
+    splineLocation_t splineLoc;
+};
+
+class idInfoAAS : public idInfo {
+public:
+    void Spawn() override;
+    idStr aasName;
+};
+
+class idInfoExportHint : public idInfo {
+public:
+    void Spawn() override;
+};
+
+class idInfoGarageBay : public idInfo {
+public:
+    enum garage_t : int {
+        GARAGE_NONE = 0, GARAGE_HAGER, GARAGE_WELLSPRING,
+        GARAGE_SUBWAYTOWN, GARAGE_MAX
+    };
+    enum vehicleClass_t : int {
+        VEHICLE_CLASSNONE = 0, VEHICLE_CLASS1, VEHICLE_CLASS2,
+        VEHICLE_CLASS3, VEHICLE_CLASS4
+    };
+
+    idInfoGarageBay();
+    ~idInfoGarageBay() override;
+    void Spawn() override;
+    const idVehicle* GetVehicle() const;
+    garage_t garage;
+    vehicleClass_t vehicleClass;
+    idVehicle* vehicle;
+};
+
+class idTownGarageManager : public idInfo {
+public:
+    enum garageState_t : int {
+        GARAGESTATE_NORMAL = 0,
+        GARAGESTATE_MOVINGTOHIDE = 1,
+        GARAGESTATE_MOVINGTORETURN = 2
+    };
+    struct vehicleShadowInfo_t {
+        const void* keyDecl = nullptr;
+        idEntity* shadowEntity = nullptr;
+    };
+    struct vehicleInfo_t {
+        idVehicle* vehicle = nullptr;
+        idEntity* shadowEntity = nullptr;
+    };
+
+    idTownGarageManager();
+    void Think() override;
+    void ActivateCars();
+    void DeactivateCars();
+    bool ProperSetup();
+    void SetupAndMoveOffscreen();
+    bool GotoNextTarget();
+    bool GotoPreviousTarget();
+    void SetupAndMoveBackOn();
+    void SetSystemRotation(float angle);
+    void StopMovingEffects();
+    void Update();
+    bool SetUpVehiclesForView();
+    idVehicleKey* GetCurrentKey();
+    void SpawnVehicles(idPlayer* player);
+
+    idInfoGarageBay::garage_t garage;
+    idInfoGarageBay* focusBay;
+    idEntity* newRotateEnt;
+    idEntity* effectEnt;
+    int timeToRotate;
+    float rotationStepAmount;
+    const idSoundShader* rotationSound;
+    const idSoundShader* stopSound;
+    idList<vehicleShadowInfo_t, 5> shadowInfoList;
+    idEntity* wastelandMultiSpawn;
+    const idSoundShader* cantEnterSound;
+    garageState_t currentState;
+    int currentVehicleIndex;
+    int nextVehicleIndex;
+    bool spawnCalled;
+    bool shouldDeactivateCars;
+    bool needStopSound;
+    idList<vehicleInfo_t, 5> vehicles;
+    int rotationStartTime;
+    int spawnTime;
+};
+
+struct idInfoPathAction {
+    idStr eventName;
+    int durationMilliseconds = 0;
+};
+
+class idInfoPath : public idInfo {
+public:
+    struct anim_t {
+        idStr name;
+        int weight = 1;
+        float timeBetween = 0.0f;
+        int nextPlayTime = 0;
+    };
+
+    idInfoPath();
+    void Spawn() override;
+    int ChoosePlayerLeftAnim() const;
+    const idEntity* GetFocus() const;
+    bool StopAtPoint(const idAI2* ai) const;
+    const idInfoPath* GetNextPathPoint() const;
+
+    idList<idInfoPathAction, 5> actionScript;
+    idEntity* focus;
+    float stopTime;
+    bool turnEarly;
+    float alignmentTolerance;
+    bool lookAtNextPoint;
+    bool alignToNode;
+    bool keepFocusInView;
+    bool interactionPoint;
+    bool abortForSearch;
+    int walkState;
+    int standState;
+    int sitState;
+    int walkMod;
+    int runMod;
+    int aasType;
+    idList<anim_t, 5> playerLeftAnims;
+};
+
+struct idInfoAmbientColors {
+    idColor editorEast;
+    idColor editorWest;
+    idColor editorNorth;
+    idColor editorSouth;
+    idColor editorUp;
+    idColor editorDown;
+};
+
+class idInfoAmbient : public idInfo {
+public:
+    // Retail header source: 0x82518110
+    idInfoAmbient();
+    idInfoAmbientColors ambientOverrideColors;
+};
+
+class idInfoDevComment : public idInfoDebugText {
+public:
+    // Retail header source: 0x82536780
+    idInfoDevComment();
+    idStr comment;
+    bool showAlways;
+};
+
+const char* GetInfoDevComment(const char* entityName);

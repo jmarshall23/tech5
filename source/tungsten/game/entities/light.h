@@ -1,232 +1,235 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\light.h
-// Recovered logical types: 4
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "game/editor/entityinterfacelocal.h"
+#include "game/entities/entity.h"
 
+class idDeclEnv;
+class idIESfile;
+class idLight;
 
-// IDA Local Type ordinal 1115; PDB kind: enum.
-enum alignH_t : __int32
-{
-  ALIGNH_LEFT = 0x0,
-  ALIGNH_RIGHT = 0x1,
-  ALIGNH_CENTER = 0x2,
-  ALIGNH_CUSTOM = 0x3,
+enum lightClass_t : int {
+    LIGHT_NORMAL = 0,
+    LIGHT_PRELIGHT_ONLY = 1,
+    LIGHT_SLOWLIGHT_DYNAMIC_ONLY = 2,
+    LIGHT_SLOWLIGHT_PRIVATE_ONLY = 3,
+    LIGHT_DYNAMIC_ONLY = 4,
+    LIGHT_PRIVATE_DYNAMIC_ONLY = 5,
+    LIGHT_PRIVATE_PRIME = 6,
+    LIGHT_BLENDED_ONLY = 7
 };
 
-// IDA Local Type ordinal 19789; PDB kind: struct.
-struct idLight::idSpotLight
-{
-  idVec3 lightTarget;
-  idVec3 lightRight;
-  idVec3 lightUp;
-  idVec3 lightStart;
-  idVec3 lightEnd;
+enum lightType_t : int {
+    LIGHT_POINT = 0,
+    LIGHT_SPOT = 1,
+    LIGHT_PARALLEL = 2,
+    LIGHT_REAL = 3,
+    LIGHT_MAX_TYPES = 4
 };
 
-// IDA Local Type ordinal 19790; PDB kind: struct.
-struct __declspec(align(4)) idLight::idSoundInfo
-{
-  const idSoundShader *shader;
-  bool waitForTrigger;
+enum lightFallOff_t : int {
+    LIGHT_FALLOFF_TEXTURE = 0,
+    LIGHT_FALLOFF_LINEAR = 1,
+    LIGHT_FALLOFF_INV_SQUARE = 2,
+    LIGHT_FALLOFF_RADIAL = 3
 };
 
-// IDA Local Type ordinal 19791; PDB kind: class.
-class __declspec(align(4)) idLight : public idEntity
-{
+struct idLightRenderState {
+    idVec3 origin = idVec3(0.0f, 0.0f, 0.0f);
+    idMat3 axis = idMat3(1.0f);
+    idVec3 target = idVec3(64.0f, 0.0f, 0.0f);
+    idVec3 right = idVec3(0.0f, -64.0f, 0.0f);
+    idVec3 up = idVec3(0.0f, 0.0f, 64.0f);
+    idVec3 start = idVec3(0.0f, 0.0f, 0.0f);
+    idVec3 end = idVec3(64.0f, 0.0f, 0.0f);
+    idVec3 center = idVec3(0.0f, 0.0f, 0.0f);
+    idVec3 radius = idVec3(320.0f, 320.0f, 320.0f);
+    idColor color = idColor(1.0f, 1.0f, 1.0f, 1.0f);
+    const idMaterial* shader = nullptr;
+    const idIESfile* iesFile = nullptr;
+    lightType_t type = LIGHT_POINT;
+    lightClass_t lightClass = LIGHT_NORMAL;
+    lightFallOff_t falloff = LIGHT_FALLOFF_TEXTURE;
+    idVec3 dynamicModelLightingScale = idVec3(1.0f, 1.0f, 1.0f);
+    idVec3 staticSpecularVector = idVec3(0.0f, 0.707f, 0.707f);
+    float staticSpecularScale = 10.0f;
+    float dimShadowStretch = 1.0f;
+    float areaLightSize = 8.0f;
+    float iesPowerScale = 1.0f;
+    float iesAreaScale = 1.0f;
+    int slowMultiPass = 1;
+    bool noShadows = false;
+    bool slowLight = false;
+    bool bakedParallelShadows = false;
+};
+
+class idLightServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 19792.
-  virtual idTypeInfo *GetType();
-  virtual ~idLight();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
+    virtual ~idLightServices() = default;
+    virtual idRenderLight* AllocateRenderLight(idLight& light);
+    virtual void FreeRenderLight(idRenderLight* renderLight);
+    virtual void CommitRenderLight(idLight& light,
+        const idLightRenderState& state);
+    virtual int GetScaledGameMilliseconds() const;
+    virtual const idMaterial* FindMaterial(const char* name) const;
+    virtual void PresentModelDefChange(idLight& light);
+    virtual void ShowLightEditor(idLight& light);
+    virtual void UpdateLightEditor(idLight& light);
+    virtual void LinkLightToTarget(idLight& light, idEntity& target,
+        bool additiveBlend);
+    virtual void AddEnvironmentArea(idLight& light,
+        const idBounds& bounds, const idDeclEnv* declaration);
+    virtual bool HasGlobalShadows() const;
+    virtual bool IsComboMapWithoutPrelights() const;
+    virtual void ReportWarning(const idLight& light, const char* message);
+};
 
-  idColor lightColor;
-  idVec3 lightRadius;
-  idVec3 lightCenter;
-  idVec3 lightOffset;
-  idMat3 lightOrientation;
-  idLight::idSpotLight spotLight;
-  bool noShadows;
-  lightType_t lightType;
-  lightClass_t lightClass;
-  lightFallOff_t lightFalloff;
-  bool startOff;
-  const idMaterial *lightMaterial;
-  const idIESfile *lightIesFile;
-  float iesPowerScale;
-  float iesAreaScale;
-  const idDeclEnv *envEffectsDecl;
-  idLight::idSoundInfo soundInfo;
-  float dimShadowStretch;
-  float lightGenAreaScale;
-  idVec3 dynamicModelLightingScale;
-  bool slowLight;
-  float staticSpecularScale;
-  idVec3 staticSpecularVector;
-  bool additiveBlendLight;
-  bool bakedParallelShadows;
-  int slowMultiPass;
-  idRenderLight *renderLight;
-  idEntity *lightParent;
-  idColor fadeFrom;
-  idColor fadeTo;
-  idColor originalColor;
-  int fadeStart;
-  int fadeEnd;
-  bool soundWasPlaying;
+class idLight : public idEntity {
+public:
+    struct idSpotLight {
+        idVec3 lightTarget;
+        idVec3 lightRight;
+        idVec3 lightUp;
+        idVec3 lightStart;
+        idVec3 lightEnd;
+    };
+    struct idSoundInfo {
+        const idSoundShader* shader = nullptr;
+        bool waitForTrigger = false;
+    };
+
+    idLight();
+    ~idLight() override;
+
+    static void SetServices(idLightServices* services);
+    static idLightServices& LightServices();
+
+    void GetColor(idColor& out) const override;
+    void GetColor(idVec3& out) const override;
+    void GetColor(idVec4& out) const override;
+    void SetColor(const idVec4& color) override;
+    void SetColor(const idColor& color) override;
+    void SetColor(float red, float green, float blue) override;
+    void PlaySound(bool play);
+    void UpdateModifiedProperties();
+    void InitRenderLight();
+    void SetRadius(float radius);
+    void Fade(const idColor& to, float fadeTime);
+    void GetSoundTransform(idVec3& soundOrigin,
+        idMat3& soundAxis) const override;
+    void ShowEditingDialog() override;
+    void UpdateEditingDialog() override;
+    void Event_SetRadiusXYZ(float x, float y, float z);
+    void Event_SetRadius(float radius);
+    void Event_Hide();
+    void Event_Show();
+    void Event_FadeOutLight(float time);
+    void Event_FadeInLight(float time);
+    void SetLightTarget(const idVec3& value);
+    void SetLightRight(const idVec3& value);
+    void SetLightUp(const idVec3& value);
+    void SetLightStart(const idVec3& value);
+    void SetLightEnd(const idVec3& value);
+    void SetLightCenter(const idVec3& value);
+    void SetParallel(bool parallel);
+    void SetSpot(bool spot);
+    void UpdateModelTransform() override;
+    idEntityInterface* CreateEntityInterface(idGame* game) override;
+    void SetShader(const char* shaderName);
+    void PresentModelDefChange();
+    void Think() override;
+    void Event_SetShader(const char* shaderName);
+    void SetLightMaterial(const char* materialName);
+    void SetLightLevel();
+    void SetLightParms(float parm0, float parm1,
+        float parm2, float parm3);
+    void On();
+    void Off();
+    void Event_SetLightParms(float parm0, float parm1,
+        float parm2, float parm3);
+    void Hide() override;
+    void Show() override;
+    void Event_On();
+    void Event_PostOff();
+    void OnActivate(idEntity* activator) override;
+    void Event_PostSpawn();
+    void Spawn() override;
+
+    idColor lightColor;
+    idVec3 lightRadius;
+    idVec3 lightCenter;
+    idVec3 lightOffset;
+    idMat3 lightOrientation;
+    idSpotLight spotLight;
+    bool noShadows;
+    lightType_t lightType;
+    lightClass_t lightClass;
+    lightFallOff_t lightFalloff;
+    bool startOff;
+    const idMaterial* lightMaterial;
+    const idIESfile* lightIesFile;
+    float iesPowerScale;
+    float iesAreaScale;
+    const idDeclEnv* envEffectsDecl;
+    idSoundInfo soundInfo;
+    float dimShadowStretch;
+    float lightGenAreaScale;
+    idVec3 dynamicModelLightingScale;
+    bool slowLight;
+    float staticSpecularScale;
+    idVec3 staticSpecularVector;
+    bool additiveBlendLight;
+    bool bakedParallelShadows;
+    int slowMultiPass;
+    idRenderLight* renderLight;
+    idLightRenderState renderState;
+    idEntity* lightParent;
+    idColor fadeFrom;
+    idColor fadeTo;
+    idColor originalColor;
+    int fadeStart;
+    int fadeEnd;
+    bool soundWasPlaying;
+};
+
+class idEditorLightInterface : public idEntityInterfaceLocal {
+public:
+    idEditorLightInterface(idGame* game, idEntity* entity);
+
+    bool GetCastShadows();
+    bool GetLightSpotlight();
+    bool GetLightParallel();
+    void SetLightClass(lightClass_t lightClass);
+    void GetLightColor(idColor* color);
+    void SetLightRadius(const idVec3* radius);
+    void GetLightRadius(idVec3* radius);
+    void SetLightSpotlight(bool spot);
+    void SetLightParallel(bool parallel);
+    void SetLightCenter(const idVec3* center);
+    void GetLightCenter(idVec3* center);
+    void SetLightTarget(const idVec3* target);
+    void SetLightRight(const idVec3* right);
+    void SetLightUp(const idVec3* up);
+    void SetLightStart(const idVec3* start);
+    void SetLightEnd(const idVec3* end);
+    void SetLightMaterial(const char* materialName);
+    void SetLightColor(const idColor* color);
+    void SetCastShadows(bool castShadows);
+
+private:
+    idLight* Light() const;
+};
+
+class idBuildArea : public idLight {
+public:
+    struct buildVar_t {
+        idStr varName;
+        idStr varValue;
+    };
+
+    idBuildArea();
+    ~idBuildArea() override;
+
+    idVec3 areaOrigin;
+    idVec3 areaSecondaryOrigin;
+    idList<buildVar_t, 5> buildVars;
 };

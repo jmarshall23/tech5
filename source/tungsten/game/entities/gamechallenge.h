@@ -1,1712 +1,479 @@
 #pragma once
 
-// Reconstructed C++ declarations from IDA Local Types and PDB/DIA metadata.
-// Original PDB header: w:\tech5\tungsten\game\entities\gamechallenge.h
-// Recovered logical types: 14
-// Signatures retain Xbox 360 ABI evidence and may still require manual review.
+#include "game/entities/entity.h"
+#include "game/online_types.h"
 
+#include <cstdint>
 
-// IDA Local Type ordinal 1915; PDB kind: enum.
-enum __bitmask idGameChallenge::challengeFailed_t : __int32
-{
-  PLAYER_DISCONNECT = 0x1,
+class idClipModel;
+class idDeclDamage;
+class idDeclFaction;
+class idDeclMD6;
+class idDeclVehicleUnlock;
+class idEventReceiver;
+class idPlayer;
+class idPresentable;
+class idProp_OnlineCollectible;
+class idRenderModel;
+class idSerializer;
+
+enum gameTeam_t : int {
+    TEAM_NONE = -1,
+    TEAM_0 = 0,
+    TEAM_1 = 1,
+    TEAM_2 = 2,
+    TEAM_3 = 3,
+    TEAM_4 = 4
 };
 
-// IDA Local Type ordinal 15541; PDB kind: class.
-class idGameChallenge : public idEntity
-{
+enum challengePlayerState_t : int {
+    PLAYER_STATE_NONE = 0,
+    PLAYER_STATE_VDM_GAME_MODE_INFO = 1,
+    PLAYER_STATE_VDM_SELECT_LOADOUT = 2,
+    PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT = 3,
+    PLAYER_STATE_IN_PROGRESS = 4,
+    PLAYER_STATE_WAITING_TO_RESPAWN_FROM_DEATH = 5,
+    PLAYER_STATE_SPECTATE_AFTER_DEATH = 6,
+    PLAYER_STATE_RESPAWNING = 7
+};
+
+enum challengeRuntimeState_t : int {
+    CHALLENGE_STATE_NONE = 0,
+    CHALLENGE_STATE_WAITING = 1,
+    CHALLENGE_STATE_IN_PROGRESS = 2,
+    CHALLENGE_STATE_OVERTIME = 3,
+    CHALLENGE_STATE_GAME_OVER = 4,
+    CHALLENGE_STATE_RESULTS = 5
+};
+
+enum challengeSpawnCommand_t : int {
+    SPAWN_COMMAND_RESPAWN = 0,
+    SPAWN_COMMAND_INITIAL = 1
+};
+
+struct idGameChallengeSpawnResult {
+    bool complete = false;
+    bool failed = false;
+    idVec3 origin;
+    idAngles angles;
+};
+
+struct idGameChallengeMatchParameters {
+    challengeGameMode_t gameMode = CHALLENGE_MODE_NORMAL;
+    int timeLimit = 0;
+    int scoreLimit = 0;
+    int minimumPlayers = 1;
+    int numLives = 0;
+    bool countupTime = true;
+};
+
+class idGameChallengeServices {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15592.
-  virtual idTypeInfo *GetType();
-  virtual ~idGameChallenge();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-  virtual void StartPreGame();
-  virtual void BeginGame();
-  virtual void EndGame();
-  virtual void GameOver();
-  virtual void StartRound();
-  virtual void EndRound();
-  virtual void FinishGame();
-  virtual void SetPlayerState(idGameChallenge::playerData_t *, challengePlayerState_t, int);
-  virtual void ProcessPlayerStates();
-  virtual bool Restart();
-  virtual void RestartPlayer(idPlayer *);
-  virtual void SetSpectator(idGameChallenge::playerData_t *, bool);
-  virtual bool RegisterNewPlayer(idGameChallenge::playerData_t *, idPlayer *, bool);
-  virtual bool IsTeamGame();
-  virtual bool AllowSpectators();
-  virtual bool CanScore();
-  virtual void ForceScoreboardAll(bool);
-  virtual bool HasPreGame();
-  virtual int GetPreGameDuration();
-  virtual void GameLoadingFinished(int);
-  virtual void SyncMigrationGameDataWithSession(bool);
-  virtual void SerializeMigrationGameData(idSerializer *);
-  virtual void SerializeMigrationUserData(idSerializer *, idGameChallenge::playerData_t *);
-  virtual gameTeam_t GetTeamNumber(const idGameChallenge::playerData_t *);
-  virtual void SetTeamRenderModel(idGameChallenge::playerData_t *);
-  virtual bool PlayerStateExpired(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_RESPAWNING(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_VDM_GAME_MODE_INFO(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_WAITING_TO_RESPAWN_FROM_DEATH(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_NONE(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_WAITING_TO_RESPAWN_FROM_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_RESPAWNING(idGameChallenge::playerData_t *);
-  virtual void RespawnPlayer(idGameChallenge::playerData_t *, idDoomSpawnManager::commandType_t);
-  virtual void FinalizeRespawnPlayer(idGameChallenge::playerData_t *, const idVec3 *, const idAngles *);
-  virtual void DebugAllSpawnPoints();
-  virtual const idDeclMD6 *GetPlayerModelMD6(const idPlayer *);
-  virtual bool IsLeaderTied();
-  virtual int GetLeaderPlayerIndex();
-  virtual int GetLeaderEntityNumber();
-  virtual int GetRunnerUpScore();
-  virtual int GetHighScore();
-  virtual bool ScoreLimitReached();
-  virtual int GetPlayerScore(const idGameChallenge::playerData_t *);
-  virtual void GetScoringData(const idGameChallenge::playerData_t *, int *, int *, int *, int *);
-  virtual int GetTeamScore(gameTeam_t);
-  virtual int GetScoreLimit();
-  virtual bool DidPlayerWin(int);
-  virtual void BroadcastKillMessage(int, int, const idDeclDamage *, bool, int, int);
-  virtual bool FriendlyFireEnabled();
-  virtual bool PlayerReviveEnabled();
-  virtual void OnTriggerTouched(idTrigger_GameChallenge *, idEntity *, int);
-  virtual int GetPrimaryScoreboardStat(int);
-  virtual int GetSecondaryScoreboardStat(int);
-  virtual void Notify_FlagCaptured(struct idProp_CTF_Flag *, idEntity *);
-  virtual void PostStatsToLeaderboard();
-  virtual const leaderboardDefinition_t *GetLeaderboard();
-  virtual int GetSecondaryLeaderboardStat(int);
-  virtual void LoadMultiplayerDecls();
+    virtual ~idGameChallengeServices() = default;
 
-  bool startActive;
-  int timeLimit;
-  int scoreLimit;
-  int numLives;
-  bool countupTime;
-  bool takeDamage;
-  float respawnDelay;
-  int baseTime;
-  idList<idGameChallenge::spawnPoint_t,5> spawnPoints;
-  int minimumPlayers;
-  int leaderBoard;
-  bool useSpectatorCamera;
-  bool requireLoadoutSelection;
-  idEntityPtr<idEntity> initialSpectatorCamPos;
-  idEntityPtr<idEntity> initialSpectatorCamLookAt;
-  const idSoundShader *gameMusic;
-  const idSoundShader *gameOverSound;
-  const idSoundShader *failedGameOverSound;
-  const idDeclFX *fxDecl;
-  const idDeclOnlineVOCallout *voCallout;
-  int killScore;
-  int suicideScore;
-  int suicideSpawnDelay;
-  int spawnTimer;
-  idList<teamInfo_t,5> teamInfo;
-  botGameManagerType_t botGameManagerType;
-  idStaticList<idGameChallenge::playerData_t,6> players;
-  int startTime;
-  int endTime;
-  int originalEndTime;
-  int endTimeoutDuration;
-  int preGameTime;
-  int roundEndTime;
-  challengeGameMode_t gameMode;
-  bool bGameFailed;
-  idStrId gameFailedText;
-  idGameChallenge::challengeFailed_t failedReason;
-  bool bFinishGameExit;
-  bool incapacitated;
-  int lastReviveThresholdTick;
-  bool mapLoadFinished;
-  int forceQuitGameTime;
-  idStaticList<idGameChallenge::teamData_t,5> teams;
-  bool gcInitialized;
-  bool checkWorldCollisionOnSpawn;
-  idDoomSpawnManager *spawnManager;
-  idSpawnNodeGroup spawnNodeGroup;
-  bool wasMigratedGame;
-  int migratedTime;
-  idStaticList<int,6> eventConnectList;
-  idStaticList<int,6> eventDisconnectList;
-  int fadeInFinishTime;
-  float reviveThreshold;
+    virtual int GetGameMilliseconds() const;
+    virtual challengeRuntimeState_t GetChallengeState() const;
+    virtual void SetChallengeState(challengeRuntimeState_t state);
+    virtual int GetPreGameDuration(bool coop) const;
+    virtual int GetSpectatorDuration() const;
+    virtual int GetResultsDuration() const;
+    virtual bool FriendlyFireEnabled() const;
+    virtual bool CanPostStats() const;
+
+    virtual bool IsPlayerValid(const idPlayer* player) const;
+    virtual bool IsPlayerBot(const idPlayer* player) const;
+    virtual bool IsPlayerDisconnected(const idPlayer* player) const;
+    virtual int GetPlayerEntityNumber(const idPlayer* player) const;
+    virtual bool HasPlayerLoadoutChanged(const idPlayer* player) const;
+    virtual void ClearPlayerLoadoutChanged(idPlayer* player);
+    virtual void SetPlayerSpectating(idPlayer* player, bool spectating);
+    virtual void SetPlayerControlInhibited(idPlayer* player, bool inhibit);
+    virtual void ForcePlayerScoreboard(idPlayer* player, bool force);
+    virtual void RespawnPlayerAt(idPlayer* player, const idVec3& origin,
+        const idAngles& angles, bool initial);
+    virtual void RestartPlayer(idPlayer* player);
+    virtual void GiveStartingItems(idPlayer* player,
+        const idDeclVehicleUnlock* const* slots, int slotCount,
+        bool usePvpLoadout);
+
+    virtual void NotifyPlayerStatus(int status, idEventReceiver* receiver,
+        int playerIndex, int value);
+    virtual void SendLoadoutMessage(int playerEntityNumber, bool forced);
+    virtual void BroadcastKillMessage(int victimEntityNumber,
+        int attackerEntityNumber, const idDeclDamage* damage,
+        bool teamKill, int attackerScore, int victimScore);
+    virtual void BroadcastCollectibleStatus(int found, int maximum,
+        const char* statusText);
+    virtual void PublishCoopObjectiveResults(int score, int totalTime,
+        int parScore, int parTime, int ratingIndex, bool skipped);
+
+    virtual unsigned QueuePlayerSpawn(idPlayer* player, gameTeam_t team,
+        challengeSpawnCommand_t command);
+    virtual bool PollPlayerSpawn(unsigned handle,
+        idGameChallengeSpawnResult& result);
+    virtual bool IsSpawnpointClear(const idEntity* spawnpoint,
+        const idBounds& bounds, const idEntity* entityToSpawn,
+        const idClipModel* clipModel, bool checkWorld) const;
+    virtual void DebugSpawnpoint(const idEntity* spawnpoint,
+        bool valid) const;
+
+    virtual const idDeclVehicleUnlock* GetDefaultVehicleUnlock(
+        int slot) const;
+    virtual bool IsVehicleUnlockValid(const idDeclVehicleUnlock* unlock,
+        const idPlayer* player, int slot) const;
+    virtual bool GivePVPUnlock(idPlayer* player,
+        const idDeclVehicleUnlock* unlock);
+    virtual int GetScoreboardStat(int playerEntityNumber,
+        bool secondary) const;
+    virtual int GetLeaderboardStat(int playerEntityNumber) const;
+    virtual const idDeclFaction* GetFactionForTeam(gameTeam_t team) const;
+    virtual void SetPlayerTeam(idPlayer* player, gameTeam_t team);
+
+    virtual void SerializeMigrationGameData(idSerializer* serializer,
+        int& remainingTime, int& migratedTime, bool& countupTime);
+    virtual void SerializeMigrationUserData(idSerializer* serializer,
+        int playerEntityNumber, int& score, int& lastScore, int& lives,
+        gameTeam_t& team);
+    virtual void SyncMigrationData(bool wasMigratedGame,
+        int migratedTime);
+    virtual void SyncPlayers(bool initial);
+
+    virtual void PostPlayerStats(int playerEntityNumber, int score,
+        int relativeScore, bool won, challengeGameMode_t mode);
+    virtual void LogKillDeath(int attackerEntityNumber,
+        int victimEntityNumber);
+    virtual void LoadMultiplayerDecls();
+    virtual void ExecuteChallengeCommand(const char* commandName,
+        const void* args);
+    virtual void OnChallengeLifecycle(const char* eventName,
+        challengeGameMode_t mode);
+    virtual void SetupSpectatorCamera(idPlayer* player,
+        idEntity* cameraPosition, idEntity* cameraLookAt);
 };
 
-// IDA Local Type ordinal 15546; PDB kind: struct.
-struct idGameChallenge::playerData_t
-{
-  idEntityPtr<idPlayer> player;
-  int respawnDelay;
-  unsigned int spawnHandle;
-  int lastScore;
-  int score;
-  int lives;
-  gameTeam_t team;
-  bool spectator;
-  int lastKiller;
-  challengePlayerState_t state;
-  int stateTime;
-  int startTime;
-  bool needToSendFullSnap;
-  int timeTillNewPlayerCanTake;
-  const idDeclVehicleUnlock *loadoutSlot[6];
-};
-
-// IDA Local Type ordinal 15549; PDB kind: class.
-class idTrigger_GameChallenge : public idTrigger
-{
+class idGameChallenge : public idEntity {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 15550.
-  virtual idTypeInfo *GetType();
-  virtual ~idTrigger_GameChallenge();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-  virtual bool CanActivate(idEntity *);
+    enum challengeFailed_t : int {
+        CHALLENGE_FAILED_NONE = 0,
+        PLAYER_DISCONNECT = 1
+    };
 
+    struct playerData_t {
+        idPlayer* player = nullptr;
+        int respawnDelay = 0;
+        unsigned int spawnHandle = 0;
+        int lastScore = 0;
+        int score = 0;
+        int lives = 0;
+        gameTeam_t team = TEAM_NONE;
+        bool spectator = false;
+        int lastKiller = -1;
+        challengePlayerState_t state = PLAYER_STATE_NONE;
+        int stateTime = 0;
+        int startTime = 0;
+        bool needToSendFullSnap = true;
+        int timeTillNewPlayerCanTake = 0;
+        const idDeclVehicleUnlock* loadoutSlot[6] = {};
+    };
+
+    struct spawnPoint_t {
+        idEntity* entity = nullptr;
+        int teamNumber = TEAM_NONE;
+    };
+
+    struct teamData_t {
+        // Header retail inline: 0x8259F508
+        teamData_t() : teamScore(0) {}
+        idList<int, 5> playerIndexList;
+        int teamScore;
+    };
+
+    idGameChallenge();
+    ~idGameChallenge() override;
+
+    static void SetServices(idGameChallengeServices* services);
+    static idGameChallengeServices& Services();
+
+    bool Restart();
+    bool PlayerStateExpired(const playerData_t& data) const;
+    virtual void EnterState_PLAYER_STATE_VDM_SELECT_LOADOUT(
+        playerData_t& data);
+    virtual void EnterState_PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT(
+        playerData_t& data);
+    virtual void EnterState_PLAYER_STATE_SPECTATE_AFTER_DEATH(
+        playerData_t& data);
+    virtual void EnterState_PLAYER_STATE_RESPAWNING(playerData_t& data);
+    virtual void StateExpired_PLAYER_STATE_VDM_GAME_MODE_INFO(
+        playerData_t& data);
+    virtual void StateExpired_PLAYER_STATE_VDM_SELECT_LOADOUT(
+        playerData_t& data);
+    virtual void StateExpired_PLAYER_STATE_SPECTATE_AFTER_DEATH(
+        playerData_t& data);
+    virtual void HandleState_PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT(
+        playerData_t& data);
+    virtual void HandleState_PLAYER_STATE_SPECTATE_AFTER_DEATH(
+        playerData_t& data);
+    virtual void HandleState_PLAYER_STATE_NONE(playerData_t& data);
+    virtual void HandleState_PLAYER_STATE_VDM_SELECT_LOADOUT(
+        playerData_t& data);
+    virtual void HandleState_PLAYER_STATE_RESPAWNING(playerData_t& data);
+    virtual void SetPlayerState(playerData_t& data,
+        challengePlayerState_t state, int durationMilliseconds = 0);
+    virtual void ProcessPlayerStates();
+
+    bool IsHostile(gameTeam_t first, gameTeam_t second) const;
+    virtual int GetPlayerScore(const playerData_t& data) const;
+    virtual bool CanScore() const;
+    virtual void ForceScoreboardAll(bool force);
+    virtual int GetScoreLimit() const;
+    virtual void StartPreGame();
+    virtual int GetPreGameDuration() const;
+    virtual void BeginGame();
+    virtual void EndGame();
+    virtual void GameOver();
+    virtual void FinishGame();
+
+    void Notice_DoubleKill(idEventReceiver* receiver, int player, int value);
+    void Notice_TripleKill(idEventReceiver* receiver, int player, int value);
+    void Notice_QuadKill(idEventReceiver* receiver, int player, int value);
+    void Notice_KillingSpree(idEventReceiver* receiver, int player, int value);
+    void Notice_LeaderKill(idEventReceiver* receiver, int player, int value);
+    void Notice_CaptureFlag(idEventReceiver* receiver, int player, int value);
+    void Notice_TeamKill(idEventReceiver* receiver, int victim,
+        int attacker, const idDeclDamage* damage);
+    void Notice_Suicide(idEventReceiver* receiver, int player,
+        const idDeclDamage* damage);
+    void Notice_Death(idEventReceiver* receiver, int victim,
+        int attacker, const idDeclDamage* damage);
+
+    virtual void RestartPlayer(idPlayer* player);
+    virtual bool FriendlyFireEnabled() const;
+    const idDeclFaction* GetFactionFromTeam(gameTeam_t team) const;
+    virtual int GetTeamScore(gameTeam_t team) const;
+    virtual bool ScoreLimitReached() const;
+    virtual int GetLeaderPlayerIndex() const;
+    virtual int GetLeaderEntityNumber() const;
+    virtual int GetHighScore() const;
+    virtual int GetRunnerUpScore() const;
+    virtual bool IsLeaderTied() const;
+    virtual void GetScoringData(const playerData_t& data, int& score,
+        int& relativeScore, int& teamScore, int& teamRelativeScore) const;
+    virtual bool DidPlayerWin(int playerIndex) const;
+
+    bool IsVehicleUnlockValid(const idDeclVehicleUnlock* unlock,
+        playerData_t& data, int slot) const;
+    void SetMatchParms(const idGameChallengeMatchParameters& parameters);
+    idPresentable* AllocPresentable(idRenderModel* model) override;
+    virtual void SerializeMigrationGameData(idSerializer* serializer);
+    virtual void SerializeMigrationUserData(idSerializer* serializer,
+        playerData_t& data);
+    virtual void SyncMigrationGameDataWithSession(bool migrated);
+    playerData_t* GetPlayerData(const idPlayer* player);
+    const playerData_t* GetPlayerData(const idPlayer* player) const;
+    playerData_t* GetPlayerData(int entityNumber);
+    const playerData_t* GetPlayerData(int entityNumber) const;
+    void SetPlayerLoadout(idPlayer* player,
+        const idList<const idDeclVehicleUnlock*, 5>& loadout);
+    void RespawnPlayerFromDeath(idPlayer* player);
+    int GenerateRelativeScore(int playerIndex, int score,
+        int teamScore) const;
+    const idDeclVehicleUnlock* GetDefaultVehicleUnlock(int slot) const;
+    const idDeclVehicleUnlock* GetVehicleUnlockForSlot(
+        playerData_t& data, int slot) const;
+    virtual int GetPrimaryScoreboardStat(int entityNumber) const;
+    virtual int GetSecondaryScoreboardStat(int entityNumber) const;
+    virtual int GetSecondaryLeaderboardStat(int entityNumber) const;
+    virtual void PostStatsToLeaderboard();
+
+    bool IsSpawnpointValid(const spawnPoint_t* spawnpoint,
+        const idBounds& playerBounds, const idEntity* entityToSpawn,
+        const idClipModel* clipModel) const;
+    bool GivePVPUnlockItems(const idDeclVehicleUnlock* unlock,
+        playerData_t& data);
+    void GivePVPUnlockItemsForSlot(playerData_t& data, int slot);
+    virtual void LoadMultiplayerDecls();
+    void LogStatKillDeath(int attackerEntityNumber,
+        int victimEntityNumber);
+    virtual void DebugAllSpawnPoints();
+    virtual void BroadcastKillMessage(int victimEntityNumber,
+        int attackerEntityNumber, const idDeclDamage* damage,
+        bool teamKill, int attackerScore, int victimScore);
+    bool AllClientsDisconnected() const;
+    bool CanPostStats() const;
+
+    virtual bool RegisterNewPlayer(playerData_t& data, idPlayer* player,
+        bool initial);
+    void SetTeam(playerData_t& data, gameTeam_t team, bool resetScore);
+    void GiveStartingItems(playerData_t& data);
+    void SetupSpectatorCamera(idPlayer* player);
+    virtual void RespawnPlayer(playerData_t& data,
+        challengeSpawnCommand_t spawnCommand);
+    virtual void FinalizeRespawnPlayer(playerData_t& data,
+        const idVec3& spawnLocation, const idAngles& spawnAngles);
+    virtual void SetSpectator(playerData_t& data, bool shouldSpectate);
+    void SyncPlayersWithLobbyUsers(bool initial);
+
+    void Spawn() override;
+    void Think() override;
+    void OnActivate(idEntity* activator) override;
+
+    bool startActive;
+    int timeLimit;
+    int scoreLimit;
+    int numLives;
+    bool countupTime;
+    bool takeDamage;
+    float respawnDelay;
+    int baseTime;
+    idList<spawnPoint_t, 5> spawnPoints;
+    int minimumPlayers;
+    int leaderBoard;
+    bool useSpectatorCamera;
+    bool requireLoadoutSelection;
+    idEntity* initialSpectatorCamPos;
+    idEntity* initialSpectatorCamLookAt;
+    int killScore;
+    int suicideScore;
+    int suicideSpawnDelay;
+    int spawnTimer;
+    idList<playerData_t, 5> players;
+    int startTime;
+    int endTime;
+    int originalEndTime;
+    int endTimeoutDuration;
+    int preGameTime;
+    int roundEndTime;
+    challengeGameMode_t gameMode;
+    bool bGameFailed;
+    idStr gameFailedText;
+    challengeFailed_t failedReason;
+    bool bFinishGameExit;
+    bool incapacitated;
+    int lastReviveThresholdTick;
+    bool mapLoadFinished;
+    int forceQuitGameTime;
+    idList<teamData_t, 5> teams;
+    bool gcInitialized;
+    bool checkWorldCollisionOnSpawn;
+    bool wasMigratedGame;
+    int migratedTime;
+    idList<int, 5> eventConnectList;
+    idList<int, 5> eventDisconnectList;
+    int fadeInFinishTime;
+    float reviveThreshold;
 };
 
-// IDA Local Type ordinal 15551; PDB kind: struct.
-struct idGameChallenge::spawnPoint_t
-{
-  idEntityPtr<idEntity> entity;
-  int teamNumber;
-};
-
-// IDA Local Type ordinal 15560; PDB kind: struct.
-struct idGameChallenge::teamData_t
-{
-  idStaticList<int,4> playerIndexList;
-  int teamScore;
-};
-
-// IDA Local Type ordinal 19886; PDB kind: class.
-class __declspec(align(8)) idGameChallenge_Coop : public idGameChallenge
-{
+class idGameChallenge_Coop : public idGameChallenge {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 19892.
-  virtual idTypeInfo *GetType();
-  virtual ~idGameChallenge_Coop();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-  virtual void StartPreGame();
-  virtual void BeginGame();
-  virtual void EndGame();
-  virtual void GameOver();
-  virtual void StartRound();
-  virtual void EndRound();
-  virtual void FinishGame();
-  virtual void SetPlayerState(idGameChallenge::playerData_t *, challengePlayerState_t, int);
-  virtual void ProcessPlayerStates();
-  virtual bool Restart();
-  virtual void RestartPlayer(idPlayer *);
-  virtual void SetSpectator(idGameChallenge::playerData_t *, bool);
-  virtual bool RegisterNewPlayer(idGameChallenge::playerData_t *, idPlayer *, bool);
-  virtual bool IsTeamGame();
-  virtual bool AllowSpectators();
-  virtual bool CanScore();
-  virtual void ForceScoreboardAll(bool);
-  virtual bool HasPreGame();
-  virtual int GetPreGameDuration();
-  virtual void GameLoadingFinished(int);
-  virtual void SyncMigrationGameDataWithSession(bool);
-  virtual void SerializeMigrationGameData(idSerializer *);
-  virtual void SerializeMigrationUserData(idSerializer *, idGameChallenge::playerData_t *);
-  virtual gameTeam_t GetTeamNumber(const idGameChallenge::playerData_t *);
-  virtual void SetTeamRenderModel(idGameChallenge::playerData_t *);
-  virtual bool PlayerStateExpired(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_RESPAWNING(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_VDM_GAME_MODE_INFO(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_WAITING_TO_RESPAWN_FROM_DEATH(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_NONE(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_WAITING_TO_RESPAWN_FROM_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_RESPAWNING(idGameChallenge::playerData_t *);
-  virtual void RespawnPlayer(idGameChallenge::playerData_t *, idDoomSpawnManager::commandType_t);
-  virtual void FinalizeRespawnPlayer(idGameChallenge::playerData_t *, const idVec3 *, const idAngles *);
-  virtual void DebugAllSpawnPoints();
-  virtual const idDeclMD6 *GetPlayerModelMD6(const idPlayer *);
-  virtual bool IsLeaderTied();
-  virtual int GetLeaderPlayerIndex();
-  virtual int GetLeaderEntityNumber();
-  virtual int GetRunnerUpScore();
-  virtual int GetHighScore();
-  virtual bool ScoreLimitReached();
-  virtual int GetPlayerScore(const idGameChallenge::playerData_t *);
-  virtual void GetScoringData(const idGameChallenge::playerData_t *, int *, int *, int *, int *);
-  virtual int GetTeamScore(gameTeam_t);
-  virtual int GetScoreLimit();
-  virtual bool DidPlayerWin(int);
-  virtual void BroadcastKillMessage(int, int, const idDeclDamage *, bool, int, int);
-  virtual bool FriendlyFireEnabled();
-  virtual bool PlayerReviveEnabled();
-  virtual void OnTriggerTouched(idTrigger_GameChallenge *, idEntity *, int);
-  virtual int GetPrimaryScoreboardStat(int);
-  virtual int GetSecondaryScoreboardStat(int);
-  virtual void Notify_FlagCaptured(struct idProp_CTF_Flag *, idEntity *);
-  virtual void PostStatsToLeaderboard();
-  virtual const leaderboardDefinition_t *GetLeaderboard();
-  virtual int GetSecondaryLeaderboardStat(int);
-  virtual void LoadMultiplayerDecls();
-  virtual int GetTeamScore_2(int);
+    struct collectibleData_t {
+        bool found = false;
+        idProp_OnlineCollectible* collectible = nullptr;
+    };
 
-  idList<idGameChallenge_Coop::collectibleData_t,5> collectibleList;
-  int numCollectiblesToComplete;
-  idStrId collectibleStatusMessage;
-  idGameChallenge_Coop::collectibleData_t specialCollectible;
-  bool useUniqueSpawnpoints;
-  bool bObjectiveActive;
-  int objectiveStartTimeMS;
-  int totalTime;
-  int objectiveScore;
-  int objectiveParScore;
-  int objectiveParTimeMS;
-  idStrId objectiveText;
-  idList<idGameChallenge_Coop::ratingTitle_t,5> scoreRating;
-  const idDeclMD6 *coopModelDefPlayer1;
-  const idDeclMD6 *coopModelDefPlayer2;
+    struct ratingTitle_t {
+        int points = 0;
+        idStr rating;
+    };
+
+    idGameChallenge_Coop();
+
+    bool HasSpecialCollectible() const;
+    int GetPreGameDuration() const override;
+    void GameLoadingFinished(int playerIndex);
+    int GetNumCollectiblesFound() const;
+    void BeginGame() override;
+    void StopObjective(bool skip);
+    int GetTeamScore(int ignoredPlayerIndex) const;
+    bool HasAllCollectibles() const;
+    int GetMaxNumCollectibles() const;
+    bool RegisterNewPlayer(playerData_t& data, idPlayer* player,
+        bool initial) override;
+    void GameOver() override;
+    void PostStatsToLeaderboard() override;
+    void SetCollectibleFound(idProp_OnlineCollectible* collectible,
+        bool found);
+    void AIKill(int victimEntityNumber, int attackerEntityNumber,
+        const idDeclDamage* damage);
+    bool DidPlayerWin(int playerIndex) const override;
+    void EndGame() override;
+    void Think() override;
+    void OnActivate(idEntity* activator) override;
+
+    idList<collectibleData_t, 5> collectibleList;
+    int numCollectiblesToComplete;
+    idStr collectibleStatusMessage;
+    collectibleData_t specialCollectible;
+    bool useUniqueSpawnpoints;
+    bool bObjectiveActive;
+    int objectiveStartTimeMS;
+    int totalTime;
+    int objectiveScore;
+    int objectiveParScore;
+    int objectiveParTimeMS;
+    idStr objectiveText;
+    idList<ratingTitle_t, 5> scoreRating;
+    const idDeclMD6* coopModelDefPlayer1;
+    const idDeclMD6* coopModelDefPlayer2;
 };
 
-// IDA Local Type ordinal 19888; PDB kind: struct.
-struct idGameChallenge_Coop::collectibleData_t
-{
-  bool found;
-  idEntityPtr<idProp_OnlineCollectible> collectible;
-};
-
-// IDA Local Type ordinal 19890; PDB kind: struct.
-struct idGameChallenge_Coop::ratingTitle_t
-{
-  int points;
-  idStrId rating;
-};
-
-// IDA Local Type ordinal 19895; PDB kind: class.
-class idGameChallenge_PVP : public idGameChallenge
-{
+class idGameChallenge_PVP : public idGameChallenge {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 19896.
-  virtual idTypeInfo *GetType();
-  virtual ~idGameChallenge_PVP();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-  virtual void StartPreGame();
-  virtual void BeginGame();
-  virtual void EndGame();
-  virtual void GameOver();
-  virtual void StartRound();
-  virtual void EndRound();
-  virtual void FinishGame();
-  virtual void SetPlayerState(idGameChallenge::playerData_t *, challengePlayerState_t, int);
-  virtual void ProcessPlayerStates();
-  virtual bool Restart();
-  virtual void RestartPlayer(idPlayer *);
-  virtual void SetSpectator(idGameChallenge::playerData_t *, bool);
-  virtual bool RegisterNewPlayer(idGameChallenge::playerData_t *, idPlayer *, bool);
-  virtual bool IsTeamGame();
-  virtual bool AllowSpectators();
-  virtual bool CanScore();
-  virtual void ForceScoreboardAll(bool);
-  virtual bool HasPreGame();
-  virtual int GetPreGameDuration();
-  virtual void GameLoadingFinished(int);
-  virtual void SyncMigrationGameDataWithSession(bool);
-  virtual void SerializeMigrationGameData(idSerializer *);
-  virtual void SerializeMigrationUserData(idSerializer *, idGameChallenge::playerData_t *);
-  virtual gameTeam_t GetTeamNumber(const idGameChallenge::playerData_t *);
-  virtual void SetTeamRenderModel(idGameChallenge::playerData_t *);
-  virtual bool PlayerStateExpired(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_RESPAWNING(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_VDM_GAME_MODE_INFO(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_WAITING_TO_RESPAWN_FROM_DEATH(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_NONE(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_WAITING_TO_RESPAWN_FROM_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_RESPAWNING(idGameChallenge::playerData_t *);
-  virtual void RespawnPlayer(idGameChallenge::playerData_t *, idDoomSpawnManager::commandType_t);
-  virtual void FinalizeRespawnPlayer(idGameChallenge::playerData_t *, const idVec3 *, const idAngles *);
-  virtual void DebugAllSpawnPoints();
-  virtual const idDeclMD6 *GetPlayerModelMD6(const idPlayer *);
-  virtual bool IsLeaderTied();
-  virtual int GetLeaderPlayerIndex();
-  virtual int GetLeaderEntityNumber();
-  virtual int GetRunnerUpScore();
-  virtual int GetHighScore();
-  virtual bool ScoreLimitReached();
-  virtual int GetPlayerScore(const idGameChallenge::playerData_t *);
-  virtual void GetScoringData(const idGameChallenge::playerData_t *, int *, int *, int *, int *);
-  virtual int GetTeamScore(gameTeam_t);
-  virtual int GetScoreLimit();
-  virtual bool DidPlayerWin(int);
-  virtual void BroadcastKillMessage(int, int, const idDeclDamage *, bool, int, int);
-  virtual bool FriendlyFireEnabled();
-  virtual bool PlayerReviveEnabled();
-  virtual void OnTriggerTouched(idTrigger_GameChallenge *, idEntity *, int);
-  virtual int GetPrimaryScoreboardStat(int);
-  virtual int GetSecondaryScoreboardStat(int);
-  virtual void Notify_FlagCaptured(struct idProp_CTF_Flag *, idEntity *);
-  virtual void PostStatsToLeaderboard();
-  virtual const leaderboardDefinition_t *GetLeaderboard();
-  virtual int GetSecondaryLeaderboardStat(int);
-  virtual void LoadMultiplayerDecls();
-  virtual void ScorePlayerKill(int, int);
-  virtual void ScoreTeamKill(int, int);
+    idGameChallenge_PVP();
 
-  bool isTeamGame;
-  const idDeclMD6 *teamNoneModelDef;
-  const idDeclMD6 *teamRedModelDef;
-  const idDeclMD6 *teamBlueModelDef;
-  const idDeclMD6 *teamGreenModelDef;
-  const idDeclMD6 *teamYellowModelDef;
+    gameTeam_t GetTeamNumber(const playerData_t& data) const;
+    void ScorePlayerKill(int victimIndex, int attackerIndex);
+    void ScoreTeamKill(int victimIndex, int attackerIndex);
+    void Notice_PlayerKill(idEventReceiver* receiver, int victim,
+        int attacker, const idDeclDamage* damage, int weaponIndex);
+    void Notice_TeamKill(idEventReceiver* receiver, int victim,
+        int attacker, const idDeclDamage* damage);
+    bool RegisterNewPlayer(playerData_t& data, idPlayer* player,
+        bool initial) override;
+    void OnActivate(idEntity* activator) override;
+    bool IsTeamGame() const;
+
+    bool isTeamGame;
+    const idDeclMD6* teamNoneModelDef;
+    const idDeclMD6* teamRedModelDef;
+    const idDeclMD6* teamBlueModelDef;
+    const idDeclMD6* teamGreenModelDef;
+    const idDeclMD6* teamYellowModelDef;
 };
 
-// IDA Local Type ordinal 19897; PDB kind: class.
-class idGameChallenge::SyncPlayersWithLobbyUsers::__l2::idSWFScriptFunction_LeaveGame : public idSWFScriptFunction_RefCounted
-{
+class idGameChallenge_DM : public idGameChallenge_PVP {};
+
+class idGameChallenge_DM_FFA : public idGameChallenge_DM {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 19898.
-  virtual ~idSWFScriptFunction_LeaveGame();
-  virtual idSWFScriptVar *Call(idSWFScriptVar *result, idSWFScriptObject *, const idSWFParmList *);
-  virtual void AddRef();
-  virtual void Release();
-  virtual idSWFScriptObject *GetPrototype();
-  virtual void SetPrototype(idSWFScriptObject *);
-
-  idEntityPtr<idGameChallenge_Coop> gc;
-  gameDialogMessages_t msg;
+    idGameChallenge_DM_FFA();
 };
 
-// IDA Local Type ordinal 19899; PDB kind: class.
-class idGameChallenge_DM : public idGameChallenge_PVP
-{
+class idGameChallenge_DM_TDM : public idGameChallenge_DM {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 19900.
-  virtual idTypeInfo *GetType();
-  virtual ~idGameChallenge_DM();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-  virtual void StartPreGame();
-  virtual void BeginGame();
-  virtual void EndGame();
-  virtual void GameOver();
-  virtual void StartRound();
-  virtual void EndRound();
-  virtual void FinishGame();
-  virtual void SetPlayerState(idGameChallenge::playerData_t *, challengePlayerState_t, int);
-  virtual void ProcessPlayerStates();
-  virtual bool Restart();
-  virtual void RestartPlayer(idPlayer *);
-  virtual void SetSpectator(idGameChallenge::playerData_t *, bool);
-  virtual bool RegisterNewPlayer(idGameChallenge::playerData_t *, idPlayer *, bool);
-  virtual bool IsTeamGame();
-  virtual bool AllowSpectators();
-  virtual bool CanScore();
-  virtual void ForceScoreboardAll(bool);
-  virtual bool HasPreGame();
-  virtual int GetPreGameDuration();
-  virtual void GameLoadingFinished(int);
-  virtual void SyncMigrationGameDataWithSession(bool);
-  virtual void SerializeMigrationGameData(idSerializer *);
-  virtual void SerializeMigrationUserData(idSerializer *, idGameChallenge::playerData_t *);
-  virtual gameTeam_t GetTeamNumber(const idGameChallenge::playerData_t *);
-  virtual void SetTeamRenderModel(idGameChallenge::playerData_t *);
-  virtual bool PlayerStateExpired(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_RESPAWNING(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_VDM_GAME_MODE_INFO(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_WAITING_TO_RESPAWN_FROM_DEATH(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_NONE(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_WAITING_TO_RESPAWN_FROM_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_RESPAWNING(idGameChallenge::playerData_t *);
-  virtual void RespawnPlayer(idGameChallenge::playerData_t *, idDoomSpawnManager::commandType_t);
-  virtual void FinalizeRespawnPlayer(idGameChallenge::playerData_t *, const idVec3 *, const idAngles *);
-  virtual void DebugAllSpawnPoints();
-  virtual const idDeclMD6 *GetPlayerModelMD6(const idPlayer *);
-  virtual bool IsLeaderTied();
-  virtual int GetLeaderPlayerIndex();
-  virtual int GetLeaderEntityNumber();
-  virtual int GetRunnerUpScore();
-  virtual int GetHighScore();
-  virtual bool ScoreLimitReached();
-  virtual int GetPlayerScore(const idGameChallenge::playerData_t *);
-  virtual void GetScoringData(const idGameChallenge::playerData_t *, int *, int *, int *, int *);
-  virtual int GetTeamScore(gameTeam_t);
-  virtual int GetScoreLimit();
-  virtual bool DidPlayerWin(int);
-  virtual void BroadcastKillMessage(int, int, const idDeclDamage *, bool, int, int);
-  virtual bool FriendlyFireEnabled();
-  virtual bool PlayerReviveEnabled();
-  virtual void OnTriggerTouched(idTrigger_GameChallenge *, idEntity *, int);
-  virtual int GetPrimaryScoreboardStat(int);
-  virtual int GetSecondaryScoreboardStat(int);
-  virtual void Notify_FlagCaptured(struct idProp_CTF_Flag *, idEntity *);
-  virtual void PostStatsToLeaderboard();
-  virtual const leaderboardDefinition_t *GetLeaderboard();
-  virtual int GetSecondaryLeaderboardStat(int);
-  virtual void LoadMultiplayerDecls();
-  virtual void ScorePlayerKill(int, int);
-  virtual void ScoreTeamKill(int, int);
-
+    idGameChallenge_DM_TDM();
 };
 
-// IDA Local Type ordinal 19901; PDB kind: class.
-class idGameChallenge_DM_FFA : public idGameChallenge_DM
-{
+class idGameChallengeLeaveGameCallback {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 19902.
-  virtual idTypeInfo *GetType();
-  virtual ~idGameChallenge_DM_FFA();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-  virtual void StartPreGame();
-  virtual void BeginGame();
-  virtual void EndGame();
-  virtual void GameOver();
-  virtual void StartRound();
-  virtual void EndRound();
-  virtual void FinishGame();
-  virtual void SetPlayerState(idGameChallenge::playerData_t *, challengePlayerState_t, int);
-  virtual void ProcessPlayerStates();
-  virtual bool Restart();
-  virtual void RestartPlayer(idPlayer *);
-  virtual void SetSpectator(idGameChallenge::playerData_t *, bool);
-  virtual bool RegisterNewPlayer(idGameChallenge::playerData_t *, idPlayer *, bool);
-  virtual bool IsTeamGame();
-  virtual bool AllowSpectators();
-  virtual bool CanScore();
-  virtual void ForceScoreboardAll(bool);
-  virtual bool HasPreGame();
-  virtual int GetPreGameDuration();
-  virtual void GameLoadingFinished(int);
-  virtual void SyncMigrationGameDataWithSession(bool);
-  virtual void SerializeMigrationGameData(idSerializer *);
-  virtual void SerializeMigrationUserData(idSerializer *, idGameChallenge::playerData_t *);
-  virtual gameTeam_t GetTeamNumber(const idGameChallenge::playerData_t *);
-  virtual void SetTeamRenderModel(idGameChallenge::playerData_t *);
-  virtual bool PlayerStateExpired(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_RESPAWNING(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_VDM_GAME_MODE_INFO(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_WAITING_TO_RESPAWN_FROM_DEATH(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_NONE(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_WAITING_TO_RESPAWN_FROM_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_RESPAWNING(idGameChallenge::playerData_t *);
-  virtual void RespawnPlayer(idGameChallenge::playerData_t *, idDoomSpawnManager::commandType_t);
-  virtual void FinalizeRespawnPlayer(idGameChallenge::playerData_t *, const idVec3 *, const idAngles *);
-  virtual void DebugAllSpawnPoints();
-  virtual const idDeclMD6 *GetPlayerModelMD6(const idPlayer *);
-  virtual bool IsLeaderTied();
-  virtual int GetLeaderPlayerIndex();
-  virtual int GetLeaderEntityNumber();
-  virtual int GetRunnerUpScore();
-  virtual int GetHighScore();
-  virtual bool ScoreLimitReached();
-  virtual int GetPlayerScore(const idGameChallenge::playerData_t *);
-  virtual void GetScoringData(const idGameChallenge::playerData_t *, int *, int *, int *, int *);
-  virtual int GetTeamScore(gameTeam_t);
-  virtual int GetScoreLimit();
-  virtual bool DidPlayerWin(int);
-  virtual void BroadcastKillMessage(int, int, const idDeclDamage *, bool, int, int);
-  virtual bool FriendlyFireEnabled();
-  virtual bool PlayerReviveEnabled();
-  virtual void OnTriggerTouched(idTrigger_GameChallenge *, idEntity *, int);
-  virtual int GetPrimaryScoreboardStat(int);
-  virtual int GetSecondaryScoreboardStat(int);
-  virtual void Notify_FlagCaptured(struct idProp_CTF_Flag *, idEntity *);
-  virtual void PostStatsToLeaderboard();
-  virtual const leaderboardDefinition_t *GetLeaderboard();
-  virtual int GetSecondaryLeaderboardStat(int);
-  virtual void LoadMultiplayerDecls();
-  virtual void ScorePlayerKill(int, int);
-  virtual void ScoreTeamKill(int, int);
-
+    explicit idGameChallengeLeaveGameCallback(idGameChallenge* challenge = nullptr);
+    void Call();
+    idGameChallenge* challenge;
 };
 
-// IDA Local Type ordinal 19903; PDB kind: class.
-class idGameChallenge_DM_TDM : public idGameChallenge_DM
-{
+class fakeLeaderboardCallback {
 public:
-  // Recovered virtual interface; IDA vtable ordinal 19904.
-  virtual idTypeInfo *GetType();
-  virtual ~idGameChallenge_DM_TDM();
-  virtual idEventArg *CallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool RespondsTo(const idEventDef *);
-  virtual idEventArg *InternalCallEvent(idEventArg *result, const idEventDef *, const idEventArg *);
-  virtual bool InternalRespondsTo(const idEventDef *);
-  virtual void PostSpawn();
-  virtual void Remove();
-  virtual void DeleteSubEntities();
-  virtual bool Draw(idPlayer *);
-  virtual void JobSync();
-  virtual void Think();
-  virtual void PauseThink();
-  virtual bool ShouldEnterDormancy();
-  virtual bool ShouldLeaveDormancy();
-  virtual void DormantBegin();
-  virtual void DormantEnd(const int);
-  virtual idRenderModelInfo *GetRenderModelInfo();
-  virtual const idRenderModelInfo *GetRenderModelInfo_2();
-  virtual void GetScale(idVec3 *);
-  virtual void SetScale(const idVec3 *);
-  virtual void SetModelByName(const char *);
-  virtual void SetModel(idRenderModel *);
-  virtual const idMaterial *GetCustomMaterial();
-  virtual void SetColor(const idVec4 *);
-  virtual void SetColor_2(const idColor *);
-  virtual void SetColor_3(const idVec3 *);
-  virtual void SetColor_4(float, float, float);
-  virtual void SetColor_5(float, float, float, float);
-  virtual void GetColor(idVec4 *);
-  virtual void GetColor_2(idColor *);
-  virtual void GetColor_3(idVec3 *);
-  virtual void Hide(bool);
-  virtual void Hide_2();
-  virtual void Show();
-  virtual void GetModelTransform(idVec3 *, idMat3 *);
-  virtual void GetSoundTransform(idVec3 *, idMat3 *);
-  virtual void UpdateModelTransform();
-  virtual void UpdateFX();
-  virtual void ProjectOverlay(const idVec3 *, const idVec3 *, float, const char *);
-  virtual idPresentable *AllocPresentable(idRenderModel *);
-  virtual const idComponentTimeLine *GetComponentTimeLine();
-  virtual idComponentTimeLine *GetComponentTimeLine_2();
-  virtual bool UpdateAnimationControllers();
-  virtual void UpdateAttachments();
-  virtual const idAnimStack *GetAnimStack();
-  virtual idAnimStack *GetAnimStack_2();
-  virtual idIndex<short,enum invalidJointIndex_t> *GetJointIndexFromTrace(idIndex<short,enum invalidJointIndex_t> *result, trace_t);
-  virtual awPathResult_t ChangeAnimWebState(const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebState_2(const char *);
-  virtual awPathResult_t ForceAnimWebState(const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia(const char *, const char *, const char *, const char *);
-  virtual awPathResult_t ChangeAnimWebStateVia_2(const char *, const char *);
-  virtual idAnimWebCmdCtx *GetAnimWebCmdCtx();
-  virtual const idAnimWebCmdCtx *GetAnimWebCmdCtx_2();
-  virtual const idAnimator_AF *GetAF();
-  virtual idAnimator_AF *GetAF_2();
-  virtual void PreBind();
-  virtual void PostBind();
-  virtual void PreUnbind();
-  virtual void PostUnbind();
-  virtual const splineLocation_t *GetSplineLocation();
-  virtual void SetAxis(const idMat3 *);
-  virtual bool CanDisablePhysics(const idEntity *);
-  virtual collide_t Collide(const int, trace_t *, const idVec3 *);
-  virtual collide_t Contact(const int, contactInfo_t *);
-  virtual void ApplyImpulse(const int, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyImpulseFromEntity(const idEntity *, const int, const idVec3 *, const idVec3 *);
-  virtual void ApplyForce(const int, const int, const idVec3 *, const idVec3 *);
-  virtual bool Crush(const int);
-  virtual void ApplyDamage(const int, const int, const idDeclDamage *);
-  virtual void ActivatePhysics(const int);
-  virtual void DeactivatePhysics(const int);
-  virtual void ApplyWaterEffects(const int, const int);
-  virtual void ApplyWaterSplashEffects(const int, const int, surfTypes_t, idPhysicsCallbacks::splashState_t);
-  virtual bool TakesDamage();
-  virtual void DamageFeedback(idEntity *, idEntity *, const idDeclDamage *, float *);
-  virtual void KilledNotification(const idEntity *, const idEntity *, const idDeclDamage *, const float);
-  virtual float Damage(idEntity *, idEntity *, const idDeclDamage *, const float, const idVec3 *, trace_t *);
-  virtual bool CalcDamageImpulse(const idEntity *, const idEntity *, const idDeclDamage *, const float, const idVec3 *, const trace_t *, idVec3 *, idVec3 *);
-  virtual bool IsTargetLockable(const idDeclAmmo *);
-  virtual void AddProjectileLock();
-  virtual void RemoveProjectileLock();
-  virtual const idScriptObject *GetScriptObject();
-  virtual idScriptObject *GetScriptObject_2();
-  virtual bool ShouldConstructScriptObjectAtSpawn();
-  virtual idThread *GetStateThread();
-  virtual int AddThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual void RemoveThread(const idHandle<int,enum invalidThreadHandle_t,0>);
-  virtual idHandle<int,enum invalidThreadHandle_t,0> *GetThread(idHandle<int,enum invalidThreadHandle_t,0> *result, const int);
-  virtual int NumThreads();
-  virtual int MaxThreads();
-  virtual void ExecuteThread(idThread *);
-  virtual void ResetFSMWaitThreadIfPossible(idThread *);
-  virtual bool HandleGuiEvent(const sysEvent_t *);
-  virtual void ActivateTargets(idEntity *);
-  virtual bool GetRcCarCanTarget();
-  virtual const idBaseHealth *GetHealthComponent();
-  virtual idBaseHealth *GetHealthComponent_2();
-  virtual const idSmartLootComponent *GetSmartLootComponent();
-  virtual idSmartLootComponent *GetSmartLootComponent_2();
-  virtual void Teleport(const idVec3 *, const idAngles *);
-  virtual bool IsPusher();
-  virtual const idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList();
-  virtual idList<idEntityPtr<idEntity>,5> *GetTriggerTouchList_2();
-  virtual void TestFunctionality();
-  virtual float GetUsableDistance();
-  virtual float GetCrosshairIconDistance();
-  virtual usableState_t GetUsableState(const idEntity *, const idFocusTrace *);
-  virtual bool ModifyCrosshairInfo(const idEntity *, const idFocusTrace *, const usableState_t, idCrosshairInfo *);
-  virtual bool IsCrosshairDisabled(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsCrosshairSubdued(const idEntity *, const idFocusTrace *, const usableState_t);
-  virtual bool IsEverUsable(const idEntity *);
-  virtual bool IsCurrentlyUsable(const idEntity *);
-  virtual bool Use(idEntity *, const usableState_t);
-  virtual void Dropped(idEntity *, const idDeclInventory *);
-  virtual const idInventoryCollection *GetInventory();
-  virtual idInventoryCollection *GetInventory_2();
-  virtual void InventoryAdded(idInventoryItem *, int);
-  virtual void InventoryRemoved(idInventoryItem *);
-  virtual const idAttachmentCollection *GetAttachments();
-  virtual idAttachmentCollection *GetAttachments_2();
-  virtual void EnableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual void DisableAIEventResponse(const idAIEvent::aiEventClass_t);
-  virtual bool CanReceiveAIEvents(const int);
-  virtual bool RespondsToAIEvent(const idAIEvent *);
-  virtual void OnAIEvent(const idAIEvent *);
-  virtual bool IsDead();
-  virtual bool IsDying();
-  virtual idFaction *GetFaction();
-  virtual const idFaction *GetFaction_2();
-  virtual idEntityAuditor *GetAuditor();
-  virtual void GetVisibilityPoint(const visPoint_t, idVec3 *);
-  virtual void GetAimPoint(const aimPoint_t, idVec3 *);
-  virtual void GetEyePos(idVec3 *);
-  virtual bool IsVisible();
-  virtual idDynamicCoverMgr *GetDynamicCoverMgr();
-  virtual const idDynamicCoverMgr *GetDynamicCoverMgr_2();
-  virtual const idAAS2 *GetAAS();
-  virtual void GetViewStateFOV(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual void GetViewStateFOV_2(idVec3 *, unsigned __int8 *, unsigned __int8 *);
-  virtual int GetNumRepairBotTetherPoints();
-  virtual bool GetRepairBotTetherPoint(const int, const int, idVec3 *);
-  virtual idEntityInterface *CreateEntityInterface(idGame *);
-  virtual void ShowEditingDialog();
-  virtual void UpdateEditingDialog();
-  virtual void UpdateModifiedProperties();
-  virtual inputSettings_t *GetInputSettings(inputSettings_t *result, idPlayer *);
-  virtual bool EvaluateControls(usercmd_t *, usercmd_t *);
-  virtual void CheckForErrors(idList<idStr,5> *);
-  virtual void DebugDrawEntity(const idColor *, int);
-  virtual void ClientThink();
-  virtual void Serialize(idSerializer *);
-  virtual void PostSerializeRead(bool);
-  virtual void OnActivate(idEntity *);
-  virtual void OnMakeActivatable(const bool);
-  virtual void OnNotifyProgressionOwner();
-  virtual void StartPreGame();
-  virtual void BeginGame();
-  virtual void EndGame();
-  virtual void GameOver();
-  virtual void StartRound();
-  virtual void EndRound();
-  virtual void FinishGame();
-  virtual void SetPlayerState(idGameChallenge::playerData_t *, challengePlayerState_t, int);
-  virtual void ProcessPlayerStates();
-  virtual bool Restart();
-  virtual void RestartPlayer(idPlayer *);
-  virtual void SetSpectator(idGameChallenge::playerData_t *, bool);
-  virtual bool RegisterNewPlayer(idGameChallenge::playerData_t *, idPlayer *, bool);
-  virtual bool IsTeamGame();
-  virtual bool AllowSpectators();
-  virtual bool CanScore();
-  virtual void ForceScoreboardAll(bool);
-  virtual bool HasPreGame();
-  virtual int GetPreGameDuration();
-  virtual void GameLoadingFinished(int);
-  virtual void SyncMigrationGameDataWithSession(bool);
-  virtual void SerializeMigrationGameData(idSerializer *);
-  virtual void SerializeMigrationUserData(idSerializer *, idGameChallenge::playerData_t *);
-  virtual gameTeam_t GetTeamNumber(const idGameChallenge::playerData_t *);
-  virtual void SetTeamRenderModel(idGameChallenge::playerData_t *);
-  virtual bool PlayerStateExpired(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void EnterState_PLAYER_STATE_RESPAWNING(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_VDM_GAME_MODE_INFO(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_WAITING_TO_RESPAWN_FROM_DEATH(idGameChallenge::playerData_t *);
-  virtual void StateExpired_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_NONE(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_VDM_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_VDM_FORCE_SELECT_LOADOUT(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_WAITING_TO_RESPAWN_FROM_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_SPECTATE_AFTER_DEATH(idGameChallenge::playerData_t *);
-  virtual void HandleState_PLAYER_STATE_RESPAWNING(idGameChallenge::playerData_t *);
-  virtual void RespawnPlayer(idGameChallenge::playerData_t *, idDoomSpawnManager::commandType_t);
-  virtual void FinalizeRespawnPlayer(idGameChallenge::playerData_t *, const idVec3 *, const idAngles *);
-  virtual void DebugAllSpawnPoints();
-  virtual const idDeclMD6 *GetPlayerModelMD6(const idPlayer *);
-  virtual bool IsLeaderTied();
-  virtual int GetLeaderPlayerIndex();
-  virtual int GetLeaderEntityNumber();
-  virtual int GetRunnerUpScore();
-  virtual int GetHighScore();
-  virtual bool ScoreLimitReached();
-  virtual int GetPlayerScore(const idGameChallenge::playerData_t *);
-  virtual void GetScoringData(const idGameChallenge::playerData_t *, int *, int *, int *, int *);
-  virtual int GetTeamScore(gameTeam_t);
-  virtual int GetScoreLimit();
-  virtual bool DidPlayerWin(int);
-  virtual void BroadcastKillMessage(int, int, const idDeclDamage *, bool, int, int);
-  virtual bool FriendlyFireEnabled();
-  virtual bool PlayerReviveEnabled();
-  virtual void OnTriggerTouched(idTrigger_GameChallenge *, idEntity *, int);
-  virtual int GetPrimaryScoreboardStat(int);
-  virtual int GetSecondaryScoreboardStat(int);
-  virtual void Notify_FlagCaptured(struct idProp_CTF_Flag *, idEntity *);
-  virtual void PostStatsToLeaderboard();
-  virtual const leaderboardDefinition_t *GetLeaderboard();
-  virtual int GetSecondaryLeaderboardStat(int);
-  virtual void LoadMultiplayerDecls();
-  virtual void ScorePlayerKill(int, int);
-  virtual void ScoreTeamKill(int, int);
-
+    fakeLeaderboardCallback();
+    fakeLeaderboardCallback(const fakeLeaderboardCallback& other);
+    virtual ~fakeLeaderboardCallback() = default;
+    virtual void Call();
+    virtual fakeLeaderboardCallback* Clone() const;
+    int callCount;
 };
+
+void MPTestSpawns_f(const void* args = nullptr);
+void ForceEndGame_f(const void* args = nullptr);
+void MPTestLeaderboardUpload_f(const void* args = nullptr);
+void MPTestLeaderboardUploadCoop_f(const void* args = nullptr);
+void MPTestLeaderboardUploadRoadRage_f(const void* args = nullptr);
+void MPCallout_f(const void* args = nullptr);
+void MPTestLeaderboardDownloadCoop_f(const void* args = nullptr);
+void MPTestLeaderboardDownloadRally_f(const void* args = nullptr);
